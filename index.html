@@ -817,6 +817,263 @@
         }
 
         .hidden { display: none !important; }
+
+        /* ==================== MODAL ==================== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--gray-400);
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+        .modal-close:hover { color: var(--gray-600); }
+        .modal-body {
+            padding: 24px;
+        }
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-100);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* ==================== FAB (Floating Action Button) ==================== */
+        .fab {
+            position: fixed;
+            bottom: 100px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            z-index: 50;
+        }
+        .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+        }
+        @media (min-width: 769px) {
+            .fab { bottom: 32px; }
+        }
+
+        /* ==================== CALENDAR ==================== */
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .calendar-nav {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .calendar-nav-btn {
+            background: var(--gray-100);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--gray-600);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .calendar-nav-btn:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+        .calendar-month {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--gray-900);
+            min-width: 180px;
+            text-align: center;
+        }
+        .calendar-today-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .calendar-today-btn:hover {
+            background: var(--gray-50);
+            border-color: var(--gray-400);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: var(--gray-200);
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .calendar-day-header {
+            background: var(--gray-50);
+            padding: 12px 8px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .calendar-day {
+            background: white;
+            min-height: 100px;
+            padding: 8px;
+            vertical-align: top;
+            position: relative;
+        }
+        .calendar-day.other-month {
+            background: var(--gray-50);
+        }
+        .calendar-day.other-month .calendar-date {
+            color: var(--gray-400);
+        }
+        .calendar-day.today {
+            background: rgba(79, 70, 229, 0.05);
+        }
+        .calendar-day.today .calendar-date {
+            background: var(--primary);
+            color: white;
+        }
+        .calendar-date {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+            border-radius: 50%;
+            margin-bottom: 4px;
+        }
+        .calendar-events {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .calendar-event {
+            background: var(--primary);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: all 0.15s;
+        }
+        .calendar-event:hover {
+            background: var(--primary-dark);
+            transform: scale(1.02);
+        }
+        .calendar-event.music { background: #8B5CF6; }
+        .calendar-event.blocking { background: #F59E0B; }
+        .calendar-event.choreo { background: #EC4899; }
+        .calendar-event.run-through { background: #10B981; }
+        .calendar-event.tech { background: #6366F1; }
+        .calendar-event.dress { background: #EF4444; }
+        .calendar-more {
+            font-size: 11px;
+            color: var(--gray-500);
+            padding: 2px 4px;
+            cursor: pointer;
+        }
+        .calendar-more:hover {
+            color: var(--primary);
+        }
+
+        /* Calendar responsive */
+        @media (max-width: 768px) {
+            .calendar-day {
+                min-height: 70px;
+                padding: 4px;
+            }
+            .calendar-date {
+                width: 24px;
+                height: 24px;
+                font-size: 12px;
+            }
+            .calendar-event {
+                padding: 2px 4px;
+                font-size: 10px;
+            }
+            .calendar-day-header {
+                padding: 8px 4px;
+                font-size: 10px;
+            }
+            .calendar-month {
+                font-size: 16px;
+                min-width: auto;
+            }
+        }
     </style>
 </head>
 <body>
@@ -842,6 +1099,18 @@
 
     <!-- Notification -->
     <div id="notification" class="notification hidden"></div>
+
+    <!-- Modal Container -->
+    <div id="modalOverlay" class="modal-overlay hidden" onclick="closeModalOnOverlay(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Add Rehearsal</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer" id="modalFooter"></div>
+        </div>
+    </div>
 
     <!-- Main App -->
     <div id="mainApp" class="app hidden">
@@ -1013,6 +1282,7 @@
         let data = { productions: [], people: [], scenes: [], rehearsals: [], attendance: [], inventory: [], budget: [], documents: [], cueSheets: [], emails: [] };
         let activeProduction = null, activeTab = 'dashboard';
         let editing = { production: null, person: null, scene: null, rehearsal: null, inventory: null, budget: null, document: null, cueSheet: null, email: null };
+        let calendarDate = new Date(); // Current calendar view month
 
         // ==================== INIT ====================
         function gapiLoaded() { gapi.load('client', async () => { await gapi.client.init({ discoveryDocs: [DISCOVERY_DOC] }); gapiInited = true; maybeEnableButtons(); }); }
@@ -1141,6 +1411,23 @@
         function formatDate(dateStr) { if (!dateStr) return ''; try { return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); } catch { return dateStr; } }
         function isToday(dateStr) { const today = new Date().toISOString().split('T')[0]; return dateStr === today; }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+        // ==================== MODAL FUNCTIONS ====================
+        function openModal(title, bodyHtml, footerHtml) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalBody').innerHTML = bodyHtml;
+            document.getElementById('modalFooter').innerHTML = footerHtml;
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.add('hidden');
+            document.body.style.overflow = '';
+            editing.rehearsal = null;
+        }
+        function closeModalOnOverlay(event) {
+            if (event.target === document.getElementById('modalOverlay')) closeModal();
+        }
 
         // ==================== NAVIGATION ====================
         document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(item => {
@@ -1500,51 +1787,263 @@
         async function saveScene() { const num = document.getElementById('scene_number').value.trim(), title = document.getElementById('scene_title').value.trim(); if (!num || !title) return showNotification('Enter scene # and title', 'error'); const castIds = Array.from(document.getElementById('scene_cast').selectedOptions).map(o => o.value); const item = data.scenes.find(s => s.id === editing.scene); if (item) { item.sceneNumber = num; item.title = title; item.act = document.getElementById('scene_act').value; item.status = document.getElementById('scene_status').value; item.castIds = castIds; } editing.scene = null; await saveSheetData('scenes'); renderContent(); }
         async function deleteScene(id) { if (confirm('Delete?')) { data.scenes = data.scenes.filter(s => s.id !== id); await saveSheetData('scenes'); renderContent(); } }
 
-        // ==================== REHEARSALS ====================
+        // ==================== REHEARSALS (CALENDAR VIEW) ====================
         function renderRehearsals() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-title">Select a production first</div></div>';
-            const rehearsals = getProductionData('rehearsals'), scenes = getProductionData('scenes');
-            const isEditing = editing.rehearsal !== null, editItem = isEditing ? rehearsals.find(r => r.id === editing.rehearsal) : null;
-            const sceneOptions = scenes.map(s => `<option value="${s.id}" ${isEditing && editItem.sceneIds && editItem.sceneIds.includes(s.id) ? 'selected' : ''}>${s.sceneNumber}: ${s.title}</option>`).join('');
+            
+            const rehearsals = getProductionData('rehearsals');
+            const year = calendarDate.getFullYear();
+            const month = calendarDate.getMonth();
+            const monthName = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            
+            // Get first day of month and total days
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDayOfWeek = firstDay.getDay();
+            const totalDays = lastDay.getDate();
+            
+            // Get today for highlighting
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            
+            // Build calendar grid
+            let calendarCells = '';
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            // Day headers
+            dayNames.forEach(day => {
+                calendarCells += `<div class="calendar-day-header">${day}</div>`;
+            });
+            
+            // Previous month's trailing days
+            const prevMonth = new Date(year, month, 0);
+            const prevMonthDays = prevMonth.getDate();
+            for (let i = startDayOfWeek - 1; i >= 0; i--) {
+                const dayNum = prevMonthDays - i;
+                calendarCells += `<div class="calendar-day other-month"><div class="calendar-date">${dayNum}</div></div>`;
+            }
+            
+            // Current month's days
+            for (let day = 1; day <= totalDays; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isToday = dateStr === todayStr;
+                const dayRehearsals = rehearsals.filter(r => r.date === dateStr).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+                
+                let eventsHtml = '';
+                const maxDisplay = 2;
+                dayRehearsals.slice(0, maxDisplay).forEach(r => {
+                    const typeClass = (r.type || '').toLowerCase().replace(/[^a-z]/g, '-');
+                    eventsHtml += `<div class="calendar-event ${typeClass}" onclick="openRehearsalModal('${r.id}')" title="${r.startTime} - ${r.type || 'Rehearsal'}">${r.startTime || ''} ${r.type || ''}</div>`;
+                });
+                if (dayRehearsals.length > maxDisplay) {
+                    eventsHtml += `<div class="calendar-more" onclick="showDayRehearsals('${dateStr}')">+${dayRehearsals.length - maxDisplay} more</div>`;
+                }
+                
+                calendarCells += `
+                    <div class="calendar-day ${isToday ? 'today' : ''}">
+                        <div class="calendar-date">${day}</div>
+                        <div class="calendar-events">${eventsHtml}</div>
+                    </div>
+                `;
+            }
+            
+            // Next month's leading days
+            const totalCells = startDayOfWeek + totalDays;
+            const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+            for (let i = 1; i <= remainingCells; i++) {
+                calendarCells += `<div class="calendar-day other-month"><div class="calendar-date">${i}</div></div>`;
+            }
 
             return `
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header"><span class="card-title">${isEditing ? '✏️ Edit Rehearsal' : '➕ Add Rehearsal'}</span></div>
-                    <div class="card-body">
-                        <div class="form-grid">
-                            <div class="form-group"><label class="form-label">Date *</label><input type="date" class="form-input" id="reh_date" value="${isEditing ? editItem.date || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Start Time *</label><input type="time" class="form-input" id="reh_startTime" value="${isEditing ? editItem.startTime || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">End Time</label><input type="time" class="form-input" id="reh_endTime" value="${isEditing ? editItem.endTime || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Location</label><input type="text" class="form-input" id="reh_location" value="${isEditing ? editItem.location || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="reh_type"><option value="">Select...</option><option ${isEditing && editItem.type === 'Music' ? 'selected' : ''}>Music</option><option ${isEditing && editItem.type === 'Blocking' ? 'selected' : ''}>Blocking</option><option ${isEditing && editItem.type === 'Choreo' ? 'selected' : ''}>Choreo</option><option ${isEditing && editItem.type === 'Run-through' ? 'selected' : ''}>Run-through</option><option ${isEditing && editItem.type === 'Tech' ? 'selected' : ''}>Tech</option><option ${isEditing && editItem.type === 'Dress' ? 'selected' : ''}>Dress</option></select></div>
-                            <div class="form-group full-width"><label class="form-label">Scenes (Ctrl+Click)</label><select multiple class="form-select" id="reh_scenes" onchange="updateCalledCast()">${sceneOptions}</select></div>
-                            <div class="form-group full-width"><label class="form-label">Called Cast</label><div class="called-box" id="calledCastBox">Select scenes to see who will be called</div></div>
-                        </div>
-                        <div class="form-actions">${isEditing ? `<button class="btn btn-primary" onclick="saveRehearsal()">💾 Save</button><button class="btn btn-secondary" onclick="cancelEdit('rehearsal')">Cancel</button>` : `<button class="btn btn-primary" onclick="addRehearsal()">➕ Add Rehearsal</button>`}</div>
-                    </div>
-                </div>
                 <div class="card">
-                    <div class="card-header"><span class="card-title">Rehearsals (${rehearsals.length})</span></div>
-                    <div class="card-body no-padding">
-                        ${rehearsals.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-title">No rehearsals scheduled</div></div>' :
-                            `<div class="table-wrapper"><table><thead><tr><th>Date</th><th>Time</th><th>Type</th><th>Location</th><th>Called</th><th>Actions</th></tr></thead>
-                            <tbody>${rehearsals.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(r => `
-                                <tr class="${editing.rehearsal === r.id ? 'editing-row' : ''} ${isToday(r.date) ? 'today-row' : ''}">
-                                    <td class="table-name">${formatDate(r.date)}</td><td>${r.startTime || ''} - ${r.endTime || ''}</td><td>${r.type || '-'}</td><td>${r.location || '-'}</td>
-                                    <td><span class="badge badge-in-progress">${(r.calledCastIds || []).length}</span></td>
-                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="editRehearsal('${r.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteRehearsal('${r.id}')">🗑️</button></div></td>
-                                </tr>
-                            `).join('')}</tbody></table></div>`}
+                    <div class="calendar-header">
+                        <div class="calendar-nav">
+                            <button class="calendar-nav-btn" onclick="changeMonth(-1)">‹</button>
+                            <div class="calendar-month">${monthName}</div>
+                            <button class="calendar-nav-btn" onclick="changeMonth(1)">›</button>
+                        </div>
+                        <button class="calendar-today-btn" onclick="goToToday()">Today</button>
+                    </div>
+                    <div class="calendar-grid">
+                        ${calendarCells}
                     </div>
                 </div>
+                <button class="fab" onclick="openRehearsalModal()" title="Add Rehearsal">+</button>
             `;
         }
 
-        function updateCalledCast() { const sel = document.getElementById('reh_scenes'); if (!sel) return; const sceneIds = Array.from(sel.selectedOptions).map(o => o.value), castIds = getCalledCast(sceneIds), people = getProductionData('people'), called = people.filter(p => castIds.includes(p.id)); document.getElementById('calledCastBox').textContent = called.length > 0 ? called.map(c => `${c.firstName} ${c.lastName}`).join(', ') : 'No one called'; }
-        async function addRehearsal() { const date = document.getElementById('reh_date').value, time = document.getElementById('reh_startTime').value; if (!date || !time) return showNotification('Enter date and time', 'error'); const sceneIds = Array.from(document.getElementById('reh_scenes').selectedOptions).map(o => o.value); data.rehearsals.push({ id: generateId(), productionId: activeProduction, date, startTime: time, endTime: document.getElementById('reh_endTime').value, location: document.getElementById('reh_location').value, type: document.getElementById('reh_type').value, sceneIds, calledCastIds: getCalledCast(sceneIds), notes: '' }); await saveSheetData('rehearsals'); renderContent(); }
-        function editRehearsal(id) { editing.rehearsal = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(updateCalledCast, 100); }
-        async function saveRehearsal() { const date = document.getElementById('reh_date').value, time = document.getElementById('reh_startTime').value; if (!date || !time) return showNotification('Enter date and time', 'error'); const sceneIds = Array.from(document.getElementById('reh_scenes').selectedOptions).map(o => o.value); const item = data.rehearsals.find(r => r.id === editing.rehearsal); if (item) { item.date = date; item.startTime = time; item.endTime = document.getElementById('reh_endTime').value; item.location = document.getElementById('reh_location').value; item.type = document.getElementById('reh_type').value; item.sceneIds = sceneIds; item.calledCastIds = getCalledCast(sceneIds); } editing.rehearsal = null; await saveSheetData('rehearsals'); renderContent(); }
-        async function deleteRehearsal(id) { if (confirm('Delete?')) { data.rehearsals = data.rehearsals.filter(r => r.id !== id); data.attendance = data.attendance.filter(a => a.rehearsalId !== id); await saveSheetData('rehearsals'); await saveSheetData('attendance'); renderContent(); } }
+        function changeMonth(delta) {
+            calendarDate.setMonth(calendarDate.getMonth() + delta);
+            renderContent();
+        }
+
+        function goToToday() {
+            calendarDate = new Date();
+            renderContent();
+        }
+
+        function showDayRehearsals(dateStr) {
+            const rehearsals = getProductionData('rehearsals').filter(r => r.date === dateStr).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+            const dateFormatted = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            
+            const listHtml = rehearsals.map(r => `
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--gray-100);">
+                    <div>
+                        <div style="font-weight: 600; color: var(--gray-900);">${r.startTime || ''} - ${r.endTime || ''}</div>
+                        <div style="font-size: 14px; color: var(--gray-600);">${r.type || 'Rehearsal'} • ${r.location || 'TBD'}</div>
+                    </div>
+                    <button class="btn btn-sm btn-secondary" onclick="closeModal(); openRehearsalModal('${r.id}')">Edit</button>
+                </div>
+            `).join('');
+
+            openModal(
+                `📅 ${dateFormatted}`,
+                listHtml || '<p style="color: var(--gray-500);">No rehearsals scheduled.</p>',
+                `<button class="btn btn-primary" onclick="closeModal(); openRehearsalModal(null, '${dateStr}')">+ Add Rehearsal</button>`
+            );
+        }
+
+        function openRehearsalModal(id = null, presetDate = null) {
+            const scenes = getProductionData('scenes');
+            const isEditing = id !== null;
+            const editItem = isEditing ? data.rehearsals.find(r => r.id === id) : null;
+            editing.rehearsal = id;
+            
+            const sceneOptions = scenes.map(s => `<option value="${s.id}" ${isEditing && editItem.sceneIds && editItem.sceneIds.includes(s.id) ? 'selected' : ''}>${s.sceneNumber}: ${s.title}</option>`).join('');
+            
+            const defaultDate = presetDate || (isEditing ? editItem.date : new Date().toISOString().split('T')[0]);
+
+            const bodyHtml = `
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group">
+                        <label class="form-label">Date *</label>
+                        <input type="date" class="form-input" id="reh_date" value="${defaultDate}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Type</label>
+                        <select class="form-select" id="reh_type">
+                            <option value="">Select...</option>
+                            <option ${isEditing && editItem.type === 'Music' ? 'selected' : ''}>Music</option>
+                            <option ${isEditing && editItem.type === 'Blocking' ? 'selected' : ''}>Blocking</option>
+                            <option ${isEditing && editItem.type === 'Choreo' ? 'selected' : ''}>Choreo</option>
+                            <option ${isEditing && editItem.type === 'Run-through' ? 'selected' : ''}>Run-through</option>
+                            <option ${isEditing && editItem.type === 'Tech' ? 'selected' : ''}>Tech</option>
+                            <option ${isEditing && editItem.type === 'Dress' ? 'selected' : ''}>Dress</option>
+                            <option ${isEditing && editItem.type === 'Full Company' ? 'selected' : ''}>Full Company</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Start Time *</label>
+                        <input type="time" class="form-input" id="reh_startTime" value="${isEditing ? editItem.startTime || '' : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">End Time</label>
+                        <input type="time" class="form-input" id="reh_endTime" value="${isEditing ? editItem.endTime || '' : ''}">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Location</label>
+                        <input type="text" class="form-input" id="reh_location" value="${isEditing ? editItem.location || '' : ''}">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Scenes (Ctrl+Click to select multiple)</label>
+                        <select multiple class="form-select" id="reh_scenes" onchange="updateCalledCastModal()" style="min-height: 100px;">${sceneOptions}</select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Called Cast</label>
+                        <div class="called-box" id="calledCastBox">Select scenes to see who will be called</div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-textarea" id="reh_notes" style="min-height: 60px;">${isEditing ? editItem.notes || '' : ''}</textarea>
+                    </div>
+                </div>
+            `;
+
+            const footerHtml = isEditing ? `
+                <button class="btn btn-secondary" onclick="deleteRehearsalFromModal('${id}')">🗑️ Delete</button>
+                <button class="btn btn-primary" onclick="saveRehearsalFromModal()">💾 Save Changes</button>
+            ` : `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addRehearsalFromModal()">+ Add Rehearsal</button>
+            `;
+
+            openModal(isEditing ? '✏️ Edit Rehearsal' : '➕ Add Rehearsal', bodyHtml, footerHtml);
+            
+            // Update called cast after modal opens
+            setTimeout(updateCalledCastModal, 100);
+        }
+
+        function updateCalledCastModal() {
+            const sel = document.getElementById('reh_scenes');
+            if (!sel) return;
+            const sceneIds = Array.from(sel.selectedOptions).map(o => o.value);
+            const castIds = getCalledCast(sceneIds);
+            const people = getProductionData('people');
+            const called = people.filter(p => castIds.includes(p.id));
+            const box = document.getElementById('calledCastBox');
+            if (box) box.textContent = called.length > 0 ? called.map(c => `${c.firstName} ${c.lastName}`).join(', ') : 'Select scenes to see who will be called';
+        }
+
+        async function addRehearsalFromModal() {
+            const date = document.getElementById('reh_date').value;
+            const time = document.getElementById('reh_startTime').value;
+            if (!date || !time) return showNotification('Enter date and time', 'error');
+            const sceneIds = Array.from(document.getElementById('reh_scenes').selectedOptions).map(o => o.value);
+            data.rehearsals.push({
+                id: generateId(),
+                productionId: activeProduction,
+                date,
+                startTime: time,
+                endTime: document.getElementById('reh_endTime').value,
+                location: document.getElementById('reh_location').value,
+                type: document.getElementById('reh_type').value,
+                sceneIds,
+                calledCastIds: getCalledCast(sceneIds),
+                notes: document.getElementById('reh_notes').value
+            });
+            await saveSheetData('rehearsals');
+            closeModal();
+            renderContent();
+        }
+
+        async function saveRehearsalFromModal() {
+            const date = document.getElementById('reh_date').value;
+            const time = document.getElementById('reh_startTime').value;
+            if (!date || !time) return showNotification('Enter date and time', 'error');
+            const sceneIds = Array.from(document.getElementById('reh_scenes').selectedOptions).map(o => o.value);
+            const item = data.rehearsals.find(r => r.id === editing.rehearsal);
+            if (item) {
+                item.date = date;
+                item.startTime = time;
+                item.endTime = document.getElementById('reh_endTime').value;
+                item.location = document.getElementById('reh_location').value;
+                item.type = document.getElementById('reh_type').value;
+                item.sceneIds = sceneIds;
+                item.calledCastIds = getCalledCast(sceneIds);
+                item.notes = document.getElementById('reh_notes').value;
+            }
+            await saveSheetData('rehearsals');
+            closeModal();
+            renderContent();
+        }
+
+        async function deleteRehearsalFromModal(id) {
+            if (confirm('Delete this rehearsal?')) {
+                data.rehearsals = data.rehearsals.filter(r => r.id !== id);
+                data.attendance = data.attendance.filter(a => a.rehearsalId !== id);
+                await saveSheetData('rehearsals');
+                await saveSheetData('attendance');
+                closeModal();
+                renderContent();
+            }
+        }
+
+        // Keep old functions for compatibility but they won't be used in calendar view
+        function updateCalledCast() { updateCalledCastModal(); }
+        async function addRehearsal() { await addRehearsalFromModal(); }
+        function editRehearsal(id) { openRehearsalModal(id); }
+        async function saveRehearsal() { await saveRehearsalFromModal(); }
+        async function deleteRehearsal(id) { await deleteRehearsalFromModal(id); }
 
         // ==================== ATTENDANCE ====================
         function renderAttendance() {
