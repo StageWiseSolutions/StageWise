@@ -1423,7 +1423,7 @@
         function closeModal() {
             document.getElementById('modalOverlay').classList.add('hidden');
             document.body.style.overflow = '';
-            editing.rehearsal = null;
+            Object.keys(editing).forEach(key => editing[key] = null);
         }
         function closeModalOnOverlay(event) {
             if (event.target === document.getElementById('modalOverlay')) closeModal();
@@ -1588,54 +1588,24 @@
 
         // ==================== PRODUCTIONS ====================
         function renderProductions() {
-            const isEditing = editing.production !== null;
-            const editItem = isEditing ? data.productions.find(p => p.id === editing.production) : null;
-
             return `
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header"><span class="card-title">${isEditing ? '✏️ Edit Production' : '➕ Add Production'}</span></div>
-                    <div class="card-body">
-                        <div class="form-grid">
-                            <div class="form-group"><label class="form-label">Title *</label><input type="text" class="form-input" id="prod_title" value="${isEditing ? editItem.title || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Venue</label><input type="text" class="form-input" id="prod_venue" value="${isEditing ? editItem.venue || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Start Date</label><input type="date" class="form-input" id="prod_startDate" value="${isEditing ? editItem.startDate || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">End Date</label><input type="date" class="form-input" id="prod_endDate" value="${isEditing ? editItem.endDate || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Director</label><input type="text" class="form-input" id="prod_director" value="${isEditing ? editItem.director || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Music Director</label><input type="text" class="form-input" id="prod_musicDirector" value="${isEditing ? editItem.musicDirector || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Choreographer</label><input type="text" class="form-input" id="prod_choreographer" value="${isEditing ? editItem.choreographer || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Stage Manager</label><input type="text" class="form-input" id="prod_stageManager" value="${isEditing ? editItem.stageManager || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Status</label>
-                                <select class="form-select" id="prod_status">
-                                    <option ${isEditing && editItem.status === 'Planning' ? 'selected' : ''}>Planning</option>
-                                    <option ${isEditing && editItem.status === 'In Rehearsal' ? 'selected' : ''}>In Rehearsal</option>
-                                    <option ${isEditing && editItem.status === 'Tech Week' ? 'selected' : ''}>Tech Week</option>
-                                    <option ${isEditing && editItem.status === 'Performing' ? 'selected' : ''}>Performing</option>
-                                    <option ${isEditing && editItem.status === 'Closed' ? 'selected' : ''}>Closed</option>
-                                </select>
-                            </div>
-                            <div class="form-group full-width"><label class="form-label">Synopsis</label><textarea class="form-textarea" id="prod_synopsis">${isEditing ? editItem.synopsis || '' : ''}</textarea></div>
-                        </div>
-                        <div class="form-actions">
-                            ${isEditing ? `<button class="btn btn-primary" onclick="saveProduction()">💾 Save Changes</button><button class="btn btn-secondary" onclick="cancelEdit('production')">Cancel</button>` : `<button class="btn btn-primary" onclick="addProduction()">➕ Add Production</button>`}
-                        </div>
-                    </div>
-                </div>
-
                 <div class="card">
-                    <div class="card-header"><span class="card-title">All Productions (${data.productions.length})</span></div>
+                    <div class="card-header">
+                        <span class="card-title">All Productions (${data.productions.length})</span>
+                    </div>
                     <div class="card-body no-padding">
-                        ${data.productions.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🎭</div><div class="empty-state-title">No productions yet</div><p>Add your first production above.</p></div>' :
+                        ${data.productions.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🎭</div><div class="empty-state-title">No productions yet</div><p>Click the + button to add your first production.</p></div>' :
                             `<div class="table-wrapper"><table>
                                 <thead><tr><th>Title</th><th>Venue</th><th>Dates</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>${data.productions.map(p => `
-                                    <tr class="${editing.production === p.id ? 'editing-row' : ''}">
+                                    <tr>
                                         <td><div class="table-name">${p.title || ''}</div><div class="table-meta">${p.director ? 'Dir: ' + p.director : ''}</div></td>
                                         <td>${p.venue || '-'}</td>
                                         <td>${p.startDate ? formatDate(p.startDate) : '-'}</td>
                                         <td><span class="${getBadgeClass(p.status)}">${p.status || '-'}</span></td>
                                         <td><div class="table-actions">
                                             <button class="btn btn-ghost btn-icon" onclick="selectProduction('${p.id}')" title="Select">📋</button>
-                                            <button class="btn btn-ghost btn-icon" onclick="editProduction('${p.id}')" title="Edit">✏️</button>
+                                            <button class="btn btn-ghost btn-icon" onclick="openProductionModal('${p.id}')" title="Edit">✏️</button>
                                             <button class="btn btn-ghost btn-icon" onclick="deleteProduction('${p.id}')" title="Delete">🗑️</button>
                                         </div></td>
                                     </tr>
@@ -1644,28 +1614,72 @@
                         }
                     </div>
                 </div>
+                <button class="fab" onclick="openProductionModal()" title="Add Production">+</button>
             `;
         }
 
-        async function addProduction() {
+        function openProductionModal(id = null) {
+            const isEditing = id !== null;
+            const editItem = isEditing ? data.productions.find(p => p.id === id) : null;
+            editing.production = id;
+
+            const bodyHtml = `
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group full-width"><label class="form-label">Title *</label><input type="text" class="form-input" id="prod_title" value="${isEditing ? editItem.title || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Venue</label><input type="text" class="form-input" id="prod_venue" value="${isEditing ? editItem.venue || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Status</label>
+                        <select class="form-select" id="prod_status">
+                            <option ${isEditing && editItem.status === 'Planning' ? 'selected' : ''}>Planning</option>
+                            <option ${isEditing && editItem.status === 'In Rehearsal' ? 'selected' : ''}>In Rehearsal</option>
+                            <option ${isEditing && editItem.status === 'Tech Week' ? 'selected' : ''}>Tech Week</option>
+                            <option ${isEditing && editItem.status === 'Performing' ? 'selected' : ''}>Performing</option>
+                            <option ${isEditing && editItem.status === 'Closed' ? 'selected' : ''}>Closed</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label class="form-label">Start Date</label><input type="date" class="form-input" id="prod_startDate" value="${isEditing ? editItem.startDate || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">End Date</label><input type="date" class="form-input" id="prod_endDate" value="${isEditing ? editItem.endDate || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Director</label><input type="text" class="form-input" id="prod_director" value="${isEditing ? editItem.director || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Music Director</label><input type="text" class="form-input" id="prod_musicDirector" value="${isEditing ? editItem.musicDirector || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Choreographer</label><input type="text" class="form-input" id="prod_choreographer" value="${isEditing ? editItem.choreographer || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Stage Manager</label><input type="text" class="form-input" id="prod_stageManager" value="${isEditing ? editItem.stageManager || '' : ''}"></div>
+                    <div class="form-group full-width"><label class="form-label">Synopsis</label><textarea class="form-textarea" id="prod_synopsis">${isEditing ? editItem.synopsis || '' : ''}</textarea></div>
+                </div>
+            `;
+
+            const footerHtml = isEditing ? `
+                <button class="btn btn-secondary" onclick="deleteProduction('${id}')">🗑️ Delete</button>
+                <button class="btn btn-primary" onclick="saveProductionFromModal()">💾 Save Changes</button>
+            ` : `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addProductionFromModal()">+ Add Production</button>
+            `;
+
+            openModal(isEditing ? '✏️ Edit Production' : '➕ Add Production', bodyHtml, footerHtml);
+        }
+
+        async function addProductionFromModal() {
             const title = document.getElementById('prod_title').value.trim();
             if (!title) return showNotification('Please enter a title', 'error');
             data.productions.push({ id: generateId(), title, venue: document.getElementById('prod_venue').value, startDate: document.getElementById('prod_startDate').value, endDate: document.getElementById('prod_endDate').value, director: document.getElementById('prod_director').value, musicDirector: document.getElementById('prod_musicDirector').value, choreographer: document.getElementById('prod_choreographer').value, stageManager: document.getElementById('prod_stageManager').value, status: document.getElementById('prod_status').value, synopsis: document.getElementById('prod_synopsis').value });
             await saveSheetData('productions');
+            closeModal();
             renderContent();
         }
 
-        function editProduction(id) { editing.production = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-
-        async function saveProduction() {
+        async function saveProductionFromModal() {
             const title = document.getElementById('prod_title').value.trim();
             if (!title) return showNotification('Please enter a title', 'error');
             const item = data.productions.find(p => p.id === editing.production);
             if (item) { item.title = title; item.venue = document.getElementById('prod_venue').value; item.startDate = document.getElementById('prod_startDate').value; item.endDate = document.getElementById('prod_endDate').value; item.director = document.getElementById('prod_director').value; item.musicDirector = document.getElementById('prod_musicDirector').value; item.choreographer = document.getElementById('prod_choreographer').value; item.stageManager = document.getElementById('prod_stageManager').value; item.status = document.getElementById('prod_status').value; item.synopsis = document.getElementById('prod_synopsis').value; }
             editing.production = null;
             await saveSheetData('productions');
+            closeModal();
             renderContent();
         }
+
+        async function addProduction() { await addProductionFromModal(); }
+        function editProduction(id) { openProductionModal(id); }
+        async function saveProduction() { await saveProductionFromModal(); }
 
         function selectProduction(id) { activeProduction = id; localStorage.setItem('activeProduction', id); activeTab = 'dashboard'; document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(i => i.classList.remove('active')); document.querySelectorAll('[data-tab="dashboard"]').forEach(i => i.classList.add('active')); renderContent(); }
 
@@ -1675,6 +1689,7 @@
                 ['people', 'scenes', 'rehearsals', 'inventory', 'budget', 'documents', 'cueSheets', 'emails'].forEach(key => { data[key] = data[key].filter(item => item.productionId !== id); });
                 if (activeProduction === id) { activeProduction = null; localStorage.removeItem('activeProduction'); }
                 for (const key of Object.keys(SHEETS)) await saveSheetData(key);
+                closeModal();
                 renderContent();
             }
         }
@@ -1683,109 +1698,176 @@
         function renderPeople() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">Select a production first</div></div>';
             const people = getProductionData('people');
-            const isEditing = editing.person !== null;
-            const editItem = isEditing ? people.find(p => p.id === editing.person) : null;
 
             return `
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header"><span class="card-title">${isEditing ? '✏️ Edit Person' : '➕ Add Person'}</span></div>
-                    <div class="card-body">
-                        <div class="form-grid">
-                            <div class="form-group"><label class="form-label">First Name *</label><input type="text" class="form-input" id="person_firstName" value="${isEditing ? editItem.firstName || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Last Name *</label><input type="text" class="form-input" id="person_lastName" value="${isEditing ? editItem.lastName || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="person_email" value="${isEditing ? editItem.email || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" id="person_phone" value="${isEditing ? editItem.phone || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Role</label>
-                                <select class="form-select" id="person_role">
-                                    <option value="">Select...</option>
-                                    <option ${isEditing && editItem.role === 'Cast - Principal' ? 'selected' : ''}>Cast - Principal</option>
-                                    <option ${isEditing && editItem.role === 'Cast - Supporting' ? 'selected' : ''}>Cast - Supporting</option>
-                                    <option ${isEditing && editItem.role === 'Cast - Ensemble' ? 'selected' : ''}>Cast - Ensemble</option>
-                                    <option ${isEditing && editItem.role === 'Director' ? 'selected' : ''}>Director</option>
-                                    <option ${isEditing && editItem.role === 'Stage Manager' ? 'selected' : ''}>Stage Manager</option>
-                                    <option ${isEditing && editItem.role === 'Crew' ? 'selected' : ''}>Crew</option>
-                                </select>
-                            </div>
-                            <div class="form-group"><label class="form-label">Character</label><input type="text" class="form-input" id="person_character" value="${isEditing ? editItem.character || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Emergency Contact</label><input type="text" class="form-input" id="person_emergencyContact" value="${isEditing ? editItem.emergencyContact || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Emergency Phone</label><input type="tel" class="form-input" id="person_emergencyPhone" value="${isEditing ? editItem.emergencyPhone || '' : ''}"></div>
-                        </div>
-                        <div class="form-actions">
-                            ${isEditing ? `<button class="btn btn-primary" onclick="savePerson()">💾 Save Changes</button><button class="btn btn-secondary" onclick="cancelEdit('person')">Cancel</button>` : `<button class="btn btn-primary" onclick="addPerson()">➕ Add Person</button>`}
-                        </div>
-                    </div>
-                </div>
-
                 <div class="card">
-                    <div class="card-header"><span class="card-title">People (${people.length})</span></div>
+                    <div class="card-header"><span class="card-title">Cast & Crew (${people.length})</span></div>
                     <div class="card-body no-padding">
-                        ${people.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">No people yet</div></div>' :
+                        ${people.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">No people yet</div><p>Click the + button to add cast & crew.</p></div>' :
                             `<div class="table-wrapper"><table>
                                 <thead><tr><th>Name</th><th>Role</th><th>Character</th><th>Contact</th><th>Actions</th></tr></thead>
                                 <tbody>${people.map(p => `
-                                    <tr class="${editing.person === p.id ? 'editing-row' : ''}">
+                                    <tr>
                                         <td class="table-name">${p.firstName || ''} ${p.lastName || ''}</td>
                                         <td>${p.role || '-'}</td>
                                         <td>${p.character || '-'}</td>
                                         <td><div class="table-meta">${p.email ? `<a href="mailto:${p.email}" style="color:var(--primary)">${p.email}</a>` : ''}</div><div class="table-meta">${p.phone ? `<a href="tel:${p.phone}" style="color:var(--primary)">${p.phone}</a>` : ''}</div></td>
-                                        <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="editPerson('${p.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deletePerson('${p.id}')">🗑️</button></div></td>
+                                        <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openPersonModal('${p.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deletePerson('${p.id}')">🗑️</button></div></td>
                                     </tr>
                                 `).join('')}</tbody>
                             </table></div>`
                         }
                     </div>
                 </div>
+                <button class="fab" onclick="openPersonModal()" title="Add Person">+</button>
             `;
         }
 
-        async function addPerson() { const fn = document.getElementById('person_firstName').value.trim(), ln = document.getElementById('person_lastName').value.trim(); if (!fn || !ln) return showNotification('Enter first and last name', 'error'); data.people.push({ id: generateId(), productionId: activeProduction, firstName: fn, lastName: ln, email: document.getElementById('person_email').value, phone: document.getElementById('person_phone').value, emergencyContact: document.getElementById('person_emergencyContact').value, emergencyPhone: document.getElementById('person_emergencyPhone').value, role: document.getElementById('person_role').value, character: document.getElementById('person_character').value, notes: '' }); await saveSheetData('people'); renderContent(); }
-        function editPerson(id) { editing.person = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-        async function savePerson() { const fn = document.getElementById('person_firstName').value.trim(), ln = document.getElementById('person_lastName').value.trim(); if (!fn || !ln) return showNotification('Enter first and last name', 'error'); const item = data.people.find(p => p.id === editing.person); if (item) { item.firstName = fn; item.lastName = ln; item.email = document.getElementById('person_email').value; item.phone = document.getElementById('person_phone').value; item.emergencyContact = document.getElementById('person_emergencyContact').value; item.emergencyPhone = document.getElementById('person_emergencyPhone').value; item.role = document.getElementById('person_role').value; item.character = document.getElementById('person_character').value; } editing.person = null; await saveSheetData('people'); renderContent(); }
-        async function deletePerson(id) { if (confirm('Delete this person?')) { data.people = data.people.filter(p => p.id !== id); await saveSheetData('people'); renderContent(); } }
+        function openPersonModal(id = null) {
+            const isEditing = id !== null;
+            const editItem = isEditing ? data.people.find(p => p.id === id) : null;
+            editing.person = id;
+
+            const bodyHtml = `
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group"><label class="form-label">First Name *</label><input type="text" class="form-input" id="person_firstName" value="${isEditing ? editItem.firstName || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Last Name *</label><input type="text" class="form-input" id="person_lastName" value="${isEditing ? editItem.lastName || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="person_email" value="${isEditing ? editItem.email || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" id="person_phone" value="${isEditing ? editItem.phone || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Role</label>
+                        <select class="form-select" id="person_role">
+                            <option value="">Select...</option>
+                            <option ${isEditing && editItem.role === 'Cast - Principal' ? 'selected' : ''}>Cast - Principal</option>
+                            <option ${isEditing && editItem.role === 'Cast - Supporting' ? 'selected' : ''}>Cast - Supporting</option>
+                            <option ${isEditing && editItem.role === 'Cast - Ensemble' ? 'selected' : ''}>Cast - Ensemble</option>
+                            <option ${isEditing && editItem.role === 'Director' ? 'selected' : ''}>Director</option>
+                            <option ${isEditing && editItem.role === 'Stage Manager' ? 'selected' : ''}>Stage Manager</option>
+                            <option ${isEditing && editItem.role === 'Crew' ? 'selected' : ''}>Crew</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label class="form-label">Character</label><input type="text" class="form-input" id="person_character" value="${isEditing ? editItem.character || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Emergency Contact</label><input type="text" class="form-input" id="person_emergencyContact" value="${isEditing ? editItem.emergencyContact || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Emergency Phone</label><input type="tel" class="form-input" id="person_emergencyPhone" value="${isEditing ? editItem.emergencyPhone || '' : ''}"></div>
+                </div>
+            `;
+
+            const footerHtml = isEditing ? `
+                <button class="btn btn-secondary" onclick="deletePerson('${id}')">🗑️ Delete</button>
+                <button class="btn btn-primary" onclick="savePersonFromModal()">💾 Save Changes</button>
+            ` : `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addPersonFromModal()">+ Add Person</button>
+            `;
+
+            openModal(isEditing ? '✏️ Edit Person' : '➕ Add Person', bodyHtml, footerHtml);
+        }
+
+        async function addPersonFromModal() {
+            const fn = document.getElementById('person_firstName').value.trim(), ln = document.getElementById('person_lastName').value.trim();
+            if (!fn || !ln) return showNotification('Enter first and last name', 'error');
+            data.people.push({ id: generateId(), productionId: activeProduction, firstName: fn, lastName: ln, email: document.getElementById('person_email').value, phone: document.getElementById('person_phone').value, emergencyContact: document.getElementById('person_emergencyContact').value, emergencyPhone: document.getElementById('person_emergencyPhone').value, role: document.getElementById('person_role').value, character: document.getElementById('person_character').value, notes: '' });
+            await saveSheetData('people');
+            closeModal();
+            renderContent();
+        }
+
+        async function savePersonFromModal() {
+            const fn = document.getElementById('person_firstName').value.trim(), ln = document.getElementById('person_lastName').value.trim();
+            if (!fn || !ln) return showNotification('Enter first and last name', 'error');
+            const item = data.people.find(p => p.id === editing.person);
+            if (item) { item.firstName = fn; item.lastName = ln; item.email = document.getElementById('person_email').value; item.phone = document.getElementById('person_phone').value; item.emergencyContact = document.getElementById('person_emergencyContact').value; item.emergencyPhone = document.getElementById('person_emergencyPhone').value; item.role = document.getElementById('person_role').value; item.character = document.getElementById('person_character').value; }
+            editing.person = null;
+            await saveSheetData('people');
+            closeModal();
+            renderContent();
+        }
+
+        async function addPerson() { await addPersonFromModal(); }
+        function editPerson(id) { openPersonModal(id); }
+        async function savePerson() { await savePersonFromModal(); }
+        async function deletePerson(id) { if (confirm('Delete this person?')) { data.people = data.people.filter(p => p.id !== id); await saveSheetData('people'); closeModal(); renderContent(); } }
 
         // ==================== SCENES ====================
         function renderScenes() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">🎬</div><div class="empty-state-title">Select a production first</div></div>';
             const scenes = getProductionData('scenes'), people = getProductionData('people').filter(p => p.role && p.role.includes('Cast'));
-            const isEditing = editing.scene !== null, editItem = isEditing ? scenes.find(s => s.id === editing.scene) : null;
-            const castOptions = people.map(c => `<option value="${c.id}" ${isEditing && editItem.castIds && editItem.castIds.includes(c.id) ? 'selected' : ''}>${c.firstName} ${c.lastName} ${c.character ? '(' + c.character + ')' : ''}</option>`).join('');
 
             return `
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header"><span class="card-title">${isEditing ? '✏️ Edit Scene' : '➕ Add Scene'}</span></div>
-                    <div class="card-body">
-                        <div class="form-grid">
-                            <div class="form-group"><label class="form-label">Scene # *</label><input type="text" class="form-input" id="scene_number" value="${isEditing ? editItem.sceneNumber || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Title *</label><input type="text" class="form-input" id="scene_title" value="${isEditing ? editItem.title || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Act</label><select class="form-select" id="scene_act"><option value="">Select...</option><option ${isEditing && editItem.act === 'Act 1' ? 'selected' : ''}>Act 1</option><option ${isEditing && editItem.act === 'Act 2' ? 'selected' : ''}>Act 2</option><option ${isEditing && editItem.act === 'Prologue' ? 'selected' : ''}>Prologue</option></select></div>
-                            <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="scene_status"><option ${isEditing && editItem.status === 'Not Started' ? 'selected' : ''}>Not Started</option><option ${isEditing && editItem.status === 'In Progress' ? 'selected' : ''}>In Progress</option><option ${isEditing && editItem.status === 'Polished' ? 'selected' : ''}>Polished</option></select></div>
-                            <div class="form-group full-width"><label class="form-label">Cast (Ctrl+Click)</label><select multiple class="form-select" id="scene_cast">${castOptions}</select></div>
-                        </div>
-                        <div class="form-actions">${isEditing ? `<button class="btn btn-primary" onclick="saveScene()">💾 Save</button><button class="btn btn-secondary" onclick="cancelEdit('scene')">Cancel</button>` : `<button class="btn btn-primary" onclick="addScene()">➕ Add Scene</button>`}</div>
-                    </div>
-                </div>
                 <div class="card">
                     <div class="card-header"><span class="card-title">Scenes (${scenes.length})</span></div>
                     <div class="card-body no-padding">
-                        ${scenes.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🎬</div><div class="empty-state-title">No scenes yet</div></div>' :
+                        ${scenes.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🎬</div><div class="empty-state-title">No scenes yet</div><p>Click the + button to add scenes.</p></div>' :
                             `<div class="table-wrapper"><table><thead><tr><th>#</th><th>Title</th><th>Act</th><th>Cast</th><th>Status</th><th>Actions</th></tr></thead>
                             <tbody>${scenes.sort((a, b) => (a.sceneNumber || '').localeCompare(b.sceneNumber || '')).map(s => `
-                                <tr class="${editing.scene === s.id ? 'editing-row' : ''}">
+                                <tr>
                                     <td class="table-name">${s.sceneNumber || ''}</td><td>${s.title || ''}</td><td>${s.act || '-'}</td>
                                     <td class="table-meta">${(s.castIds || []).map(cid => { const p = people.find(x => x.id === cid); return p ? p.firstName : ''; }).filter(Boolean).join(', ') || '-'}</td>
                                     <td><span class="${getBadgeClass(s.status)}">${s.status || ''}</span></td>
-                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="editScene('${s.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteScene('${s.id}')">🗑️</button></div></td>
+                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openSceneModal('${s.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteScene('${s.id}')">🗑️</button></div></td>
                                 </tr>
                             `).join('')}</tbody></table></div>`}
                     </div>
                 </div>
+                <button class="fab" onclick="openSceneModal()" title="Add Scene">+</button>
             `;
         }
 
-        async function addScene() { const num = document.getElementById('scene_number').value.trim(), title = document.getElementById('scene_title').value.trim(); if (!num || !title) return showNotification('Enter scene # and title', 'error'); const castIds = Array.from(document.getElementById('scene_cast').selectedOptions).map(o => o.value); data.scenes.push({ id: generateId(), productionId: activeProduction, sceneNumber: num, title, act: document.getElementById('scene_act').value, status: document.getElementById('scene_status').value, castIds, description: '', notes: '' }); await saveSheetData('scenes'); renderContent(); }
-        function editScene(id) { editing.scene = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-        async function saveScene() { const num = document.getElementById('scene_number').value.trim(), title = document.getElementById('scene_title').value.trim(); if (!num || !title) return showNotification('Enter scene # and title', 'error'); const castIds = Array.from(document.getElementById('scene_cast').selectedOptions).map(o => o.value); const item = data.scenes.find(s => s.id === editing.scene); if (item) { item.sceneNumber = num; item.title = title; item.act = document.getElementById('scene_act').value; item.status = document.getElementById('scene_status').value; item.castIds = castIds; } editing.scene = null; await saveSheetData('scenes'); renderContent(); }
-        async function deleteScene(id) { if (confirm('Delete?')) { data.scenes = data.scenes.filter(s => s.id !== id); await saveSheetData('scenes'); renderContent(); } }
+        function openSceneModal(id = null) {
+            const people = getProductionData('people').filter(p => p.role && p.role.includes('Cast'));
+            const isEditing = id !== null;
+            const editItem = isEditing ? data.scenes.find(s => s.id === id) : null;
+            editing.scene = id;
+
+            const castOptions = people.map(c => `<option value="${c.id}" ${isEditing && editItem.castIds && editItem.castIds.includes(c.id) ? 'selected' : ''}>${c.firstName} ${c.lastName} ${c.character ? '(' + c.character + ')' : ''}</option>`).join('');
+
+            const bodyHtml = `
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group"><label class="form-label">Scene # *</label><input type="text" class="form-input" id="scene_number" value="${isEditing ? editItem.sceneNumber || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Title *</label><input type="text" class="form-input" id="scene_title" value="${isEditing ? editItem.title || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Act</label><select class="form-select" id="scene_act"><option value="">Select...</option><option ${isEditing && editItem.act === 'Act 1' ? 'selected' : ''}>Act 1</option><option ${isEditing && editItem.act === 'Act 2' ? 'selected' : ''}>Act 2</option><option ${isEditing && editItem.act === 'Prologue' ? 'selected' : ''}>Prologue</option><option ${isEditing && editItem.act === 'Epilogue' ? 'selected' : ''}>Epilogue</option></select></div>
+                    <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="scene_status"><option ${isEditing && editItem.status === 'Not Started' ? 'selected' : ''}>Not Started</option><option ${isEditing && editItem.status === 'In Progress' ? 'selected' : ''}>In Progress</option><option ${isEditing && editItem.status === 'Polished' ? 'selected' : ''}>Polished</option></select></div>
+                    <div class="form-group full-width"><label class="form-label">Cast (Ctrl+Click to select multiple)</label><select multiple class="form-select" id="scene_cast" style="min-height: 120px;">${castOptions}</select></div>
+                    <div class="form-group full-width"><label class="form-label">Description</label><textarea class="form-textarea" id="scene_description">${isEditing ? editItem.description || '' : ''}</textarea></div>
+                </div>
+            `;
+
+            const footerHtml = isEditing ? `
+                <button class="btn btn-secondary" onclick="deleteScene('${id}')">🗑️ Delete</button>
+                <button class="btn btn-primary" onclick="saveSceneFromModal()">💾 Save Changes</button>
+            ` : `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addSceneFromModal()">+ Add Scene</button>
+            `;
+
+            openModal(isEditing ? '✏️ Edit Scene' : '➕ Add Scene', bodyHtml, footerHtml);
+        }
+
+        async function addSceneFromModal() {
+            const num = document.getElementById('scene_number').value.trim(), title = document.getElementById('scene_title').value.trim();
+            if (!num || !title) return showNotification('Enter scene # and title', 'error');
+            const castIds = Array.from(document.getElementById('scene_cast').selectedOptions).map(o => o.value);
+            data.scenes.push({ id: generateId(), productionId: activeProduction, sceneNumber: num, title, act: document.getElementById('scene_act').value, status: document.getElementById('scene_status').value, castIds, description: document.getElementById('scene_description').value, notes: '' });
+            await saveSheetData('scenes');
+            closeModal();
+            renderContent();
+        }
+
+        async function saveSceneFromModal() {
+            const num = document.getElementById('scene_number').value.trim(), title = document.getElementById('scene_title').value.trim();
+            if (!num || !title) return showNotification('Enter scene # and title', 'error');
+            const castIds = Array.from(document.getElementById('scene_cast').selectedOptions).map(o => o.value);
+            const item = data.scenes.find(s => s.id === editing.scene);
+            if (item) { item.sceneNumber = num; item.title = title; item.act = document.getElementById('scene_act').value; item.status = document.getElementById('scene_status').value; item.castIds = castIds; item.description = document.getElementById('scene_description').value; }
+            editing.scene = null;
+            await saveSheetData('scenes');
+            closeModal();
+            renderContent();
+        }
+
+        async function addScene() { await addSceneFromModal(); }
+        function editScene(id) { openSceneModal(id); }
+        async function saveScene() { await saveSceneFromModal(); }
+        async function deleteScene(id) { if (confirm('Delete?')) { data.scenes = data.scenes.filter(s => s.id !== id); await saveSheetData('scenes'); closeModal(); renderContent(); } }
 
         // ==================== REHEARSALS (CALENDAR VIEW) ====================
         function renderRehearsals() {
@@ -2088,7 +2170,7 @@
         // ==================== INVENTORY ====================
         function renderInventory() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">🎪</div><div class="empty-state-title">Select a production first</div></div>';
-            const inventory = getProductionData('inventory'), isEditing = editing.inventory !== null, editItem = isEditing ? inventory.find(i => i.id === editing.inventory) : null;
+            const inventory = getProductionData('inventory');
             const stats = { Props: inventory.filter(i => i.category === 'Props').length, Costumes: inventory.filter(i => i.category === 'Costumes').length, Set: inventory.filter(i => i.category === 'Set').length, Ready: inventory.filter(i => i.status === 'Ready').length };
 
             return `
@@ -2098,47 +2180,81 @@
                     <div class="stat-card"><div class="stat-value">${stats.Set}</div><div class="stat-label">Set Pieces</div></div>
                     <div class="stat-card"><div class="stat-value">${stats.Ready}</div><div class="stat-label">Ready</div></div>
                 </div>
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header"><span class="card-title">${isEditing ? '✏️ Edit Item' : '➕ Add Item'}</span></div>
-                    <div class="card-body">
-                        <div class="form-grid">
-                            <div class="form-group"><label class="form-label">Category *</label><select class="form-select" id="inv_category"><option ${isEditing && editItem.category === 'Props' ? 'selected' : ''}>Props</option><option ${isEditing && editItem.category === 'Costumes' ? 'selected' : ''}>Costumes</option><option ${isEditing && editItem.category === 'Set' ? 'selected' : ''}>Set</option><option ${isEditing && editItem.category === 'Furniture' ? 'selected' : ''}>Furniture</option><option ${isEditing && editItem.category === 'Other' ? 'selected' : ''}>Other</option></select></div>
-                            <div class="form-group"><label class="form-label">Name *</label><input type="text" class="form-input" id="inv_name" value="${isEditing ? editItem.name || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="inv_status"><option ${isEditing && editItem.status === 'Needed' ? 'selected' : ''}>Needed</option><option ${isEditing && editItem.status === 'Acquired' ? 'selected' : ''}>Acquired</option><option ${isEditing && editItem.status === 'Built' ? 'selected' : ''}>Built</option><option ${isEditing && editItem.status === 'Ready' ? 'selected' : ''}>Ready</option></select></div>
-                            <div class="form-group"><label class="form-label">Cost ($)</label><input type="number" class="form-input" id="inv_cost" value="${isEditing ? editItem.cost || 0 : 0}" step="0.01"></div>
-                            <div class="form-group full-width"><label class="form-label">Description</label><textarea class="form-textarea" id="inv_description">${isEditing ? editItem.description || '' : ''}</textarea></div>
-                        </div>
-                        <div class="form-actions">${isEditing ? `<button class="btn btn-primary" onclick="saveInventory()">💾 Save</button><button class="btn btn-secondary" onclick="cancelEdit('inventory')">Cancel</button>` : `<button class="btn btn-primary" onclick="addInventory()">➕ Add Item</button>`}</div>
-                    </div>
-                </div>
                 <div class="card">
                     <div class="card-header"><span class="card-title">Inventory (${inventory.length})</span></div>
                     <div class="card-body no-padding">
-                        ${inventory.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🎪</div><div class="empty-state-title">No items yet</div></div>' :
+                        ${inventory.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🎪</div><div class="empty-state-title">No items yet</div><p>Click the + button to add items.</p></div>' :
                             `<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Category</th><th>Status</th><th>Cost</th><th>Actions</th></tr></thead>
                             <tbody>${inventory.map(i => `
-                                <tr class="${editing.inventory === i.id ? 'editing-row' : ''}">
+                                <tr>
                                     <td><div class="table-name">${i.name || ''}</div><div class="table-meta">${i.description || ''}</div></td>
                                     <td>${i.category || '-'}</td>
                                     <td><span class="${getBadgeClass(i.status)}">${i.status || ''}</span></td>
                                     <td>$${(i.cost || 0).toFixed(2)}</td>
-                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="editInventory('${i.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteInventory('${i.id}')">🗑️</button></div></td>
+                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openInventoryModal('${i.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteInventory('${i.id}')">🗑️</button></div></td>
                                 </tr>
                             `).join('')}</tbody></table></div>`}
                     </div>
                 </div>
+                <button class="fab" onclick="openInventoryModal()" title="Add Item">+</button>
             `;
         }
 
-        async function addInventory() { const name = document.getElementById('inv_name').value.trim(); if (!name) return showNotification('Enter name', 'error'); data.inventory.push({ id: generateId(), productionId: activeProduction, category: document.getElementById('inv_category').value, name, description: document.getElementById('inv_description').value, status: document.getElementById('inv_status').value, cost: parseFloat(document.getElementById('inv_cost').value) || 0, sceneIds: [], characterIds: [], notes: '' }); await saveSheetData('inventory'); renderContent(); }
-        function editInventory(id) { editing.inventory = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-        async function saveInventory() { const name = document.getElementById('inv_name').value.trim(); if (!name) return showNotification('Enter name', 'error'); const item = data.inventory.find(i => i.id === editing.inventory); if (item) { item.category = document.getElementById('inv_category').value; item.name = name; item.description = document.getElementById('inv_description').value; item.status = document.getElementById('inv_status').value; item.cost = parseFloat(document.getElementById('inv_cost').value) || 0; } editing.inventory = null; await saveSheetData('inventory'); renderContent(); }
-        async function deleteInventory(id) { if (confirm('Delete?')) { data.inventory = data.inventory.filter(i => i.id !== id); await saveSheetData('inventory'); renderContent(); } }
+        function openInventoryModal(id = null) {
+            const isEditing = id !== null;
+            const editItem = isEditing ? data.inventory.find(i => i.id === id) : null;
+            editing.inventory = id;
+
+            const bodyHtml = `
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group"><label class="form-label">Category *</label><select class="form-select" id="inv_category"><option ${isEditing && editItem.category === 'Props' ? 'selected' : ''}>Props</option><option ${isEditing && editItem.category === 'Costumes' ? 'selected' : ''}>Costumes</option><option ${isEditing && editItem.category === 'Set' ? 'selected' : ''}>Set</option><option ${isEditing && editItem.category === 'Furniture' ? 'selected' : ''}>Furniture</option><option ${isEditing && editItem.category === 'Other' ? 'selected' : ''}>Other</option></select></div>
+                    <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="inv_status"><option ${isEditing && editItem.status === 'Needed' ? 'selected' : ''}>Needed</option><option ${isEditing && editItem.status === 'Acquired' ? 'selected' : ''}>Acquired</option><option ${isEditing && editItem.status === 'Built' ? 'selected' : ''}>Built</option><option ${isEditing && editItem.status === 'Ready' ? 'selected' : ''}>Ready</option></select></div>
+                    <div class="form-group full-width"><label class="form-label">Name *</label><input type="text" class="form-input" id="inv_name" value="${isEditing ? editItem.name || '' : ''}"></div>
+                    <div class="form-group full-width"><label class="form-label">Description</label><textarea class="form-textarea" id="inv_description">${isEditing ? editItem.description || '' : ''}</textarea></div>
+                    <div class="form-group"><label class="form-label">Cost ($)</label><input type="number" class="form-input" id="inv_cost" value="${isEditing ? editItem.cost || 0 : 0}" step="0.01"></div>
+                </div>
+            `;
+
+            const footerHtml = isEditing ? `
+                <button class="btn btn-secondary" onclick="deleteInventory('${id}')">🗑️ Delete</button>
+                <button class="btn btn-primary" onclick="saveInventoryFromModal()">💾 Save Changes</button>
+            ` : `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addInventoryFromModal()">+ Add Item</button>
+            `;
+
+            openModal(isEditing ? '✏️ Edit Item' : '➕ Add Item', bodyHtml, footerHtml);
+        }
+
+        async function addInventoryFromModal() {
+            const name = document.getElementById('inv_name').value.trim();
+            if (!name) return showNotification('Enter name', 'error');
+            data.inventory.push({ id: generateId(), productionId: activeProduction, category: document.getElementById('inv_category').value, name, description: document.getElementById('inv_description').value, status: document.getElementById('inv_status').value, cost: parseFloat(document.getElementById('inv_cost').value) || 0, sceneIds: [], characterIds: [], notes: '' });
+            await saveSheetData('inventory');
+            closeModal();
+            renderContent();
+        }
+
+        async function saveInventoryFromModal() {
+            const name = document.getElementById('inv_name').value.trim();
+            if (!name) return showNotification('Enter name', 'error');
+            const item = data.inventory.find(i => i.id === editing.inventory);
+            if (item) { item.category = document.getElementById('inv_category').value; item.name = name; item.description = document.getElementById('inv_description').value; item.status = document.getElementById('inv_status').value; item.cost = parseFloat(document.getElementById('inv_cost').value) || 0; }
+            editing.inventory = null;
+            await saveSheetData('inventory');
+            closeModal();
+            renderContent();
+        }
+
+        async function addInventory() { await addInventoryFromModal(); }
+        function editInventory(id) { openInventoryModal(id); }
+        async function saveInventory() { await saveInventoryFromModal(); }
+        async function deleteInventory(id) { if (confirm('Delete?')) { data.inventory = data.inventory.filter(i => i.id !== id); await saveSheetData('inventory'); closeModal(); renderContent(); } }
 
         // ==================== BUDGET ====================
         function renderBudget() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">💰</div><div class="empty-state-title">Select a production first</div></div>';
-            const budget = getProductionData('budget'), isEditing = editing.budget !== null, editItem = isEditing ? budget.find(b => b.id === editing.budget) : null;
+            const budget = getProductionData('budget');
             const totalPlanned = budget.reduce((s, b) => s + (b.plannedAmount || 0), 0), totalSpent = budget.reduce((s, b) => s + (b.actualAmount || 0), 0), remaining = totalPlanned - totalSpent;
 
             return `
@@ -2147,173 +2263,293 @@
                     <div class="stat-card"><div class="stat-value">$${totalSpent.toFixed(0)}</div><div class="stat-label">Spent</div></div>
                     <div class="stat-card"><div class="stat-value" style="color: ${remaining >= 0 ? 'var(--success)' : 'var(--danger)'}">$${remaining.toFixed(0)}</div><div class="stat-label">Remaining</div></div>
                 </div>
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header"><span class="card-title">${isEditing ? '✏️ Edit Entry' : '➕ Add Entry'}</span></div>
-                    <div class="card-body">
-                        <div class="form-grid">
-                            <div class="form-group"><label class="form-label">Category *</label><select class="form-select" id="bud_category"><option value="">Select...</option><option ${isEditing && editItem.category === 'Costumes' ? 'selected' : ''}>Costumes</option><option ${isEditing && editItem.category === 'Sets' ? 'selected' : ''}>Sets</option><option ${isEditing && editItem.category === 'Props' ? 'selected' : ''}>Props</option><option ${isEditing && editItem.category === 'Lighting' ? 'selected' : ''}>Lighting</option><option ${isEditing && editItem.category === 'Sound' ? 'selected' : ''}>Sound</option><option ${isEditing && editItem.category === 'Marketing' ? 'selected' : ''}>Marketing</option><option ${isEditing && editItem.category === 'Royalties' ? 'selected' : ''}>Royalties</option><option ${isEditing && editItem.category === 'Venue' ? 'selected' : ''}>Venue</option><option ${isEditing && editItem.category === 'Other' ? 'selected' : ''}>Other</option></select></div>
-                            <div class="form-group"><label class="form-label">Description *</label><input type="text" class="form-input" id="bud_description" value="${isEditing ? editItem.description || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Planned ($)</label><input type="number" class="form-input" id="bud_planned" value="${isEditing ? editItem.plannedAmount || 0 : 0}" step="0.01"></div>
-                            <div class="form-group"><label class="form-label">Actual ($)</label><input type="number" class="form-input" id="bud_actual" value="${isEditing ? editItem.actualAmount || 0 : 0}" step="0.01"></div>
-                            <div class="form-group"><label class="form-label">Date</label><input type="date" class="form-input" id="bud_date" value="${isEditing ? editItem.date || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Vendor</label><input type="text" class="form-input" id="bud_vendor" value="${isEditing ? editItem.vendor || '' : ''}"></div>
-                        </div>
-                        <div class="form-actions">${isEditing ? `<button class="btn btn-primary" onclick="saveBudget()">💾 Save</button><button class="btn btn-secondary" onclick="cancelEdit('budget')">Cancel</button>` : `<button class="btn btn-primary" onclick="addBudget()">➕ Add Entry</button>`}</div>
-                    </div>
-                </div>
                 <div class="card">
                     <div class="card-header"><span class="card-title">Budget Entries (${budget.length})</span></div>
                     <div class="card-body no-padding">
-                        ${budget.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">💰</div><div class="empty-state-title">No entries yet</div></div>' :
+                        ${budget.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">💰</div><div class="empty-state-title">No entries yet</div><p>Click the + button to add budget entries.</p></div>' :
                             `<div class="table-wrapper"><table><thead><tr><th>Description</th><th>Category</th><th>Planned</th><th>Actual</th><th>Variance</th><th>Actions</th></tr></thead>
                             <tbody>${budget.map(b => { const v = (b.plannedAmount || 0) - (b.actualAmount || 0); return `
-                                <tr class="${editing.budget === b.id ? 'editing-row' : ''}">
+                                <tr>
                                     <td><div class="table-name">${b.description || ''}</div><div class="table-meta">${b.vendor || ''}</div></td>
                                     <td>${b.category || '-'}</td>
                                     <td>$${(b.plannedAmount || 0).toFixed(2)}</td>
                                     <td>$${(b.actualAmount || 0).toFixed(2)}</td>
                                     <td style="color: ${v >= 0 ? 'var(--success)' : 'var(--danger)'}">$${v.toFixed(2)}</td>
-                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="editBudget('${b.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteBudget('${b.id}')">🗑️</button></div></td>
+                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openBudgetModal('${b.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteBudget('${b.id}')">🗑️</button></div></td>
                                 </tr>`; }).join('')}</tbody></table></div>`}
                     </div>
                 </div>
+                <button class="fab" onclick="openBudgetModal()" title="Add Entry">+</button>
             `;
         }
 
-        async function addBudget() { const cat = document.getElementById('bud_category').value, desc = document.getElementById('bud_description').value.trim(); if (!cat || !desc) return showNotification('Enter category and description', 'error'); data.budget.push({ id: generateId(), productionId: activeProduction, category: cat, description: desc, plannedAmount: parseFloat(document.getElementById('bud_planned').value) || 0, actualAmount: parseFloat(document.getElementById('bud_actual').value) || 0, date: document.getElementById('bud_date').value, vendor: document.getElementById('bud_vendor').value, notes: '' }); await saveSheetData('budget'); renderContent(); }
-        function editBudget(id) { editing.budget = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-        async function saveBudget() { const cat = document.getElementById('bud_category').value, desc = document.getElementById('bud_description').value.trim(); if (!cat || !desc) return showNotification('Enter category and description', 'error'); const item = data.budget.find(b => b.id === editing.budget); if (item) { item.category = cat; item.description = desc; item.plannedAmount = parseFloat(document.getElementById('bud_planned').value) || 0; item.actualAmount = parseFloat(document.getElementById('bud_actual').value) || 0; item.date = document.getElementById('bud_date').value; item.vendor = document.getElementById('bud_vendor').value; } editing.budget = null; await saveSheetData('budget'); renderContent(); }
-        async function deleteBudget(id) { if (confirm('Delete?')) { data.budget = data.budget.filter(b => b.id !== id); await saveSheetData('budget'); renderContent(); } }
+        function openBudgetModal(id = null) {
+            const isEditing = id !== null;
+            const editItem = isEditing ? data.budget.find(b => b.id === id) : null;
+            editing.budget = id;
+
+            const bodyHtml = `
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group"><label class="form-label">Category *</label><select class="form-select" id="bud_category"><option value="">Select...</option><option ${isEditing && editItem.category === 'Costumes' ? 'selected' : ''}>Costumes</option><option ${isEditing && editItem.category === 'Sets' ? 'selected' : ''}>Sets</option><option ${isEditing && editItem.category === 'Props' ? 'selected' : ''}>Props</option><option ${isEditing && editItem.category === 'Lighting' ? 'selected' : ''}>Lighting</option><option ${isEditing && editItem.category === 'Sound' ? 'selected' : ''}>Sound</option><option ${isEditing && editItem.category === 'Marketing' ? 'selected' : ''}>Marketing</option><option ${isEditing && editItem.category === 'Royalties' ? 'selected' : ''}>Royalties</option><option ${isEditing && editItem.category === 'Venue' ? 'selected' : ''}>Venue</option><option ${isEditing && editItem.category === 'Other' ? 'selected' : ''}>Other</option></select></div>
+                    <div class="form-group"><label class="form-label">Date</label><input type="date" class="form-input" id="bud_date" value="${isEditing ? editItem.date || '' : ''}"></div>
+                    <div class="form-group full-width"><label class="form-label">Description *</label><input type="text" class="form-input" id="bud_description" value="${isEditing ? editItem.description || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Planned ($)</label><input type="number" class="form-input" id="bud_planned" value="${isEditing ? editItem.plannedAmount || 0 : 0}" step="0.01"></div>
+                    <div class="form-group"><label class="form-label">Actual ($)</label><input type="number" class="form-input" id="bud_actual" value="${isEditing ? editItem.actualAmount || 0 : 0}" step="0.01"></div>
+                    <div class="form-group full-width"><label class="form-label">Vendor</label><input type="text" class="form-input" id="bud_vendor" value="${isEditing ? editItem.vendor || '' : ''}"></div>
+                </div>
+            `;
+
+            const footerHtml = isEditing ? `
+                <button class="btn btn-secondary" onclick="deleteBudget('${id}')">🗑️ Delete</button>
+                <button class="btn btn-primary" onclick="saveBudgetFromModal()">💾 Save Changes</button>
+            ` : `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addBudgetFromModal()">+ Add Entry</button>
+            `;
+
+            openModal(isEditing ? '✏️ Edit Budget Entry' : '➕ Add Budget Entry', bodyHtml, footerHtml);
+        }
+
+        async function addBudgetFromModal() {
+            const cat = document.getElementById('bud_category').value, desc = document.getElementById('bud_description').value.trim();
+            if (!cat || !desc) return showNotification('Enter category and description', 'error');
+            data.budget.push({ id: generateId(), productionId: activeProduction, category: cat, description: desc, plannedAmount: parseFloat(document.getElementById('bud_planned').value) || 0, actualAmount: parseFloat(document.getElementById('bud_actual').value) || 0, date: document.getElementById('bud_date').value, vendor: document.getElementById('bud_vendor').value, notes: '' });
+            await saveSheetData('budget');
+            closeModal();
+            renderContent();
+        }
+
+        async function saveBudgetFromModal() {
+            const cat = document.getElementById('bud_category').value, desc = document.getElementById('bud_description').value.trim();
+            if (!cat || !desc) return showNotification('Enter category and description', 'error');
+            const item = data.budget.find(b => b.id === editing.budget);
+            if (item) { item.category = cat; item.description = desc; item.plannedAmount = parseFloat(document.getElementById('bud_planned').value) || 0; item.actualAmount = parseFloat(document.getElementById('bud_actual').value) || 0; item.date = document.getElementById('bud_date').value; item.vendor = document.getElementById('bud_vendor').value; }
+            editing.budget = null;
+            await saveSheetData('budget');
+            closeModal();
+            renderContent();
+        }
+
+        async function addBudget() { await addBudgetFromModal(); }
+        function editBudget(id) { openBudgetModal(id); }
+        async function saveBudget() { await saveBudgetFromModal(); }
+        async function deleteBudget(id) { if (confirm('Delete?')) { data.budget = data.budget.filter(b => b.id !== id); await saveSheetData('budget'); closeModal(); renderContent(); } }
 
         // ==================== DOCUMENTS ====================
         function renderDocuments() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-title">Select a production first</div></div>';
-            const documents = getProductionData('documents'), isEditing = editing.document !== null, editItem = isEditing ? documents.find(d => d.id === editing.document) : null;
+            const documents = getProductionData('documents');
 
             return `
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header"><span class="card-title">${isEditing ? '✏️ Edit Document' : '➕ Add Document'}</span></div>
-                    <div class="card-body">
-                        <div class="form-grid">
-                            <div class="form-group"><label class="form-label">Title *</label><input type="text" class="form-input" id="doc_title" value="${isEditing ? editItem.title || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="doc_category"><option ${isEditing && editItem.category === 'Script' ? 'selected' : ''}>Script</option><option ${isEditing && editItem.category === 'Score' ? 'selected' : ''}>Score</option><option ${isEditing && editItem.category === 'Rehearsal Tracks' ? 'selected' : ''}>Rehearsal Tracks</option><option ${isEditing && editItem.category === 'Reference' ? 'selected' : ''}>Reference</option><option ${isEditing && editItem.category === 'Forms' ? 'selected' : ''}>Forms</option><option ${isEditing && editItem.category === 'Other' ? 'selected' : ''}>Other</option></select></div>
-                            <div class="form-group full-width"><label class="form-label">URL *</label><input type="url" class="form-input" id="doc_url" placeholder="https://..." value="${isEditing ? editItem.url || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Version</label><input type="text" class="form-input" id="doc_version" value="${isEditing ? editItem.version || '1.0' : '1.0'}"></div>
-                        </div>
-                        <div class="form-actions">${isEditing ? `<button class="btn btn-primary" onclick="saveDocument()">💾 Save</button><button class="btn btn-secondary" onclick="cancelEdit('document')">Cancel</button>` : `<button class="btn btn-primary" onclick="addDocument()">➕ Add Document</button>`}</div>
-                    </div>
-                </div>
                 <div class="card">
                     <div class="card-header"><span class="card-title">Documents (${documents.length})</span></div>
                     <div class="card-body no-padding">
-                        ${documents.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-title">No documents yet</div></div>' :
+                        ${documents.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-title">No documents yet</div><p>Click the + button to add document links.</p></div>' :
                             `<div class="table-wrapper"><table><thead><tr><th>Title</th><th>Category</th><th>Version</th><th>Link</th><th>Actions</th></tr></thead>
                             <tbody>${documents.map(d => `
-                                <tr class="${editing.document === d.id ? 'editing-row' : ''}">
+                                <tr>
                                     <td class="table-name">${d.title || ''}</td>
                                     <td>${d.category || '-'}</td>
                                     <td>${d.version || '-'}</td>
                                     <td><a href="${d.url}" target="_blank" class="btn btn-sm btn-secondary">Open →</a></td>
-                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="editDocument('${d.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteDocument('${d.id}')">🗑️</button></div></td>
+                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openDocumentModal('${d.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteDocument('${d.id}')">🗑️</button></div></td>
                                 </tr>
                             `).join('')}</tbody></table></div>`}
                     </div>
                 </div>
+                <button class="fab" onclick="openDocumentModal()" title="Add Document">+</button>
             `;
         }
 
-        async function addDocument() { const title = document.getElementById('doc_title').value.trim(), url = document.getElementById('doc_url').value.trim(); if (!title || !url) return showNotification('Enter title and URL', 'error'); data.documents.push({ id: generateId(), productionId: activeProduction, title, category: document.getElementById('doc_category').value, url, version: document.getElementById('doc_version').value, notes: '', dateAdded: new Date().toISOString().split('T')[0] }); await saveSheetData('documents'); renderContent(); }
-        function editDocument(id) { editing.document = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-        async function saveDocument() { const title = document.getElementById('doc_title').value.trim(), url = document.getElementById('doc_url').value.trim(); if (!title || !url) return showNotification('Enter title and URL', 'error'); const item = data.documents.find(d => d.id === editing.document); if (item) { item.title = title; item.category = document.getElementById('doc_category').value; item.url = url; item.version = document.getElementById('doc_version').value; } editing.document = null; await saveSheetData('documents'); renderContent(); }
-        async function deleteDocument(id) { if (confirm('Delete?')) { data.documents = data.documents.filter(d => d.id !== id); await saveSheetData('documents'); renderContent(); } }
+        function openDocumentModal(id = null) {
+            const isEditing = id !== null;
+            const editItem = isEditing ? data.documents.find(d => d.id === id) : null;
+            editing.document = id;
+
+            const bodyHtml = `
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group full-width"><label class="form-label">Title *</label><input type="text" class="form-input" id="doc_title" value="${isEditing ? editItem.title || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="doc_category"><option ${isEditing && editItem.category === 'Script' ? 'selected' : ''}>Script</option><option ${isEditing && editItem.category === 'Score' ? 'selected' : ''}>Score</option><option ${isEditing && editItem.category === 'Rehearsal Tracks' ? 'selected' : ''}>Rehearsal Tracks</option><option ${isEditing && editItem.category === 'Reference' ? 'selected' : ''}>Reference</option><option ${isEditing && editItem.category === 'Forms' ? 'selected' : ''}>Forms</option><option ${isEditing && editItem.category === 'Other' ? 'selected' : ''}>Other</option></select></div>
+                    <div class="form-group"><label class="form-label">Version</label><input type="text" class="form-input" id="doc_version" value="${isEditing ? editItem.version || '1.0' : '1.0'}"></div>
+                    <div class="form-group full-width"><label class="form-label">URL *</label><input type="url" class="form-input" id="doc_url" placeholder="https://..." value="${isEditing ? editItem.url || '' : ''}"></div>
+                    <div class="form-group full-width"><label class="form-label">Notes</label><textarea class="form-textarea" id="doc_notes">${isEditing ? editItem.notes || '' : ''}</textarea></div>
+                </div>
+            `;
+
+            const footerHtml = isEditing ? `
+                <button class="btn btn-secondary" onclick="deleteDocument('${id}')">🗑️ Delete</button>
+                <button class="btn btn-primary" onclick="saveDocumentFromModal()">💾 Save Changes</button>
+            ` : `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addDocumentFromModal()">+ Add Document</button>
+            `;
+
+            openModal(isEditing ? '✏️ Edit Document' : '➕ Add Document', bodyHtml, footerHtml);
+        }
+
+        async function addDocumentFromModal() {
+            const title = document.getElementById('doc_title').value.trim(), url = document.getElementById('doc_url').value.trim();
+            if (!title || !url) return showNotification('Enter title and URL', 'error');
+            data.documents.push({ id: generateId(), productionId: activeProduction, title, category: document.getElementById('doc_category').value, url, version: document.getElementById('doc_version').value, notes: document.getElementById('doc_notes').value, dateAdded: new Date().toISOString().split('T')[0] });
+            await saveSheetData('documents');
+            closeModal();
+            renderContent();
+        }
+
+        async function saveDocumentFromModal() {
+            const title = document.getElementById('doc_title').value.trim(), url = document.getElementById('doc_url').value.trim();
+            if (!title || !url) return showNotification('Enter title and URL', 'error');
+            const item = data.documents.find(d => d.id === editing.document);
+            if (item) { item.title = title; item.category = document.getElementById('doc_category').value; item.url = url; item.version = document.getElementById('doc_version').value; item.notes = document.getElementById('doc_notes').value; }
+            editing.document = null;
+            await saveSheetData('documents');
+            closeModal();
+            renderContent();
+        }
+
+        async function addDocument() { await addDocumentFromModal(); }
+        function editDocument(id) { openDocumentModal(id); }
+        async function saveDocument() { await saveDocumentFromModal(); }
+        async function deleteDocument(id) { if (confirm('Delete?')) { data.documents = data.documents.filter(d => d.id !== id); await saveSheetData('documents'); closeModal(); renderContent(); } }
 
         // ==================== CUE SHEETS ====================
         function renderCueSheets() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">🎚️</div><div class="empty-state-title">Select a production first</div></div>';
-            const cues = getProductionData('cueSheets'), isEditing = editing.cueSheet !== null, editItem = isEditing ? cues.find(c => c.id === editing.cueSheet) : null;
+            const cues = getProductionData('cueSheets');
 
             return `
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header"><span class="card-title">${isEditing ? '✏️ Edit Cue' : '➕ Add Cue'}</span></div>
-                    <div class="card-body">
-                        <div class="form-grid">
-                            <div class="form-group"><label class="form-label">Type *</label><select class="form-select" id="cue_type"><option ${isEditing && editItem.type === 'Lighting' ? 'selected' : ''}>Lighting</option><option ${isEditing && editItem.type === 'Sound' ? 'selected' : ''}>Sound</option><option ${isEditing && editItem.type === 'Fly/Rigging' ? 'selected' : ''}>Fly/Rigging</option><option ${isEditing && editItem.type === 'Projection' ? 'selected' : ''}>Projection</option><option ${isEditing && editItem.type === 'Other' ? 'selected' : ''}>Other</option></select></div>
-                            <div class="form-group"><label class="form-label">Cue # *</label><input type="text" class="form-input" id="cue_number" value="${isEditing ? editItem.cueNumber || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Page</label><input type="text" class="form-input" id="cue_page" value="${isEditing ? editItem.page || '' : ''}"></div>
-                            <div class="form-group"><label class="form-label">Action/Trigger</label><input type="text" class="form-input" id="cue_action" value="${isEditing ? editItem.action || '' : ''}"></div>
-                            <div class="form-group full-width"><label class="form-label">Description *</label><textarea class="form-textarea" id="cue_description">${isEditing ? editItem.description || '' : ''}</textarea></div>
-                        </div>
-                        <div class="form-actions">${isEditing ? `<button class="btn btn-primary" onclick="saveCue()">💾 Save</button><button class="btn btn-secondary" onclick="cancelEdit('cueSheet')">Cancel</button>` : `<button class="btn btn-primary" onclick="addCue()">➕ Add Cue</button>`}</div>
-                    </div>
-                </div>
                 <div class="card">
                     <div class="card-header"><span class="card-title">Cue Sheets (${cues.length})</span></div>
                     <div class="card-body no-padding">
-                        ${cues.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🎚️</div><div class="empty-state-title">No cues yet</div></div>' :
+                        ${cues.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🎚️</div><div class="empty-state-title">No cues yet</div><p>Click the + button to add cues.</p></div>' :
                             `<div class="table-wrapper"><table><thead><tr><th>Type</th><th>Cue #</th><th>Page</th><th>Action</th><th>Description</th><th>Actions</th></tr></thead>
                             <tbody>${cues.sort((a, b) => (a.cueNumber || '').localeCompare(b.cueNumber || '')).map(c => `
-                                <tr class="${editing.cueSheet === c.id ? 'editing-row' : ''}">
+                                <tr>
                                     <td>${c.type || ''}</td>
                                     <td class="table-name">${c.cueNumber || ''}</td>
                                     <td>${c.page || '-'}</td>
                                     <td>${c.action || '-'}</td>
                                     <td class="table-meta">${c.description || ''}</td>
-                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="editCue('${c.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteCue('${c.id}')">🗑️</button></div></td>
+                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openCueModal('${c.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteCue('${c.id}')">🗑️</button></div></td>
                                 </tr>
                             `).join('')}</tbody></table></div>`}
                     </div>
                 </div>
+                <button class="fab" onclick="openCueModal()" title="Add Cue">+</button>
             `;
         }
 
-        async function addCue() { const num = document.getElementById('cue_number').value.trim(), desc = document.getElementById('cue_description').value.trim(); if (!num || !desc) return showNotification('Enter cue # and description', 'error'); data.cueSheets.push({ id: generateId(), productionId: activeProduction, type: document.getElementById('cue_type').value, cueNumber: num, page: document.getElementById('cue_page').value, action: document.getElementById('cue_action').value, description: desc, notes: '' }); await saveSheetData('cueSheets'); renderContent(); }
-        function editCue(id) { editing.cueSheet = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-        async function saveCue() { const num = document.getElementById('cue_number').value.trim(), desc = document.getElementById('cue_description').value.trim(); if (!num || !desc) return showNotification('Enter cue # and description', 'error'); const item = data.cueSheets.find(c => c.id === editing.cueSheet); if (item) { item.type = document.getElementById('cue_type').value; item.cueNumber = num; item.page = document.getElementById('cue_page').value; item.action = document.getElementById('cue_action').value; item.description = desc; } editing.cueSheet = null; await saveSheetData('cueSheets'); renderContent(); }
-        async function deleteCue(id) { if (confirm('Delete?')) { data.cueSheets = data.cueSheets.filter(c => c.id !== id); await saveSheetData('cueSheets'); renderContent(); } }
+        function openCueModal(id = null) {
+            const isEditing = id !== null;
+            const editItem = isEditing ? data.cueSheets.find(c => c.id === id) : null;
+            editing.cueSheet = id;
+
+            const bodyHtml = `
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group"><label class="form-label">Type *</label><select class="form-select" id="cue_type"><option ${isEditing && editItem.type === 'Lighting' ? 'selected' : ''}>Lighting</option><option ${isEditing && editItem.type === 'Sound' ? 'selected' : ''}>Sound</option><option ${isEditing && editItem.type === 'Fly/Rigging' ? 'selected' : ''}>Fly/Rigging</option><option ${isEditing && editItem.type === 'Projection' ? 'selected' : ''}>Projection</option><option ${isEditing && editItem.type === 'Other' ? 'selected' : ''}>Other</option></select></div>
+                    <div class="form-group"><label class="form-label">Cue # *</label><input type="text" class="form-input" id="cue_number" value="${isEditing ? editItem.cueNumber || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Page</label><input type="text" class="form-input" id="cue_page" value="${isEditing ? editItem.page || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Action/Trigger</label><input type="text" class="form-input" id="cue_action" value="${isEditing ? editItem.action || '' : ''}"></div>
+                    <div class="form-group full-width"><label class="form-label">Description *</label><textarea class="form-textarea" id="cue_description">${isEditing ? editItem.description || '' : ''}</textarea></div>
+                    <div class="form-group full-width"><label class="form-label">Notes</label><textarea class="form-textarea" id="cue_notes">${isEditing ? editItem.notes || '' : ''}</textarea></div>
+                </div>
+            `;
+
+            const footerHtml = isEditing ? `
+                <button class="btn btn-secondary" onclick="deleteCue('${id}')">🗑️ Delete</button>
+                <button class="btn btn-primary" onclick="saveCueFromModal()">💾 Save Changes</button>
+            ` : `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addCueFromModal()">+ Add Cue</button>
+            `;
+
+            openModal(isEditing ? '✏️ Edit Cue' : '➕ Add Cue', bodyHtml, footerHtml);
+        }
+
+        async function addCueFromModal() {
+            const num = document.getElementById('cue_number').value.trim(), desc = document.getElementById('cue_description').value.trim();
+            if (!num || !desc) return showNotification('Enter cue # and description', 'error');
+            data.cueSheets.push({ id: generateId(), productionId: activeProduction, type: document.getElementById('cue_type').value, cueNumber: num, page: document.getElementById('cue_page').value, action: document.getElementById('cue_action').value, description: desc, notes: document.getElementById('cue_notes').value });
+            await saveSheetData('cueSheets');
+            closeModal();
+            renderContent();
+        }
+
+        async function saveCueFromModal() {
+            const num = document.getElementById('cue_number').value.trim(), desc = document.getElementById('cue_description').value.trim();
+            if (!num || !desc) return showNotification('Enter cue # and description', 'error');
+            const item = data.cueSheets.find(c => c.id === editing.cueSheet);
+            if (item) { item.type = document.getElementById('cue_type').value; item.cueNumber = num; item.page = document.getElementById('cue_page').value; item.action = document.getElementById('cue_action').value; item.description = desc; item.notes = document.getElementById('cue_notes').value; }
+            editing.cueSheet = null;
+            await saveSheetData('cueSheets');
+            closeModal();
+            renderContent();
+        }
+
+        async function addCue() { await addCueFromModal(); }
+        function editCue(id) { openCueModal(id); }
+        async function saveCue() { await saveCueFromModal(); }
+        async function deleteCue(id) { if (confirm('Delete?')) { data.cueSheets = data.cueSheets.filter(c => c.id !== id); await saveSheetData('cueSheets'); closeModal(); renderContent(); } }
 
         // ==================== EMAILS ====================
         function renderEmails() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">✉️</div><div class="empty-state-title">Select a production first</div></div>';
-            const emails = getProductionData('emails'), rehearsals = getProductionData('rehearsals'), isEditing = editing.email !== null, editItem = isEditing ? emails.find(e => e.id === editing.email) : null;
-            const rehOptions = rehearsals.map(r => `<option value="${r.id}">${formatDate(r.date)} - ${r.startTime}</option>`).join('');
+            const emails = getProductionData('emails');
 
             return `
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header"><span class="card-title">${isEditing ? '✏️ Edit Email' : '✉️ Compose Email'}</span></div>
-                    <div class="card-body">
-                        <div class="form-grid">
-                            <div class="form-group"><label class="form-label">Recipients</label><select class="form-select" id="email_recipientType" onchange="updateEmailRecipients()"><option value="all">All Company</option><option value="cast">Cast Only</option><option value="crew">Crew Only</option><option value="rehearsal">Called for Rehearsal</option></select></div>
-                            <div class="form-group" id="rehearsalSelectGroup" style="display:none"><label class="form-label">Rehearsal</label><select class="form-select" id="email_rehearsal" onchange="updateEmailRecipients()"><option value="">Choose...</option>${rehOptions}</select></div>
-                            <div class="form-group full-width"><label class="form-label">Email Addresses (click to copy)</label><div class="email-box" id="emailAddressBox" onclick="copyEmailAddresses()">Select recipients above</div></div>
-                            <div class="form-group full-width"><label class="form-label">Subject *</label><input type="text" class="form-input" id="email_subject" value="${isEditing ? editItem.subject || '' : ''}"></div>
-                            <div class="form-group full-width"><label class="form-label">Body *</label><textarea class="form-textarea" id="email_body" style="min-height: 150px;">${isEditing ? editItem.body || '' : ''}</textarea></div>
-                        </div>
-                        <div class="form-actions">
-                            ${isEditing ? `<button class="btn btn-primary" onclick="saveEmail()">💾 Save</button><button class="btn btn-secondary" onclick="cancelEdit('email')">Cancel</button>` : `<button class="btn btn-primary" onclick="addEmail()">💾 Save Draft</button>`}
-                            <button class="btn btn-success" onclick="copyFullEmail()">📋 Copy Email</button>
-                        </div>
-                    </div>
-                </div>
                 <div class="card">
                     <div class="card-header"><span class="card-title">Saved Emails (${emails.length})</span></div>
                     <div class="card-body no-padding">
-                        ${emails.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">✉️</div><div class="empty-state-title">No emails yet</div></div>' :
+                        ${emails.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">✉️</div><div class="empty-state-title">No emails yet</div><p>Click the + button to compose an email.</p></div>' :
                             `<div class="table-wrapper"><table><thead><tr><th>Date</th><th>Subject</th><th>Status</th><th>Actions</th></tr></thead>
                             <tbody>${emails.map(e => `
-                                <tr class="${editing.email === e.id ? 'editing-row' : ''}">
+                                <tr>
                                     <td>${e.dateCreated || ''}</td>
                                     <td class="table-name">${e.subject || ''}</td>
                                     <td><span class="${getBadgeClass(e.status)}">${e.status || ''}</span></td>
-                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="editEmail('${e.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="copyEmail('${e.id}')">📋</button><button class="btn btn-ghost btn-icon" onclick="deleteEmail('${e.id}')">🗑️</button></div></td>
+                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openEmailModal('${e.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="copyEmail('${e.id}')">📋</button><button class="btn btn-ghost btn-icon" onclick="deleteEmail('${e.id}')">🗑️</button></div></td>
                                 </tr>
                             `).join('')}</tbody></table></div>`}
                     </div>
                 </div>
+                <button class="fab" onclick="openEmailModal()" title="Compose Email">+</button>
             `;
         }
 
-        function updateEmailRecipients() {
-            const type = document.getElementById('email_recipientType').value;
+        function openEmailModal(id = null) {
+            const rehearsals = getProductionData('rehearsals');
+            const isEditing = id !== null;
+            const editItem = isEditing ? data.emails.find(e => e.id === id) : null;
+            editing.email = id;
+
+            const rehOptions = rehearsals.map(r => `<option value="${r.id}">${formatDate(r.date)} - ${r.startTime}</option>`).join('');
+
+            const bodyHtml = `
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group"><label class="form-label">Recipients</label><select class="form-select" id="email_recipientType" onchange="updateEmailRecipientsModal()"><option value="all">All Company</option><option value="cast">Cast Only</option><option value="crew">Crew Only</option><option value="rehearsal">Called for Rehearsal</option></select></div>
+                    <div class="form-group" id="rehearsalSelectGroup" style="display:none"><label class="form-label">Rehearsal</label><select class="form-select" id="email_rehearsal" onchange="updateEmailRecipientsModal()"><option value="">Choose...</option>${rehOptions}</select></div>
+                    <div class="form-group full-width"><label class="form-label">Email Addresses (click to copy)</label><div class="email-box" id="emailAddressBox" onclick="copyEmailAddresses()">Select recipients above</div></div>
+                    <div class="form-group full-width"><label class="form-label">Subject *</label><input type="text" class="form-input" id="email_subject" value="${isEditing ? editItem.subject || '' : ''}"></div>
+                    <div class="form-group full-width"><label class="form-label">Body *</label><textarea class="form-textarea" id="email_body" style="min-height: 150px;">${isEditing ? editItem.body || '' : ''}</textarea></div>
+                </div>
+            `;
+
+            const footerHtml = isEditing ? `
+                <button class="btn btn-secondary" onclick="deleteEmail('${id}')">🗑️ Delete</button>
+                <button class="btn btn-success" onclick="copyFullEmailModal()">📋 Copy</button>
+                <button class="btn btn-primary" onclick="saveEmailFromModal()">💾 Save</button>
+            ` : `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-success" onclick="copyFullEmailModal()">📋 Copy</button>
+                <button class="btn btn-primary" onclick="addEmailFromModal()">💾 Save Draft</button>
+            `;
+
+            openModal(isEditing ? '✏️ Edit Email' : '✉️ Compose Email', bodyHtml, footerHtml);
+            setTimeout(updateEmailRecipientsModal, 100);
+        }
+
+        function updateEmailRecipientsModal() {
+            const type = document.getElementById('email_recipientType')?.value;
             const rehGroup = document.getElementById('rehearsalSelectGroup');
             if (rehGroup) rehGroup.style.display = type === 'rehearsal' ? 'block' : 'none';
             const people = getProductionData('people');
@@ -2322,16 +2558,40 @@
             else if (type === 'cast') recipients = people.filter(p => p.email && p.role && p.role.includes('Cast'));
             else if (type === 'crew') recipients = people.filter(p => p.email && (!p.role || !p.role.includes('Cast')));
             else if (type === 'rehearsal') { const rehId = document.getElementById('email_rehearsal')?.value; if (rehId) { const reh = data.rehearsals.find(r => r.id === rehId); if (reh) recipients = people.filter(p => p.email && (reh.calledCastIds || []).includes(p.id)); } }
-            document.getElementById('emailAddressBox').textContent = recipients.map(p => p.email).join(', ') || 'No emails found';
+            const box = document.getElementById('emailAddressBox');
+            if (box) box.textContent = recipients.map(p => p.email).join(', ') || 'No emails found';
         }
 
         function copyEmailAddresses() { navigator.clipboard.writeText(document.getElementById('emailAddressBox').textContent); showNotification('Copied!'); }
-        function copyFullEmail() { navigator.clipboard.writeText(`Subject: ${document.getElementById('email_subject').value}\n\n${document.getElementById('email_body').value}`); showNotification('Email copied!'); }
-        async function addEmail() { const subj = document.getElementById('email_subject').value.trim(), body = document.getElementById('email_body').value.trim(); if (!subj || !body) return showNotification('Enter subject and body', 'error'); data.emails.push({ id: generateId(), productionId: activeProduction, subject: subj, body, recipients: document.getElementById('emailAddressBox').textContent, dateCreated: new Date().toISOString().split('T')[0], status: 'Draft' }); await saveSheetData('emails'); renderContent(); }
-        function editEmail(id) { editing.email = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(updateEmailRecipients, 100); }
-        async function saveEmail() { const subj = document.getElementById('email_subject').value.trim(), body = document.getElementById('email_body').value.trim(); if (!subj || !body) return showNotification('Enter subject and body', 'error'); const item = data.emails.find(e => e.id === editing.email); if (item) { item.subject = subj; item.body = body; item.recipients = document.getElementById('emailAddressBox').textContent; } editing.email = null; await saveSheetData('emails'); renderContent(); }
+        function copyFullEmailModal() { navigator.clipboard.writeText(`Subject: ${document.getElementById('email_subject').value}\n\n${document.getElementById('email_body').value}`); showNotification('Email copied!'); }
+
+        async function addEmailFromModal() {
+            const subj = document.getElementById('email_subject').value.trim(), body = document.getElementById('email_body').value.trim();
+            if (!subj || !body) return showNotification('Enter subject and body', 'error');
+            data.emails.push({ id: generateId(), productionId: activeProduction, subject: subj, body, recipients: document.getElementById('emailAddressBox').textContent, dateCreated: new Date().toISOString().split('T')[0], status: 'Draft' });
+            await saveSheetData('emails');
+            closeModal();
+            renderContent();
+        }
+
+        async function saveEmailFromModal() {
+            const subj = document.getElementById('email_subject').value.trim(), body = document.getElementById('email_body').value.trim();
+            if (!subj || !body) return showNotification('Enter subject and body', 'error');
+            const item = data.emails.find(e => e.id === editing.email);
+            if (item) { item.subject = subj; item.body = body; item.recipients = document.getElementById('emailAddressBox').textContent; }
+            editing.email = null;
+            await saveSheetData('emails');
+            closeModal();
+            renderContent();
+        }
+
+        function updateEmailRecipients() { updateEmailRecipientsModal(); }
+        function copyFullEmail() { copyFullEmailModal(); }
+        async function addEmail() { await addEmailFromModal(); }
+        function editEmail(id) { openEmailModal(id); }
+        async function saveEmail() { await saveEmailFromModal(); }
         function copyEmail(id) { const e = data.emails.find(x => x.id === id); if (e) { navigator.clipboard.writeText(`Subject: ${e.subject}\n\n${e.body}`); showNotification('Copied!'); } }
-        async function deleteEmail(id) { if (confirm('Delete?')) { data.emails = data.emails.filter(e => e.id !== id); await saveSheetData('emails'); renderContent(); } }
+        async function deleteEmail(id) { if (confirm('Delete?')) { data.emails = data.emails.filter(e => e.id !== id); await saveSheetData('emails'); closeModal(); renderContent(); } }
 
         // ==================== INIT ====================
         window.onload = function() { gapiLoaded(); gisLoaded(); };
