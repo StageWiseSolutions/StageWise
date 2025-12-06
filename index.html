@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎭 Stage Manager - Musical Theater Production Management</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -17,6 +18,10 @@
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         .notification { 
             animation: slideIn 0.3s ease;
@@ -31,10 +36,113 @@
         }
         .notification.success { background: #27ae60; }
         .notification.error { background: #e74c3c; }
+        .notification.info { background: #3498db; }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #1a1a2e; }
         ::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 4px; }
         select option { background: #1a1a2e; color: #e8e8e8; }
+        
+        /* Login Screen */
+        .login-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            text-align: center;
+        }
+        .login-logo {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        .login-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 36px;
+            color: #d4af37;
+            margin-bottom: 10px;
+        }
+        .login-subtitle {
+            color: #888;
+            margin-bottom: 40px;
+            font-size: 16px;
+        }
+        .login-btn {
+            background: #d4af37;
+            color: #1a1a2e;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s;
+        }
+        .login-btn:hover { background: #e8c252; transform: scale(1.05); }
+        .login-btn img { width: 24px; height: 24px; }
+        .login-info {
+            margin-top: 30px;
+            color: #666;
+            font-size: 13px;
+            max-width: 400px;
+        }
+        
+        /* Loading Spinner */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 26, 46, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(212, 175, 55, 0.3);
+            border-top-color: #d4af37;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        .loading-text {
+            margin-top: 20px;
+            color: #d4af37;
+            font-size: 16px;
+        }
+        
+        /* Sync Status */
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #888;
+        }
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #27ae60;
+        }
+        .sync-dot.syncing {
+            background: #f39c12;
+            animation: pulse 1s infinite;
+        }
+        .sync-dot.error {
+            background: #e74c3c;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
         
         .header {
             background: linear-gradient(90deg, #c9a227 0%, #d4af37 50%, #c9a227 100%);
@@ -63,6 +171,7 @@
         .header-buttons {
             display: flex;
             gap: 10px;
+            align-items: center;
             flex-wrap: wrap;
         }
         .btn-primary {
@@ -77,7 +186,7 @@
             font-weight: 600;
             letter-spacing: 1px;
         }
-        .btn-secondary {
+        .btn-signout {
             background: transparent;
             color: #1a1a2e;
             border: 2px solid #1a1a2e;
@@ -395,53 +504,134 @@
         }
         
         .hidden { display: none; }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #1a1a2e;
+            font-size: 13px;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #1a1a2e;
+        }
     </style>
 </head>
 <body>
-    <div id="notification" class="notification hidden"></div>
-
-    <header class="header">
-        <div>
-            <h1>🎭 Stage Manager</h1>
-            <p>Musical Theater Production Management</p>
-        </div>
-        <div class="header-buttons">
-            <label class="btn-secondary" style="cursor: pointer;">
-                📥 Import
-                <input type="file" id="importFile" accept=".xlsx,.xls" style="display: none;">
-            </label>
-            <button class="btn-primary" onclick="exportToExcel()">📤 Export</button>
-        </div>
-    </header>
-
-    <nav class="nav" id="nav">
-        <div class="nav-item active" data-tab="productions">🎭 Productions</div>
-        <div class="nav-item" data-tab="people">👥 People</div>
-        <div class="nav-item" data-tab="scenes">🎬 Scenes</div>
-        <div class="nav-item" data-tab="rehearsals">📅 Rehearsals</div>
-        <div class="nav-item" data-tab="attendance">✓ Attendance</div>
-        <div class="nav-item" data-tab="inventory">🎪 Inventory</div>
-        <div class="nav-item" data-tab="budget">💰 Budget</div>
-        <div class="nav-item" data-tab="documents">📄 Documents</div>
-        <div class="nav-item" data-tab="cueSheets">🎚️ Cues</div>
-        <div class="nav-item" data-tab="emails">✉️ Emails</div>
-    </nav>
-
-    <div class="production-selector" id="productionSelector" style="display: none;">
-        <label>Active Production:</label>
-        <select id="activeProductionSelect" onchange="setActiveProduction(this.value)">
-            <option value="">Select production...</option>
-        </select>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-logo">🎭</div>
+        <h1 class="login-title">Stage Manager</h1>
+        <p class="login-subtitle">Musical Theater Production Management</p>
+        <button class="login-btn" onclick="handleSignIn()">
+            <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Sign in with Google
+        </button>
+        <p class="login-info">
+            Your data is stored securely in your own Google Sheet. Only you have access to it.
+        </p>
     </div>
 
-    <main class="main" id="mainContent"></main>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p class="loading-text" id="loadingText">Connecting to Google Sheets...</p>
+    </div>
 
-    <footer>
-        Stage Manager v1.1 • Remember to Export your data to save it!
-    </footer>
+    <!-- Main App -->
+    <div id="mainApp" class="hidden">
+        <div id="notification" class="notification hidden"></div>
+
+        <header class="header">
+            <div>
+                <h1>🎭 Stage Manager</h1>
+                <p>Musical Theater Production Management</p>
+            </div>
+            <div class="header-buttons">
+                <div class="sync-status">
+                    <div class="sync-dot" id="syncDot"></div>
+                    <span id="syncText">Synced</span>
+                </div>
+                <button class="btn-primary" onclick="syncNow()">🔄 Sync Now</button>
+                <div class="user-info">
+                    <img id="userAvatar" class="user-avatar" src="" alt="">
+                    <span id="userName"></span>
+                </div>
+                <button class="btn-signout" onclick="handleSignOut()">Sign Out</button>
+            </div>
+        </header>
+
+        <nav class="nav" id="nav">
+            <div class="nav-item active" data-tab="productions">🎭 Productions</div>
+            <div class="nav-item" data-tab="people">👥 People</div>
+            <div class="nav-item" data-tab="scenes">🎬 Scenes</div>
+            <div class="nav-item" data-tab="rehearsals">📅 Rehearsals</div>
+            <div class="nav-item" data-tab="attendance">✓ Attendance</div>
+            <div class="nav-item" data-tab="inventory">🎪 Inventory</div>
+            <div class="nav-item" data-tab="budget">💰 Budget</div>
+            <div class="nav-item" data-tab="documents">📄 Documents</div>
+            <div class="nav-item" data-tab="cueSheets">🎚️ Cues</div>
+            <div class="nav-item" data-tab="emails">✉️ Emails</div>
+        </nav>
+
+        <div class="production-selector" id="productionSelector" style="display: none;">
+            <label>Active Production:</label>
+            <select id="activeProductionSelect" onchange="setActiveProduction(this.value)">
+                <option value="">Select production...</option>
+            </select>
+        </div>
+
+        <main class="main" id="mainContent"></main>
+
+        <footer>
+            Stage Manager v2.0 • Connected to Google Sheets • Auto-saves your changes
+        </footer>
+    </div>
 
     <script>
-        // Data storage
+        // ==================== CONFIGURATION ====================
+        const CLIENT_ID = '110270758432-i5tmkuq7ve7vc1pijlc2p7o70ib0879r.apps.googleusercontent.com';
+        const SPREADSHEET_ID = '1YAQaj1lGTuKo9jVQBrPSM8G2LgFXWe24wVkV1ndzCyA';
+        const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+        const DISCOVERY_DOC = 'https://sheets.googleapis.com/$discovery/rest?version=v4';
+
+        // Sheet names for each data type
+        const SHEETS = {
+            productions: 'Productions',
+            people: 'People',
+            scenes: 'Scenes',
+            rehearsals: 'Rehearsals',
+            attendance: 'Attendance',
+            inventory: 'Inventory',
+            budget: 'Budget',
+            documents: 'Documents',
+            cueSheets: 'CueSheets',
+            emails: 'Emails'
+        };
+
+        // Column headers for each sheet
+        const HEADERS = {
+            productions: ['ID', 'Title', 'Venue', 'StartDate', 'EndDate', 'Synopsis', 'Director', 'MusicDirector', 'Choreographer', 'StageManager', 'Status'],
+            people: ['ID', 'ProductionID', 'FirstName', 'LastName', 'Email', 'Phone', 'EmergencyContact', 'EmergencyPhone', 'Role', 'Character', 'Notes'],
+            scenes: ['ID', 'ProductionID', 'SceneNumber', 'Title', 'Act', 'Description', 'Status', 'CastIDs', 'Notes'],
+            rehearsals: ['ID', 'ProductionID', 'Date', 'StartTime', 'EndTime', 'Location', 'Type', 'SceneIDs', 'CalledCastIDs', 'Notes'],
+            attendance: ['ID', 'RehearsalID', 'PersonID', 'Status', 'ArrivalTime', 'Notes'],
+            inventory: ['ID', 'ProductionID', 'Category', 'Name', 'Description', 'SceneIDs', 'CharacterIDs', 'Status', 'Notes', 'Cost'],
+            budget: ['ID', 'ProductionID', 'Category', 'Description', 'PlannedAmount', 'ActualAmount', 'Date', 'Vendor', 'Notes'],
+            documents: ['ID', 'ProductionID', 'Title', 'Category', 'URL', 'Version', 'Notes', 'DateAdded'],
+            cueSheets: ['ID', 'ProductionID', 'Type', 'CueNumber', 'Page', 'Action', 'Description', 'Notes'],
+            emails: ['ID', 'ProductionID', 'Subject', 'Body', 'Recipients', 'DateCreated', 'Status']
+        };
+
+        // ==================== STATE ====================
+        let tokenClient;
+        let gapiInited = false;
+        let gisInited = false;
+        let accessToken = null;
+
         let data = {
             productions: [],
             people: [],
@@ -457,8 +647,6 @@
 
         let activeProduction = null;
         let activeTab = 'productions';
-        
-        // Edit state tracking
         let editing = {
             production: null,
             person: null,
@@ -471,9 +659,256 @@
             email: null
         };
 
-        // Utility functions
-        function generateId() {
-            return Math.random().toString(36).substr(2, 9);
+        let syncStatus = 'synced'; // synced, syncing, error
+        let pendingChanges = false;
+
+        // ==================== INITIALIZATION ====================
+        function gapiLoaded() {
+            gapi.load('client', initializeGapiClient);
+        }
+
+        async function initializeGapiClient() {
+            await gapi.client.init({
+                discoveryDocs: [DISCOVERY_DOC],
+            });
+            gapiInited = true;
+            maybeEnableButtons();
+        }
+
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: '', // defined later
+            });
+            gisInited = true;
+            maybeEnableButtons();
+        }
+
+        function maybeEnableButtons() {
+            if (gapiInited && gisInited) {
+                // Check if we have a stored token
+                const storedToken = localStorage.getItem('gapi_token');
+                if (storedToken) {
+                    accessToken = storedToken;
+                    gapi.client.setToken({ access_token: storedToken });
+                    onSignedIn();
+                }
+            }
+        }
+
+        // ==================== AUTHENTICATION ====================
+        function handleSignIn() {
+            tokenClient.callback = async (resp) => {
+                if (resp.error !== undefined) {
+                    showNotification('Error signing in: ' + resp.error, 'error');
+                    return;
+                }
+                accessToken = resp.access_token;
+                localStorage.setItem('gapi_token', accessToken);
+                onSignedIn();
+            };
+
+            if (accessToken === null) {
+                tokenClient.requestAccessToken({ prompt: 'consent' });
+            } else {
+                tokenClient.requestAccessToken({ prompt: '' });
+            }
+        }
+
+        function handleSignOut() {
+            if (accessToken) {
+                google.accounts.oauth2.revoke(accessToken);
+                accessToken = null;
+                localStorage.removeItem('gapi_token');
+            }
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+
+        async function onSignedIn() {
+            showLoading('Loading your data...');
+            
+            try {
+                // Get user info
+                const userInfo = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                }).then(r => r.json());
+                
+                document.getElementById('userAvatar').src = userInfo.picture || '';
+                document.getElementById('userName').textContent = userInfo.name || userInfo.email;
+                
+                // Initialize sheets and load data
+                await initializeSheets();
+                await loadAllData();
+                
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                hideLoading();
+                renderContent();
+                
+            } catch (error) {
+                console.error('Error during sign in:', error);
+                hideLoading();
+                
+                if (error.status === 401) {
+                    // Token expired, clear and retry
+                    localStorage.removeItem('gapi_token');
+                    accessToken = null;
+                    showNotification('Session expired. Please sign in again.', 'error');
+                } else {
+                    showNotification('Error loading data: ' + error.message, 'error');
+                }
+            }
+        }
+
+        // ==================== GOOGLE SHEETS API ====================
+        async function initializeSheets() {
+            // Check if sheets exist, create if not
+            const response = await gapi.client.sheets.spreadsheets.get({
+                spreadsheetId: SPREADSHEET_ID
+            });
+            
+            const existingSheets = response.result.sheets.map(s => s.properties.title);
+            const sheetsToCreate = [];
+            
+            for (const [key, sheetName] of Object.entries(SHEETS)) {
+                if (!existingSheets.includes(sheetName)) {
+                    sheetsToCreate.push({
+                        addSheet: {
+                            properties: { title: sheetName }
+                        }
+                    });
+                }
+            }
+            
+            if (sheetsToCreate.length > 0) {
+                await gapi.client.sheets.spreadsheets.batchUpdate({
+                    spreadsheetId: SPREADSHEET_ID,
+                    resource: { requests: sheetsToCreate }
+                });
+                
+                // Add headers to new sheets
+                for (const [key, sheetName] of Object.entries(SHEETS)) {
+                    if (!existingSheets.includes(sheetName)) {
+                        await gapi.client.sheets.spreadsheets.values.update({
+                            spreadsheetId: SPREADSHEET_ID,
+                            range: `${sheetName}!A1`,
+                            valueInputOption: 'RAW',
+                            resource: { values: [HEADERS[key]] }
+                        });
+                    }
+                }
+            }
+        }
+
+        async function loadAllData() {
+            setSyncStatus('syncing');
+            
+            for (const [key, sheetName] of Object.entries(SHEETS)) {
+                try {
+                    const response = await gapi.client.sheets.spreadsheets.values.get({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: `${sheetName}!A:Z`
+                    });
+                    
+                    const rows = response.result.values || [];
+                    if (rows.length > 1) {
+                        const headers = rows[0];
+                        data[key] = rows.slice(1).map(row => {
+                            const obj = {};
+                            headers.forEach((header, i) => {
+                                let value = row[i] || '';
+                                // Parse arrays stored as comma-separated strings
+                                if (['CastIDs', 'SceneIDs', 'CalledCastIDs', 'CharacterIDs'].includes(header)) {
+                                    obj[header.charAt(0).toLowerCase() + header.slice(1)] = value ? value.split(',').filter(Boolean) : [];
+                                } else if (['PlannedAmount', 'ActualAmount', 'Cost'].includes(header)) {
+                                    obj[header.charAt(0).toLowerCase() + header.slice(1)] = parseFloat(value) || 0;
+                                } else {
+                                    obj[header.charAt(0).toLowerCase() + header.slice(1)] = value;
+                                }
+                            });
+                            return obj;
+                        });
+                    } else {
+                        data[key] = [];
+                    }
+                } catch (error) {
+                    console.error(`Error loading ${sheetName}:`, error);
+                    data[key] = [];
+                }
+            }
+            
+            setSyncStatus('synced');
+        }
+
+        async function saveSheetData(sheetKey) {
+            setSyncStatus('syncing');
+            
+            const sheetName = SHEETS[sheetKey];
+            const headers = HEADERS[sheetKey];
+            
+            const rows = data[sheetKey].map(item => {
+                return headers.map(header => {
+                    const key = header.charAt(0).toLowerCase() + header.slice(1);
+                    const value = item[key];
+                    
+                    // Convert arrays back to comma-separated strings
+                    if (Array.isArray(value)) {
+                        return value.join(',');
+                    }
+                    return value !== undefined ? String(value) : '';
+                });
+            });
+            
+            // Clear existing data and write new data
+            try {
+                // First, clear the sheet (except headers)
+                await gapi.client.sheets.spreadsheets.values.clear({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: `${sheetName}!A2:Z10000`
+                });
+                
+                // Then write the new data
+                if (rows.length > 0) {
+                    await gapi.client.sheets.spreadsheets.values.update({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: `${sheetName}!A2`,
+                        valueInputOption: 'RAW',
+                        resource: { values: rows }
+                    });
+                }
+                
+                setSyncStatus('synced');
+                showNotification('Saved to Google Sheets!', 'success');
+            } catch (error) {
+                console.error('Error saving:', error);
+                setSyncStatus('error');
+                showNotification('Error saving: ' + error.message, 'error');
+            }
+        }
+
+        async function syncNow() {
+            showLoading('Syncing with Google Sheets...');
+            try {
+                await loadAllData();
+                renderContent();
+                hideLoading();
+                showNotification('Synced successfully!', 'success');
+            } catch (error) {
+                hideLoading();
+                showNotification('Sync error: ' + error.message, 'error');
+            }
+        }
+
+        // ==================== UI HELPERS ====================
+        function showLoading(text) {
+            document.getElementById('loadingText').textContent = text || 'Loading...';
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
         }
 
         function showNotification(message, type = 'success') {
@@ -481,6 +916,27 @@
             notif.textContent = message;
             notif.className = 'notification ' + type;
             setTimeout(() => notif.className = 'notification hidden', 3000);
+        }
+
+        function setSyncStatus(status) {
+            syncStatus = status;
+            const dot = document.getElementById('syncDot');
+            const text = document.getElementById('syncText');
+            
+            dot.className = 'sync-dot';
+            if (status === 'syncing') {
+                dot.classList.add('syncing');
+                text.textContent = 'Syncing...';
+            } else if (status === 'error') {
+                dot.classList.add('error');
+                text.textContent = 'Sync Error';
+            } else {
+                text.textContent = 'Synced';
+            }
+        }
+
+        function generateId() {
+            return Math.random().toString(36).substr(2, 9);
         }
 
         function getBadgeClass(status) {
@@ -520,12 +976,10 @@
             return Array.from(castIds);
         }
 
-        // Navigation
+        // ==================== NAVIGATION ====================
         document.getElementById('nav').addEventListener('click', function(e) {
             if (e.target.classList.contains('nav-item')) {
-                // Clear all edit states when switching tabs
                 Object.keys(editing).forEach(key => editing[key] = null);
-                
                 document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
                 e.target.classList.add('active');
                 activeTab = e.target.dataset.tab;
@@ -535,7 +989,6 @@
 
         function setActiveProduction(id) {
             activeProduction = id || null;
-            // Clear edit states when changing production
             Object.keys(editing).forEach(key => editing[key] = null);
             renderContent();
         }
@@ -548,13 +1001,11 @@
             });
         }
 
-        // Cancel edit functions
         function cancelEdit(type) {
             editing[type] = null;
             renderContent();
         }
 
-        // Render functions
         function renderContent() {
             const main = document.getElementById('mainContent');
             const selector = document.getElementById('productionSelector');
@@ -576,18 +1027,18 @@
             }
         }
 
-        // ==================== PRODUCTIONS ====================
+// ==================== PRODUCTIONS ====================
         function renderProductions() {
             const isEditing = editing.production !== null;
             const editItem = isEditing ? data.productions.find(p => p.id === editing.production) : null;
 
             let tableRows = data.productions.map(p => `
                 <tr class="${editing.production === p.id ? 'editing-row' : ''}">
-                    <td><strong>${p.title}</strong></td>
+                    <td><strong>${p.title || ''}</strong></td>
                     <td>${p.venue || ''}</td>
                     <td>${p.startDate || ''} - ${p.endDate || ''}</td>
                     <td>${p.director || ''}</td>
-                    <td><span class="badge ${getBadgeClass(p.status)}">${p.status}</span></td>
+                    <td><span class="badge ${getBadgeClass(p.status)}">${p.status || ''}</span></td>
                     <td>
                         <button class="btn-edit" onclick="editProduction('${p.id}')" title="Edit">✏️</button>
                         <button class="btn-action" onclick="selectProduction('${p.id}')" title="Select">📋</button>
@@ -602,7 +1053,7 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Title *</label>
-                            <input type="text" id="prod_title" placeholder="Show name" value="${isEditing ? editItem.title : ''}">
+                            <input type="text" id="prod_title" placeholder="Show name" value="${isEditing ? editItem.title || '' : ''}">
                         </div>
                         <div class="form-group">
                             <label>Venue</label>
@@ -656,32 +1107,19 @@
                         `}
                     </div>
                 </div>
-
                 <div class="card">
                     <h3 class="card-title">All Productions (${data.productions.length})</h3>
                     ${data.productions.length === 0 ? 
                         '<p class="empty-state">No productions yet. Add your first one above!</p>' :
-                        `<div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Title</th>
-                                        <th>Venue</th>
-                                        <th>Dates</th>
-                                        <th>Director</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${tableRows}</tbody>
-                            </table>
-                        </div>`
+                        `<div class="table-wrapper"><table><thead><tr>
+                            <th>Title</th><th>Venue</th><th>Dates</th><th>Director</th><th>Status</th><th>Actions</th>
+                        </tr></thead><tbody>${tableRows}</tbody></table></div>`
                     }
                 </div>
             `;
         }
 
-        function addProduction() {
+        async function addProduction() {
             const title = document.getElementById('prod_title').value.trim();
             if (!title) return showNotification('Please enter a title', 'error');
 
@@ -698,7 +1136,8 @@
                 status: document.getElementById('prod_status').value,
                 synopsis: document.getElementById('prod_synopsis').value
             });
-            showNotification('Production added!');
+            
+            await saveSheetData('productions');
             renderContent();
         }
 
@@ -708,7 +1147,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function saveProduction() {
+        async function saveProduction() {
             const title = document.getElementById('prod_title').value.trim();
             if (!title) return showNotification('Please enter a title', 'error');
 
@@ -726,7 +1165,7 @@
                 item.synopsis = document.getElementById('prod_synopsis').value;
             }
             editing.production = null;
-            showNotification('Production updated!');
+            await saveSheetData('productions');
             renderContent();
         }
 
@@ -738,7 +1177,7 @@
             renderContent();
         }
 
-        function deleteProduction(id) {
+        async function deleteProduction(id) {
             if (confirm('Delete this production and all its data?')) {
                 data.productions = data.productions.filter(p => p.id !== id);
                 data.people = data.people.filter(p => p.productionId !== id);
@@ -749,9 +1188,14 @@
                 data.documents = data.documents.filter(d => d.productionId !== id);
                 data.cueSheets = data.cueSheets.filter(c => c.productionId !== id);
                 data.emails = data.emails.filter(e => e.productionId !== id);
+                
                 if (activeProduction === id) activeProduction = null;
                 if (editing.production === id) editing.production = null;
-                showNotification('Production deleted');
+                
+                // Save all affected sheets
+                for (const key of Object.keys(SHEETS)) {
+                    await saveSheetData(key);
+                }
                 renderContent();
             }
         }
@@ -766,7 +1210,7 @@
 
             let tableRows = people.map(p => `
                 <tr class="${editing.person === p.id ? 'editing-row' : ''}">
-                    <td><strong>${p.firstName} ${p.lastName}</strong></td>
+                    <td><strong>${p.firstName || ''} ${p.lastName || ''}</strong></td>
                     <td>${p.role || ''}</td>
                     <td>${p.character || ''}</td>
                     <td>${p.email || ''}</td>
@@ -782,34 +1226,15 @@
                 <div class="card ${isEditing ? 'editing' : ''}">
                     <h3 class="card-title ${isEditing ? 'editing' : ''}">${isEditing ? '✏️ Edit Person' : 'Add Cast/Crew Member'}</h3>
                     <div class="form-grid">
-                        <div class="form-group">
-                            <label>First Name *</label>
-                            <input type="text" id="person_firstName" value="${isEditing ? editItem.firstName : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Last Name *</label>
-                            <input type="text" id="person_lastName" value="${isEditing ? editItem.lastName : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" id="person_email" value="${isEditing ? editItem.email || '' : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Phone</label>
-                            <input type="text" id="person_phone" value="${isEditing ? editItem.phone || '' : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Emergency Contact</label>
-                            <input type="text" id="person_emergencyContact" value="${isEditing ? editItem.emergencyContact || '' : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Emergency Phone</label>
-                            <input type="text" id="person_emergencyPhone" value="${isEditing ? editItem.emergencyPhone || '' : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Role/Position</label>
+                        <div class="form-group"><label>First Name *</label><input type="text" id="person_firstName" value="${isEditing ? editItem.firstName || '' : ''}"></div>
+                        <div class="form-group"><label>Last Name *</label><input type="text" id="person_lastName" value="${isEditing ? editItem.lastName || '' : ''}"></div>
+                        <div class="form-group"><label>Email</label><input type="email" id="person_email" value="${isEditing ? editItem.email || '' : ''}"></div>
+                        <div class="form-group"><label>Phone</label><input type="text" id="person_phone" value="${isEditing ? editItem.phone || '' : ''}"></div>
+                        <div class="form-group"><label>Emergency Contact</label><input type="text" id="person_emergencyContact" value="${isEditing ? editItem.emergencyContact || '' : ''}"></div>
+                        <div class="form-group"><label>Emergency Phone</label><input type="text" id="person_emergencyPhone" value="${isEditing ? editItem.emergencyPhone || '' : ''}"></div>
+                        <div class="form-group"><label>Role/Position</label>
                             <select id="person_role">
-                                <option value="" ${isEditing && !editItem.role ? 'selected' : ''}>Select...</option>
+                                <option value="">Select...</option>
                                 <option ${isEditing && editItem.role === 'Cast - Principal' ? 'selected' : ''}>Cast - Principal</option>
                                 <option ${isEditing && editItem.role === 'Cast - Supporting' ? 'selected' : ''}>Cast - Supporting</option>
                                 <option ${isEditing && editItem.role === 'Cast - Ensemble' ? 'selected' : ''}>Cast - Ensemble</option>
@@ -821,59 +1246,28 @@
                                 <option ${isEditing && editItem.role === 'Other' ? 'selected' : ''}>Other</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Character</label>
-                            <input type="text" id="person_character" value="${isEditing ? editItem.character || '' : ''}">
-                        </div>
-                        <div class="form-group full-width">
-                            <label>Notes</label>
-                            <textarea id="person_notes">${isEditing ? editItem.notes || '' : ''}</textarea>
-                        </div>
+                        <div class="form-group"><label>Character</label><input type="text" id="person_character" value="${isEditing ? editItem.character || '' : ''}"></div>
+                        <div class="form-group full-width"><label>Notes</label><textarea id="person_notes">${isEditing ? editItem.notes || '' : ''}</textarea></div>
                     </div>
                     <div class="button-group">
-                        ${isEditing ? `
-                            <button class="btn-update" onclick="savePerson()">💾 Update Person</button>
-                            <button class="btn-cancel" onclick="cancelEdit('person')">Cancel</button>
-                        ` : `
-                            <button class="btn-add" onclick="addPerson()">+ Add Person</button>
-                        `}
+                        ${isEditing ? `<button class="btn-update" onclick="savePerson()">💾 Update Person</button><button class="btn-cancel" onclick="cancelEdit('person')">Cancel</button>` : `<button class="btn-add" onclick="addPerson()">+ Add Person</button>`}
                     </div>
                 </div>
-
                 <div class="card">
                     <h3 class="card-title">Company Directory (${people.length})</h3>
-                    ${people.length === 0 ? 
-                        '<p class="empty-state">No people added yet.</p>' :
-                        `<div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Role</th>
-                                        <th>Character</th>
-                                        <th>Email</th>
-                                        <th>Phone</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${tableRows}</tbody>
-                            </table>
-                        </div>`
-                    }
+                    ${people.length === 0 ? '<p class="empty-state">No people added yet.</p>' :
+                        `<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Role</th><th>Character</th><th>Email</th><th>Phone</th><th>Actions</th></tr></thead><tbody>${tableRows}</tbody></table></div>`}
                 </div>
             `;
         }
 
-        function addPerson() {
+        async function addPerson() {
             const firstName = document.getElementById('person_firstName').value.trim();
             const lastName = document.getElementById('person_lastName').value.trim();
             if (!firstName || !lastName) return showNotification('Enter first and last name', 'error');
 
             data.people.push({
-                id: generateId(),
-                productionId: activeProduction,
-                firstName: firstName,
-                lastName: lastName,
+                id: generateId(), productionId: activeProduction, firstName, lastName,
                 email: document.getElementById('person_email').value,
                 phone: document.getElementById('person_phone').value,
                 emergencyContact: document.getElementById('person_emergencyContact').value,
@@ -882,25 +1276,20 @@
                 character: document.getElementById('person_character').value,
                 notes: document.getElementById('person_notes').value
             });
-            showNotification('Person added!');
+            await saveSheetData('people');
             renderContent();
         }
 
-        function editPerson(id) {
-            editing.person = id;
-            renderContent();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        function editPerson(id) { editing.person = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
-        function savePerson() {
+        async function savePerson() {
             const firstName = document.getElementById('person_firstName').value.trim();
             const lastName = document.getElementById('person_lastName').value.trim();
             if (!firstName || !lastName) return showNotification('Enter first and last name', 'error');
 
             const item = data.people.find(p => p.id === editing.person);
             if (item) {
-                item.firstName = firstName;
-                item.lastName = lastName;
+                item.firstName = firstName; item.lastName = lastName;
                 item.email = document.getElementById('person_email').value;
                 item.phone = document.getElementById('person_phone').value;
                 item.emergencyContact = document.getElementById('person_emergencyContact').value;
@@ -910,14 +1299,15 @@
                 item.notes = document.getElementById('person_notes').value;
             }
             editing.person = null;
-            showNotification('Person updated!');
+            await saveSheetData('people');
             renderContent();
         }
 
-        function deletePerson(id) {
+        async function deletePerson(id) {
             if (confirm('Delete this person?')) {
                 data.people = data.people.filter(p => p.id !== id);
                 if (editing.person === id) editing.person = null;
+                await saveSheetData('people');
                 renderContent();
             }
         }
@@ -940,152 +1330,93 @@
             let tableRows = scenes.sort((a, b) => (a.sceneNumber || '').localeCompare(b.sceneNumber || '')).map(s => {
                 const castNames = (s.castIds || []).map(cid => {
                     const p = people.find(x => x.id === cid);
-                    return p ? `${p.firstName} ${p.lastName.charAt(0)}.` : '';
+                    return p ? `${p.firstName} ${(p.lastName || '').charAt(0)}.` : '';
                 }).filter(Boolean).join(', ') || '-';
-
-                return `
-                    <tr class="${editing.scene === s.id ? 'editing-row' : ''}">
-                        <td><strong>${s.sceneNumber}</strong></td>
-                        <td>${s.title}</td>
-                        <td>${s.act || ''}</td>
-                        <td>${castNames}</td>
-                        <td><span class="badge ${getBadgeClass(s.status)}">${s.status}</span></td>
-                        <td>
-                            <button class="btn-edit" onclick="editScene('${s.id}')" title="Edit">✏️</button>
-                            <button class="btn-delete" onclick="deleteScene('${s.id}')" title="Delete">🗑️</button>
-                        </td>
-                    </tr>
-                `;
+                return `<tr class="${editing.scene === s.id ? 'editing-row' : ''}">
+                    <td><strong>${s.sceneNumber || ''}</strong></td><td>${s.title || ''}</td><td>${s.act || ''}</td><td>${castNames}</td>
+                    <td><span class="badge ${getBadgeClass(s.status)}">${s.status || ''}</span></td>
+                    <td><button class="btn-edit" onclick="editScene('${s.id}')">✏️</button><button class="btn-delete" onclick="deleteScene('${s.id}')">🗑️</button></td>
+                </tr>`;
             }).join('');
 
             return `
                 <div class="card ${isEditing ? 'editing' : ''}">
                     <h3 class="card-title ${isEditing ? 'editing' : ''}">${isEditing ? '✏️ Edit Scene' : 'Add Scene / Musical Number'}</h3>
                     <div class="form-grid">
-                        <div class="form-group">
-                            <label>Scene # *</label>
-                            <input type="text" id="scene_number" placeholder="1, 2a, II-3" value="${isEditing ? editItem.sceneNumber : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Title *</label>
-                            <input type="text" id="scene_title" value="${isEditing ? editItem.title : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Act</label>
-                            <select id="scene_act">
-                                <option value="" ${isEditing && !editItem.act ? 'selected' : ''}>Select...</option>
+                        <div class="form-group"><label>Scene # *</label><input type="text" id="scene_number" value="${isEditing ? editItem.sceneNumber || '' : ''}"></div>
+                        <div class="form-group"><label>Title *</label><input type="text" id="scene_title" value="${isEditing ? editItem.title || '' : ''}"></div>
+                        <div class="form-group"><label>Act</label>
+                            <select id="scene_act"><option value="">Select...</option>
                                 <option ${isEditing && editItem.act === 'Act 1' ? 'selected' : ''}>Act 1</option>
                                 <option ${isEditing && editItem.act === 'Act 2' ? 'selected' : ''}>Act 2</option>
                                 <option ${isEditing && editItem.act === 'Prologue' ? 'selected' : ''}>Prologue</option>
                                 <option ${isEditing && editItem.act === 'Epilogue' ? 'selected' : ''}>Epilogue</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Status</label>
+                        <div class="form-group"><label>Status</label>
                             <select id="scene_status">
                                 <option ${isEditing && editItem.status === 'Not Started' ? 'selected' : ''}>Not Started</option>
                                 <option ${isEditing && editItem.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
                                 <option ${isEditing && editItem.status === 'Polished' ? 'selected' : ''}>Polished</option>
                             </select>
                         </div>
-                        <div class="form-group full-width">
-                            <label>Cast in Scene (Ctrl+Click to select multiple)</label>
-                            <select multiple id="scene_cast">${castOptions}</select>
-                        </div>
-                        <div class="form-group full-width">
-                            <label>Description</label>
-                            <textarea id="scene_description">${isEditing ? editItem.description || '' : ''}</textarea>
-                        </div>
+                        <div class="form-group full-width"><label>Cast in Scene (Ctrl+Click)</label><select multiple id="scene_cast">${castOptions}</select></div>
+                        <div class="form-group full-width"><label>Description</label><textarea id="scene_description">${isEditing ? editItem.description || '' : ''}</textarea></div>
                     </div>
                     <div class="button-group">
-                        ${isEditing ? `
-                            <button class="btn-update" onclick="saveScene()">💾 Update Scene</button>
-                            <button class="btn-cancel" onclick="cancelEdit('scene')">Cancel</button>
-                        ` : `
-                            <button class="btn-add" onclick="addScene()">+ Add Scene</button>
-                        `}
+                        ${isEditing ? `<button class="btn-update" onclick="saveScene()">💾 Update Scene</button><button class="btn-cancel" onclick="cancelEdit('scene')">Cancel</button>` : `<button class="btn-add" onclick="addScene()">+ Add Scene</button>`}
                     </div>
                 </div>
-
                 <div class="card">
                     <h3 class="card-title">Scene Breakdown (${scenes.length})</h3>
-                    ${scenes.length === 0 ? 
-                        '<p class="empty-state">No scenes added yet.</p>' :
-                        `<div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Title</th>
-                                        <th>Act</th>
-                                        <th>Cast</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${tableRows}</tbody>
-                            </table>
-                        </div>`
-                    }
+                    ${scenes.length === 0 ? '<p class="empty-state">No scenes added yet.</p>' :
+                        `<div class="table-wrapper"><table><thead><tr><th>#</th><th>Title</th><th>Act</th><th>Cast</th><th>Status</th><th>Actions</th></tr></thead><tbody>${tableRows}</tbody></table></div>`}
                 </div>
             `;
         }
 
-        function addScene() {
+        async function addScene() {
             const sceneNumber = document.getElementById('scene_number').value.trim();
             const title = document.getElementById('scene_title').value.trim();
             if (!sceneNumber || !title) return showNotification('Enter scene # and title', 'error');
-
-            const castSelect = document.getElementById('scene_cast');
-            const castIds = Array.from(castSelect.selectedOptions).map(o => o.value);
+            const castIds = Array.from(document.getElementById('scene_cast').selectedOptions).map(o => o.value);
 
             data.scenes.push({
-                id: generateId(),
-                productionId: activeProduction,
-                sceneNumber: sceneNumber,
-                title: title,
+                id: generateId(), productionId: activeProduction, sceneNumber, title,
                 act: document.getElementById('scene_act').value,
                 status: document.getElementById('scene_status').value,
-                castIds: castIds,
-                description: document.getElementById('scene_description').value,
-                notes: ''
+                castIds, description: document.getElementById('scene_description').value, notes: ''
             });
-            showNotification('Scene added!');
+            await saveSheetData('scenes');
             renderContent();
         }
 
-        function editScene(id) {
-            editing.scene = id;
-            renderContent();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        function editScene(id) { editing.scene = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
-        function saveScene() {
+        async function saveScene() {
             const sceneNumber = document.getElementById('scene_number').value.trim();
             const title = document.getElementById('scene_title').value.trim();
             if (!sceneNumber || !title) return showNotification('Enter scene # and title', 'error');
-
-            const castSelect = document.getElementById('scene_cast');
-            const castIds = Array.from(castSelect.selectedOptions).map(o => o.value);
+            const castIds = Array.from(document.getElementById('scene_cast').selectedOptions).map(o => o.value);
 
             const item = data.scenes.find(s => s.id === editing.scene);
             if (item) {
-                item.sceneNumber = sceneNumber;
-                item.title = title;
+                item.sceneNumber = sceneNumber; item.title = title;
                 item.act = document.getElementById('scene_act').value;
                 item.status = document.getElementById('scene_status').value;
                 item.castIds = castIds;
                 item.description = document.getElementById('scene_description').value;
             }
             editing.scene = null;
-            showNotification('Scene updated!');
+            await saveSheetData('scenes');
             renderContent();
         }
 
-        function deleteScene(id) {
+        async function deleteScene(id) {
             if (confirm('Delete this scene?')) {
                 data.scenes = data.scenes.filter(s => s.id !== id);
                 if (editing.scene === id) editing.scene = null;
+                await saveSheetData('scenes');
                 renderContent();
             }
         }
@@ -1096,7 +1427,6 @@
 
             const rehearsals = getProductionData('rehearsals');
             const scenes = getProductionData('scenes');
-            const people = getProductionData('people');
             const isEditing = editing.rehearsal !== null;
             const editItem = isEditing ? rehearsals.find(r => r.id === editing.rehearsal) : null;
 
@@ -1106,51 +1436,23 @@
             }).join('');
 
             let tableRows = rehearsals.sort((a, b) => new Date(a.date) - new Date(b.date)).map(r => {
-                const sceneNums = (r.sceneIds || []).map(sid => {
-                    const s = scenes.find(x => x.id === sid);
-                    return s ? s.sceneNumber : '';
-                }).filter(Boolean).join(', ') || '-';
-
-                return `
-                    <tr class="${editing.rehearsal === r.id ? 'editing-row' : ''}">
-                        <td><strong>${r.date}</strong></td>
-                        <td>${r.startTime} - ${r.endTime || ''}</td>
-                        <td>${r.location || ''}</td>
-                        <td>${r.type || ''}</td>
-                        <td>${sceneNums}</td>
-                        <td>${(r.calledCastIds || []).length} people</td>
-                        <td>
-                            <button class="btn-edit" onclick="editRehearsal('${r.id}')" title="Edit">✏️</button>
-                            <button class="btn-delete" onclick="deleteRehearsal('${r.id}')" title="Delete">🗑️</button>
-                        </td>
-                    </tr>
-                `;
+                const sceneNums = (r.sceneIds || []).map(sid => { const s = scenes.find(x => x.id === sid); return s ? s.sceneNumber : ''; }).filter(Boolean).join(', ') || '-';
+                return `<tr class="${editing.rehearsal === r.id ? 'editing-row' : ''}">
+                    <td><strong>${r.date || ''}</strong></td><td>${r.startTime || ''} - ${r.endTime || ''}</td><td>${r.location || ''}</td><td>${r.type || ''}</td><td>${sceneNums}</td><td>${(r.calledCastIds || []).length} people</td>
+                    <td><button class="btn-edit" onclick="editRehearsal('${r.id}')">✏️</button><button class="btn-delete" onclick="deleteRehearsal('${r.id}')">🗑️</button></td>
+                </tr>`;
             }).join('');
 
             return `
                 <div class="card ${isEditing ? 'editing' : ''}">
                     <h3 class="card-title ${isEditing ? 'editing' : ''}">${isEditing ? '✏️ Edit Rehearsal' : 'Schedule Rehearsal'}</h3>
                     <div class="form-grid">
-                        <div class="form-group">
-                            <label>Date *</label>
-                            <input type="date" id="reh_date" value="${isEditing ? editItem.date : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Start Time *</label>
-                            <input type="time" id="reh_startTime" value="${isEditing ? editItem.startTime : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>End Time</label>
-                            <input type="time" id="reh_endTime" value="${isEditing ? editItem.endTime || '' : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Location</label>
-                            <input type="text" id="reh_location" value="${isEditing ? editItem.location || '' : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Type</label>
-                            <select id="reh_type">
-                                <option value="" ${isEditing && !editItem.type ? 'selected' : ''}>Select...</option>
+                        <div class="form-group"><label>Date *</label><input type="date" id="reh_date" value="${isEditing ? editItem.date || '' : ''}"></div>
+                        <div class="form-group"><label>Start Time *</label><input type="time" id="reh_startTime" value="${isEditing ? editItem.startTime || '' : ''}"></div>
+                        <div class="form-group"><label>End Time</label><input type="time" id="reh_endTime" value="${isEditing ? editItem.endTime || '' : ''}"></div>
+                        <div class="form-group"><label>Location</label><input type="text" id="reh_location" value="${isEditing ? editItem.location || '' : ''}"></div>
+                        <div class="form-group"><label>Type</label>
+                            <select id="reh_type"><option value="">Select...</option>
                                 <option ${isEditing && editItem.type === 'Music' ? 'selected' : ''}>Music</option>
                                 <option ${isEditing && editItem.type === 'Blocking' ? 'selected' : ''}>Blocking</option>
                                 <option ${isEditing && editItem.type === 'Choreo' ? 'selected' : ''}>Choreo</option>
@@ -1160,50 +1462,18 @@
                                 <option ${isEditing && editItem.type === 'Full Company' ? 'selected' : ''}>Full Company</option>
                             </select>
                         </div>
-                        <div class="form-group full-width">
-                            <label>Scenes (Ctrl+Click) - Auto-calls cast</label>
-                            <select multiple id="reh_scenes" onchange="updateCalledCast()">${sceneOptions}</select>
-                        </div>
-                        <div class="form-group full-width">
-                            <label>Auto-Called Cast</label>
-                            <div class="called-box" id="calledCastBox">Select scenes above to see who will be called</div>
-                        </div>
-                        <div class="form-group full-width">
-                            <label>Notes</label>
-                            <textarea id="reh_notes">${isEditing ? editItem.notes || '' : ''}</textarea>
-                        </div>
+                        <div class="form-group full-width"><label>Scenes (Ctrl+Click)</label><select multiple id="reh_scenes" onchange="updateCalledCast()">${sceneOptions}</select></div>
+                        <div class="form-group full-width"><label>Auto-Called Cast</label><div class="called-box" id="calledCastBox">Select scenes to see who will be called</div></div>
+                        <div class="form-group full-width"><label>Notes</label><textarea id="reh_notes">${isEditing ? editItem.notes || '' : ''}</textarea></div>
                     </div>
                     <div class="button-group">
-                        ${isEditing ? `
-                            <button class="btn-update" onclick="saveRehearsal()">💾 Update Rehearsal</button>
-                            <button class="btn-cancel" onclick="cancelEdit('rehearsal')">Cancel</button>
-                        ` : `
-                            <button class="btn-add" onclick="addRehearsal()">+ Add Rehearsal</button>
-                        `}
+                        ${isEditing ? `<button class="btn-update" onclick="saveRehearsal()">💾 Update Rehearsal</button><button class="btn-cancel" onclick="cancelEdit('rehearsal')">Cancel</button>` : `<button class="btn-add" onclick="addRehearsal()">+ Add Rehearsal</button>`}
                     </div>
                 </div>
-
                 <div class="card">
                     <h3 class="card-title">Schedule (${rehearsals.length})</h3>
-                    ${rehearsals.length === 0 ? 
-                        '<p class="empty-state">No rehearsals scheduled.</p>' :
-                        `<div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Time</th>
-                                        <th>Location</th>
-                                        <th>Type</th>
-                                        <th>Scenes</th>
-                                        <th>Called</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${tableRows}</tbody>
-                            </table>
-                        </div>`
-                    }
+                    ${rehearsals.length === 0 ? '<p class="empty-state">No rehearsals scheduled.</p>' :
+                        `<div class="table-wrapper"><table><thead><tr><th>Date</th><th>Time</th><th>Location</th><th>Type</th><th>Scenes</th><th>Called</th><th>Actions</th></tr></thead><tbody>${tableRows}</tbody></table></div>`}
                 </div>
             `;
         }
@@ -1215,77 +1485,58 @@
             const calledCastIds = getCalledCast(sceneIds);
             const people = getProductionData('people');
             const calledCast = people.filter(p => calledCastIds.includes(p.id));
-            
             const box = document.getElementById('calledCastBox');
-            if (box) {
-                box.textContent = calledCast.length > 0 ? 
-                    calledCast.map(c => `${c.firstName} ${c.lastName}`).join(', ') : 
-                    'No one called (select scenes with assigned cast)';
-            }
+            if (box) box.textContent = calledCast.length > 0 ? calledCast.map(c => `${c.firstName} ${c.lastName}`).join(', ') : 'No one called';
         }
 
-        function addRehearsal() {
+        async function addRehearsal() {
             const date = document.getElementById('reh_date').value;
             const startTime = document.getElementById('reh_startTime').value;
             if (!date || !startTime) return showNotification('Enter date and start time', 'error');
-
-            const sceneSelect = document.getElementById('reh_scenes');
-            const sceneIds = Array.from(sceneSelect.selectedOptions).map(o => o.value);
+            const sceneIds = Array.from(document.getElementById('reh_scenes').selectedOptions).map(o => o.value);
             const calledCastIds = getCalledCast(sceneIds);
 
             data.rehearsals.push({
-                id: generateId(),
-                productionId: activeProduction,
-                date: date,
-                startTime: startTime,
+                id: generateId(), productionId: activeProduction, date, startTime,
                 endTime: document.getElementById('reh_endTime').value,
                 location: document.getElementById('reh_location').value,
                 type: document.getElementById('reh_type').value,
-                sceneIds: sceneIds,
-                calledCastIds: calledCastIds,
-                notes: document.getElementById('reh_notes').value
+                sceneIds, calledCastIds, notes: document.getElementById('reh_notes').value
             });
-            showNotification('Rehearsal scheduled!');
+            await saveSheetData('rehearsals');
             renderContent();
         }
 
-        function editRehearsal(id) {
-            editing.rehearsal = id;
-            renderContent();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            setTimeout(updateCalledCast, 100);
-        }
+        function editRehearsal(id) { editing.rehearsal = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(updateCalledCast, 100); }
 
-        function saveRehearsal() {
+        async function saveRehearsal() {
             const date = document.getElementById('reh_date').value;
             const startTime = document.getElementById('reh_startTime').value;
             if (!date || !startTime) return showNotification('Enter date and start time', 'error');
-
-            const sceneSelect = document.getElementById('reh_scenes');
-            const sceneIds = Array.from(sceneSelect.selectedOptions).map(o => o.value);
+            const sceneIds = Array.from(document.getElementById('reh_scenes').selectedOptions).map(o => o.value);
             const calledCastIds = getCalledCast(sceneIds);
 
             const item = data.rehearsals.find(r => r.id === editing.rehearsal);
             if (item) {
-                item.date = date;
-                item.startTime = startTime;
+                item.date = date; item.startTime = startTime;
                 item.endTime = document.getElementById('reh_endTime').value;
                 item.location = document.getElementById('reh_location').value;
                 item.type = document.getElementById('reh_type').value;
-                item.sceneIds = sceneIds;
-                item.calledCastIds = calledCastIds;
+                item.sceneIds = sceneIds; item.calledCastIds = calledCastIds;
                 item.notes = document.getElementById('reh_notes').value;
             }
             editing.rehearsal = null;
-            showNotification('Rehearsal updated!');
+            await saveSheetData('rehearsals');
             renderContent();
         }
 
-        function deleteRehearsal(id) {
+        async function deleteRehearsal(id) {
             if (confirm('Delete this rehearsal?')) {
                 data.rehearsals = data.rehearsals.filter(r => r.id !== id);
                 data.attendance = data.attendance.filter(a => a.rehearsalId !== id);
                 if (editing.rehearsal === id) editing.rehearsal = null;
+                await saveSheetData('rehearsals');
+                await saveSheetData('attendance');
                 renderContent();
             }
         }
@@ -1293,95 +1544,46 @@
         // ==================== ATTENDANCE ====================
         function renderAttendance() {
             if (!activeProduction) return '<div class="card"><p class="select-production">⬆️ Please select a production first</p></div>';
-
             const rehearsals = getProductionData('rehearsals');
             let rehearsalOptions = rehearsals.sort((a, b) => new Date(b.date) - new Date(a.date)).map(r => 
                 `<option value="${r.id}">${r.date} - ${r.startTime} (${r.type || 'Rehearsal'})</option>`
             ).join('');
 
-            return `
-                <div class="card">
-                    <h3 class="card-title">Take Attendance</h3>
-                    <div class="form-group">
-                        <label>Select Rehearsal</label>
-                        <select id="att_rehearsal" onchange="loadAttendance()">
-                            <option value="">Choose...</option>
-                            ${rehearsalOptions}
-                        </select>
-                    </div>
-                    <div id="attendanceTable"></div>
-                </div>
-            `;
+            return `<div class="card"><h3 class="card-title">Take Attendance</h3>
+                <div class="form-group"><label>Select Rehearsal</label><select id="att_rehearsal" onchange="loadAttendance()"><option value="">Choose...</option>${rehearsalOptions}</select></div>
+                <div id="attendanceTable"></div></div>`;
         }
 
         function loadAttendance() {
             const rehearsalId = document.getElementById('att_rehearsal').value;
             const container = document.getElementById('attendanceTable');
-            
-            if (!rehearsalId) {
-                container.innerHTML = '<p class="empty-state">Select a rehearsal above.</p>';
-                return;
-            }
+            if (!rehearsalId) { container.innerHTML = '<p class="empty-state">Select a rehearsal above.</p>'; return; }
 
             const rehearsal = data.rehearsals.find(r => r.id === rehearsalId);
             const people = getProductionData('people');
             const calledPeople = people.filter(p => (rehearsal.calledCastIds || []).includes(p.id));
 
-            if (calledPeople.length === 0) {
-                container.innerHTML = '<p class="empty-state">No one called for this rehearsal.</p>';
-                return;
-            }
+            if (calledPeople.length === 0) { container.innerHTML = '<p class="empty-state">No one called for this rehearsal.</p>'; return; }
 
             let rows = calledPeople.map(p => {
                 const record = data.attendance.find(a => a.rehearsalId === rehearsalId && a.personId === p.id);
                 const status = record ? record.status : 'Pending';
-
-                return `
-                    <tr>
-                        <td><strong>${p.firstName} ${p.lastName}</strong></td>
-                        <td>${p.character || ''}</td>
-                        <td><span class="badge ${getBadgeClass(status)}">${status}</span></td>
-                        <td>
-                            <button class="btn-action" style="color:#27ae60" onclick="setAttendance('${rehearsalId}','${p.id}','Present')">✓</button>
-                            <button class="btn-action" style="color:#f39c12" onclick="setAttendance('${rehearsalId}','${p.id}','Late')">⏰</button>
-                            <button class="btn-action" style="color:#e74c3c" onclick="setAttendance('${rehearsalId}','${p.id}','Absent')">✗</button>
-                            <button class="btn-action" style="color:#3498db" onclick="setAttendance('${rehearsalId}','${p.id}','Excused')">E</button>
-                        </td>
-                    </tr>
-                `;
+                return `<tr><td><strong>${p.firstName} ${p.lastName}</strong></td><td>${p.character || ''}</td>
+                    <td><span class="badge ${getBadgeClass(status)}">${status}</span></td>
+                    <td><button class="btn-action" style="color:#27ae60" onclick="setAttendance('${rehearsalId}','${p.id}','Present')">✓</button>
+                        <button class="btn-action" style="color:#f39c12" onclick="setAttendance('${rehearsalId}','${p.id}','Late')">⏰</button>
+                        <button class="btn-action" style="color:#e74c3c" onclick="setAttendance('${rehearsalId}','${p.id}','Absent')">✗</button>
+                        <button class="btn-action" style="color:#3498db" onclick="setAttendance('${rehearsalId}','${p.id}','Excused')">E</button></td></tr>`;
             }).join('');
 
-            container.innerHTML = `
-                <div class="table-wrapper" style="margin-top:15px">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Character</th>
-                                <th>Status</th>
-                                <th>Mark</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                </div>
-            `;
+            container.innerHTML = `<div class="table-wrapper" style="margin-top:15px"><table><thead><tr><th>Name</th><th>Character</th><th>Status</th><th>Mark</th></tr></thead><tbody>${rows}</tbody></table></div>`;
         }
 
-        function setAttendance(rehearsalId, personId, status) {
+        async function setAttendance(rehearsalId, personId, status) {
             const existing = data.attendance.find(a => a.rehearsalId === rehearsalId && a.personId === personId);
-            if (existing) {
-                existing.status = status;
-            } else {
-                data.attendance.push({
-                    id: generateId(),
-                    rehearsalId: rehearsalId,
-                    personId: personId,
-                    status: status,
-                    arrivalTime: '',
-                    notes: ''
-                });
-            }
+            if (existing) { existing.status = status; }
+            else { data.attendance.push({ id: generateId(), rehearsalId, personId, status, arrivalTime: '', notes: '' }); }
+            await saveSheetData('attendance');
             loadAttendance();
         }
 
@@ -1398,19 +1600,11 @@
             const setCount = inventory.filter(i => i.category === 'Set').length;
             const readyCount = inventory.filter(i => i.status === 'Ready').length;
 
-            let tableRows = inventory.map(i => `
-                <tr class="${editing.inventory === i.id ? 'editing-row' : ''}">
-                    <td>${i.category}</td>
-                    <td><strong>${i.name}</strong></td>
-                    <td>${i.description || ''}</td>
-                    <td><span class="badge ${getBadgeClass(i.status)}">${i.status}</span></td>
-                    <td>$${(i.cost || 0).toFixed(2)}</td>
-                    <td>
-                        <button class="btn-edit" onclick="editInventory('${i.id}')" title="Edit">✏️</button>
-                        <button class="btn-delete" onclick="deleteInventory('${i.id}')" title="Delete">🗑️</button>
-                    </td>
-                </tr>
-            `).join('');
+            let tableRows = inventory.map(i => `<tr class="${editing.inventory === i.id ? 'editing-row' : ''}">
+                <td>${i.category || ''}</td><td><strong>${i.name || ''}</strong></td><td>${i.description || ''}</td>
+                <td><span class="badge ${getBadgeClass(i.status)}">${i.status || ''}</span></td><td>$${(i.cost || 0).toFixed(2)}</td>
+                <td><button class="btn-edit" onclick="editInventory('${i.id}')">✏️</button><button class="btn-delete" onclick="deleteInventory('${i.id}')">🗑️</button></td>
+            </tr>`).join('');
 
             return `
                 <div class="stats-grid">
@@ -1419,12 +1613,10 @@
                     <div class="stat-card"><div class="stat-number">${setCount}</div><div class="stat-label">Set</div></div>
                     <div class="stat-card"><div class="stat-number">${readyCount}</div><div class="stat-label">Ready</div></div>
                 </div>
-
                 <div class="card ${isEditing ? 'editing' : ''}">
                     <h3 class="card-title ${isEditing ? 'editing' : ''}">${isEditing ? '✏️ Edit Item' : 'Add Item'}</h3>
                     <div class="form-grid">
-                        <div class="form-group">
-                            <label>Category *</label>
+                        <div class="form-group"><label>Category *</label>
                             <select id="inv_category">
                                 <option ${isEditing && editItem.category === 'Props' ? 'selected' : ''}>Props</option>
                                 <option ${isEditing && editItem.category === 'Costumes' ? 'selected' : ''}>Costumes</option>
@@ -1433,12 +1625,8 @@
                                 <option ${isEditing && editItem.category === 'Other' ? 'selected' : ''}>Other</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Name *</label>
-                            <input type="text" id="inv_name" value="${isEditing ? editItem.name : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Status</label>
+                        <div class="form-group"><label>Name *</label><input type="text" id="inv_name" value="${isEditing ? editItem.name || '' : ''}"></div>
+                        <div class="form-group"><label>Status</label>
                             <select id="inv_status">
                                 <option ${isEditing && editItem.status === 'Needed' ? 'selected' : ''}>Needed</option>
                                 <option ${isEditing && editItem.status === 'Acquired' ? 'selected' : ''}>Acquired</option>
@@ -1446,79 +1634,40 @@
                                 <option ${isEditing && editItem.status === 'Ready' ? 'selected' : ''}>Ready</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Cost ($)</label>
-                            <input type="number" id="inv_cost" value="${isEditing ? editItem.cost || 0 : 0}" step="0.01">
-                        </div>
-                        <div class="form-group full-width">
-                            <label>Description</label>
-                            <textarea id="inv_description">${isEditing ? editItem.description || '' : ''}</textarea>
-                        </div>
+                        <div class="form-group"><label>Cost ($)</label><input type="number" id="inv_cost" value="${isEditing ? editItem.cost || 0 : 0}" step="0.01"></div>
+                        <div class="form-group full-width"><label>Description</label><textarea id="inv_description">${isEditing ? editItem.description || '' : ''}</textarea></div>
                     </div>
                     <div class="button-group">
-                        ${isEditing ? `
-                            <button class="btn-update" onclick="saveInventory()">💾 Update Item</button>
-                            <button class="btn-cancel" onclick="cancelEdit('inventory')">Cancel</button>
-                        ` : `
-                            <button class="btn-add" onclick="addInventory()">+ Add Item</button>
-                        `}
+                        ${isEditing ? `<button class="btn-update" onclick="saveInventory()">💾 Update Item</button><button class="btn-cancel" onclick="cancelEdit('inventory')">Cancel</button>` : `<button class="btn-add" onclick="addInventory()">+ Add Item</button>`}
                     </div>
                 </div>
-
-                <div class="card">
-                    <h3 class="card-title">Inventory (${inventory.length})</h3>
-                    ${inventory.length === 0 ? 
-                        '<p class="empty-state">No items yet.</p>' :
-                        `<div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Category</th>
-                                        <th>Name</th>
-                                        <th>Description</th>
-                                        <th>Status</th>
-                                        <th>Cost</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${tableRows}</tbody>
-                            </table>
-                        </div>`
-                    }
+                <div class="card"><h3 class="card-title">Inventory (${inventory.length})</h3>
+                    ${inventory.length === 0 ? '<p class="empty-state">No items yet.</p>' :
+                        `<div class="table-wrapper"><table><thead><tr><th>Category</th><th>Name</th><th>Description</th><th>Status</th><th>Cost</th><th>Actions</th></tr></thead><tbody>${tableRows}</tbody></table></div>`}
                 </div>
             `;
         }
 
-        function addInventory() {
+        async function addInventory() {
             const name = document.getElementById('inv_name').value.trim();
             if (!name) return showNotification('Enter item name', 'error');
-
             data.inventory.push({
-                id: generateId(),
-                productionId: activeProduction,
-                category: document.getElementById('inv_category').value,
-                name: name,
+                id: generateId(), productionId: activeProduction,
+                category: document.getElementById('inv_category').value, name,
                 description: document.getElementById('inv_description').value,
                 status: document.getElementById('inv_status').value,
                 cost: parseFloat(document.getElementById('inv_cost').value) || 0,
-                sceneIds: [],
-                characterIds: [],
-                notes: ''
+                sceneIds: [], characterIds: [], notes: ''
             });
-            showNotification('Item added!');
+            await saveSheetData('inventory');
             renderContent();
         }
 
-        function editInventory(id) {
-            editing.inventory = id;
-            renderContent();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        function editInventory(id) { editing.inventory = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
-        function saveInventory() {
+        async function saveInventory() {
             const name = document.getElementById('inv_name').value.trim();
             if (!name) return showNotification('Enter item name', 'error');
-
             const item = data.inventory.find(i => i.id === editing.inventory);
             if (item) {
                 item.category = document.getElementById('inv_category').value;
@@ -1528,14 +1677,15 @@
                 item.cost = parseFloat(document.getElementById('inv_cost').value) || 0;
             }
             editing.inventory = null;
-            showNotification('Item updated!');
+            await saveSheetData('inventory');
             renderContent();
         }
 
-        function deleteInventory(id) {
+        async function deleteInventory(id) {
             if (confirm('Delete this item?')) {
                 data.inventory = data.inventory.filter(i => i.id !== id);
                 if (editing.inventory === id) editing.inventory = null;
+                await saveSheetData('inventory');
                 renderContent();
             }
         }
@@ -1554,20 +1704,12 @@
 
             let tableRows = budget.map(b => {
                 const variance = (b.plannedAmount || 0) - (b.actualAmount || 0);
-                return `
-                    <tr class="${editing.budget === b.id ? 'editing-row' : ''}">
-                        <td>${b.category}</td>
-                        <td><strong>${b.description}</strong></td>
-                        <td>$${(b.plannedAmount || 0).toFixed(2)}</td>
-                        <td>$${(b.actualAmount || 0).toFixed(2)}</td>
-                        <td style="color: ${variance >= 0 ? '#27ae60' : '#e74c3c'}">$${variance.toFixed(2)}</td>
-                        <td>${b.date || ''}</td>
-                        <td>
-                            <button class="btn-edit" onclick="editBudget('${b.id}')" title="Edit">✏️</button>
-                            <button class="btn-delete" onclick="deleteBudget('${b.id}')" title="Delete">🗑️</button>
-                        </td>
-                    </tr>
-                `;
+                return `<tr class="${editing.budget === b.id ? 'editing-row' : ''}">
+                    <td>${b.category || ''}</td><td><strong>${b.description || ''}</strong></td>
+                    <td>$${(b.plannedAmount || 0).toFixed(2)}</td><td>$${(b.actualAmount || 0).toFixed(2)}</td>
+                    <td style="color: ${variance >= 0 ? '#27ae60' : '#e74c3c'}">$${variance.toFixed(2)}</td><td>${b.date || ''}</td>
+                    <td><button class="btn-edit" onclick="editBudget('${b.id}')">✏️</button><button class="btn-delete" onclick="deleteBudget('${b.id}')">🗑️</button></td>
+                </tr>`;
             }).join('');
 
             return `
@@ -1576,14 +1718,11 @@
                     <div class="stat-card"><div class="stat-number">$${totalActual.toFixed(0)}</div><div class="stat-label">Spent</div></div>
                     <div class="stat-card"><div class="stat-number" style="color: ${remaining >= 0 ? '#27ae60' : '#e74c3c'}">$${remaining.toFixed(0)}</div><div class="stat-label">Remaining</div></div>
                 </div>
-
                 <div class="card ${isEditing ? 'editing' : ''}">
                     <h3 class="card-title ${isEditing ? 'editing' : ''}">${isEditing ? '✏️ Edit Entry' : 'Add Budget Entry'}</h3>
                     <div class="form-grid">
-                        <div class="form-group">
-                            <label>Category *</label>
-                            <select id="bud_category">
-                                <option value="" ${isEditing && !editItem.category ? 'selected' : ''}>Select...</option>
+                        <div class="form-group"><label>Category *</label>
+                            <select id="bud_category"><option value="">Select...</option>
                                 <option ${isEditing && editItem.category === 'Costumes' ? 'selected' : ''}>Costumes</option>
                                 <option ${isEditing && editItem.category === 'Sets' ? 'selected' : ''}>Sets</option>
                                 <option ${isEditing && editItem.category === 'Props' ? 'selected' : ''}>Props</option>
@@ -1595,111 +1734,62 @@
                                 <option ${isEditing && editItem.category === 'Other' ? 'selected' : ''}>Other</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Description *</label>
-                            <input type="text" id="bud_description" value="${isEditing ? editItem.description : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Planned ($)</label>
-                            <input type="number" id="bud_planned" value="${isEditing ? editItem.plannedAmount || 0 : 0}" step="0.01">
-                        </div>
-                        <div class="form-group">
-                            <label>Actual ($)</label>
-                            <input type="number" id="bud_actual" value="${isEditing ? editItem.actualAmount || 0 : 0}" step="0.01">
-                        </div>
-                        <div class="form-group">
-                            <label>Date</label>
-                            <input type="date" id="bud_date" value="${isEditing ? editItem.date || '' : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Vendor</label>
-                            <input type="text" id="bud_vendor" value="${isEditing ? editItem.vendor || '' : ''}">
-                        </div>
+                        <div class="form-group"><label>Description *</label><input type="text" id="bud_description" value="${isEditing ? editItem.description || '' : ''}"></div>
+                        <div class="form-group"><label>Planned ($)</label><input type="number" id="bud_planned" value="${isEditing ? editItem.plannedAmount || 0 : 0}" step="0.01"></div>
+                        <div class="form-group"><label>Actual ($)</label><input type="number" id="bud_actual" value="${isEditing ? editItem.actualAmount || 0 : 0}" step="0.01"></div>
+                        <div class="form-group"><label>Date</label><input type="date" id="bud_date" value="${isEditing ? editItem.date || '' : ''}"></div>
+                        <div class="form-group"><label>Vendor</label><input type="text" id="bud_vendor" value="${isEditing ? editItem.vendor || '' : ''}"></div>
                     </div>
                     <div class="button-group">
-                        ${isEditing ? `
-                            <button class="btn-update" onclick="saveBudget()">💾 Update Entry</button>
-                            <button class="btn-cancel" onclick="cancelEdit('budget')">Cancel</button>
-                        ` : `
-                            <button class="btn-add" onclick="addBudget()">+ Add Entry</button>
-                        `}
+                        ${isEditing ? `<button class="btn-update" onclick="saveBudget()">💾 Update Entry</button><button class="btn-cancel" onclick="cancelEdit('budget')">Cancel</button>` : `<button class="btn-add" onclick="addBudget()">+ Add Entry</button>`}
                     </div>
                 </div>
-
-                <div class="card">
-                    <h3 class="card-title">Budget (${budget.length})</h3>
-                    ${budget.length === 0 ? 
-                        '<p class="empty-state">No entries yet.</p>' :
-                        `<div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Category</th>
-                                        <th>Description</th>
-                                        <th>Planned</th>
-                                        <th>Actual</th>
-                                        <th>Variance</th>
-                                        <th>Date</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${tableRows}</tbody>
-                            </table>
-                        </div>`
-                    }
+                <div class="card"><h3 class="card-title">Budget (${budget.length})</h3>
+                    ${budget.length === 0 ? '<p class="empty-state">No entries yet.</p>' :
+                        `<div class="table-wrapper"><table><thead><tr><th>Category</th><th>Description</th><th>Planned</th><th>Actual</th><th>Variance</th><th>Date</th><th>Actions</th></tr></thead><tbody>${tableRows}</tbody></table></div>`}
                 </div>
             `;
         }
 
-        function addBudget() {
+        async function addBudget() {
             const category = document.getElementById('bud_category').value;
             const description = document.getElementById('bud_description').value.trim();
             if (!category || !description) return showNotification('Enter category and description', 'error');
-
             data.budget.push({
-                id: generateId(),
-                productionId: activeProduction,
-                category: category,
-                description: description,
+                id: generateId(), productionId: activeProduction, category, description,
                 plannedAmount: parseFloat(document.getElementById('bud_planned').value) || 0,
                 actualAmount: parseFloat(document.getElementById('bud_actual').value) || 0,
                 date: document.getElementById('bud_date').value,
-                vendor: document.getElementById('bud_vendor').value,
-                notes: ''
+                vendor: document.getElementById('bud_vendor').value, notes: ''
             });
-            showNotification('Entry added!');
+            await saveSheetData('budget');
             renderContent();
         }
 
-        function editBudget(id) {
-            editing.budget = id;
-            renderContent();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        function editBudget(id) { editing.budget = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
-        function saveBudget() {
+        async function saveBudget() {
             const category = document.getElementById('bud_category').value;
             const description = document.getElementById('bud_description').value.trim();
             if (!category || !description) return showNotification('Enter category and description', 'error');
-
             const item = data.budget.find(b => b.id === editing.budget);
             if (item) {
-                item.category = category;
-                item.description = description;
+                item.category = category; item.description = description;
                 item.plannedAmount = parseFloat(document.getElementById('bud_planned').value) || 0;
                 item.actualAmount = parseFloat(document.getElementById('bud_actual').value) || 0;
                 item.date = document.getElementById('bud_date').value;
                 item.vendor = document.getElementById('bud_vendor').value;
             }
             editing.budget = null;
-            showNotification('Entry updated!');
+            await saveSheetData('budget');
             renderContent();
         }
 
-        function deleteBudget(id) {
+        async function deleteBudget(id) {
             if (confirm('Delete this entry?')) {
                 data.budget = data.budget.filter(b => b.id !== id);
                 if (editing.budget === id) editing.budget = null;
+                await saveSheetData('budget');
                 renderContent();
             }
         }
@@ -1712,29 +1802,18 @@
             const isEditing = editing.document !== null;
             const editItem = isEditing ? documents.find(d => d.id === editing.document) : null;
 
-            let tableRows = documents.map(d => `
-                <tr class="${editing.document === d.id ? 'editing-row' : ''}">
-                    <td><strong>${d.title}</strong></td>
-                    <td>${d.category}</td>
-                    <td>${d.version || ''}</td>
-                    <td><a href="${d.url}" target="_blank" style="color:#d4af37">Open →</a></td>
-                    <td>
-                        <button class="btn-edit" onclick="editDocument('${d.id}')" title="Edit">✏️</button>
-                        <button class="btn-delete" onclick="deleteDocument('${d.id}')" title="Delete">🗑️</button>
-                    </td>
-                </tr>
-            `).join('');
+            let tableRows = documents.map(d => `<tr class="${editing.document === d.id ? 'editing-row' : ''}">
+                <td><strong>${d.title || ''}</strong></td><td>${d.category || ''}</td><td>${d.version || ''}</td>
+                <td><a href="${d.url}" target="_blank" style="color:#d4af37">Open →</a></td>
+                <td><button class="btn-edit" onclick="editDocument('${d.id}')">✏️</button><button class="btn-delete" onclick="deleteDocument('${d.id}')">🗑️</button></td>
+            </tr>`).join('');
 
             return `
                 <div class="card ${isEditing ? 'editing' : ''}">
                     <h3 class="card-title ${isEditing ? 'editing' : ''}">${isEditing ? '✏️ Edit Document' : 'Add Document Link'}</h3>
                     <div class="form-grid">
-                        <div class="form-group">
-                            <label>Title *</label>
-                            <input type="text" id="doc_title" value="${isEditing ? editItem.title : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Category</label>
+                        <div class="form-group"><label>Title *</label><input type="text" id="doc_title" value="${isEditing ? editItem.title || '' : ''}"></div>
+                        <div class="form-group"><label>Category</label>
                             <select id="doc_category">
                                 <option ${isEditing && editItem.category === 'Script' ? 'selected' : ''}>Script</option>
                                 <option ${isEditing && editItem.category === 'Score' ? 'selected' : ''}>Score</option>
@@ -1744,99 +1823,59 @@
                                 <option ${isEditing && editItem.category === 'Other' ? 'selected' : ''}>Other</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>URL *</label>
-                            <input type="text" id="doc_url" placeholder="https://..." value="${isEditing ? editItem.url : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Version</label>
-                            <input type="text" id="doc_version" value="${isEditing ? editItem.version || '1.0' : '1.0'}">
-                        </div>
-                        <div class="form-group full-width">
-                            <label>Notes</label>
-                            <textarea id="doc_notes">${isEditing ? editItem.notes || '' : ''}</textarea>
-                        </div>
+                        <div class="form-group"><label>URL *</label><input type="text" id="doc_url" placeholder="https://..." value="${isEditing ? editItem.url || '' : ''}"></div>
+                        <div class="form-group"><label>Version</label><input type="text" id="doc_version" value="${isEditing ? editItem.version || '1.0' : '1.0'}"></div>
+                        <div class="form-group full-width"><label>Notes</label><textarea id="doc_notes">${isEditing ? editItem.notes || '' : ''}</textarea></div>
                     </div>
                     <div class="button-group">
-                        ${isEditing ? `
-                            <button class="btn-update" onclick="saveDocument()">💾 Update Document</button>
-                            <button class="btn-cancel" onclick="cancelEdit('document')">Cancel</button>
-                        ` : `
-                            <button class="btn-add" onclick="addDocument()">+ Add Document</button>
-                        `}
+                        ${isEditing ? `<button class="btn-update" onclick="saveDocument()">💾 Update Document</button><button class="btn-cancel" onclick="cancelEdit('document')">Cancel</button>` : `<button class="btn-add" onclick="addDocument()">+ Add Document</button>`}
                     </div>
                 </div>
-
-                <div class="card">
-                    <h3 class="card-title">Documents (${documents.length})</h3>
-                    ${documents.length === 0 ? 
-                        '<p class="empty-state">No documents yet.</p>' :
-                        `<div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Title</th>
-                                        <th>Category</th>
-                                        <th>Version</th>
-                                        <th>Link</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${tableRows}</tbody>
-                            </table>
-                        </div>`
-                    }
+                <div class="card"><h3 class="card-title">Documents (${documents.length})</h3>
+                    ${documents.length === 0 ? '<p class="empty-state">No documents yet.</p>' :
+                        `<div class="table-wrapper"><table><thead><tr><th>Title</th><th>Category</th><th>Version</th><th>Link</th><th>Actions</th></tr></thead><tbody>${tableRows}</tbody></table></div>`}
                 </div>
             `;
         }
 
-        function addDocument() {
+        async function addDocument() {
             const title = document.getElementById('doc_title').value.trim();
             const url = document.getElementById('doc_url').value.trim();
             if (!title || !url) return showNotification('Enter title and URL', 'error');
-
             data.documents.push({
-                id: generateId(),
-                productionId: activeProduction,
-                title: title,
-                category: document.getElementById('doc_category').value,
-                url: url,
+                id: generateId(), productionId: activeProduction, title,
+                category: document.getElementById('doc_category').value, url,
                 version: document.getElementById('doc_version').value,
                 notes: document.getElementById('doc_notes').value,
                 dateAdded: new Date().toISOString().split('T')[0]
             });
-            showNotification('Document added!');
+            await saveSheetData('documents');
             renderContent();
         }
 
-        function editDocument(id) {
-            editing.document = id;
-            renderContent();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        function editDocument(id) { editing.document = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
-        function saveDocument() {
+        async function saveDocument() {
             const title = document.getElementById('doc_title').value.trim();
             const url = document.getElementById('doc_url').value.trim();
             if (!title || !url) return showNotification('Enter title and URL', 'error');
-
             const item = data.documents.find(d => d.id === editing.document);
             if (item) {
-                item.title = title;
+                item.title = title; item.url = url;
                 item.category = document.getElementById('doc_category').value;
-                item.url = url;
                 item.version = document.getElementById('doc_version').value;
                 item.notes = document.getElementById('doc_notes').value;
             }
             editing.document = null;
-            showNotification('Document updated!');
+            await saveSheetData('documents');
             renderContent();
         }
 
-        function deleteDocument(id) {
+        async function deleteDocument(id) {
             if (confirm('Delete this document?')) {
                 data.documents = data.documents.filter(d => d.id !== id);
                 if (editing.document === id) editing.document = null;
+                await saveSheetData('documents');
                 renderContent();
             }
         }
@@ -1851,15 +1890,8 @@
 
             let tableRows = cueSheets.sort((a, b) => (a.cueNumber || '').localeCompare(b.cueNumber || '')).map(c => `
                 <tr class="${editing.cueSheet === c.id ? 'editing-row' : ''}">
-                    <td>${c.type}</td>
-                    <td><strong>${c.cueNumber}</strong></td>
-                    <td>${c.page || ''}</td>
-                    <td>${c.action || ''}</td>
-                    <td>${c.description}</td>
-                    <td>
-                        <button class="btn-edit" onclick="editCue('${c.id}')" title="Edit">✏️</button>
-                        <button class="btn-delete" onclick="deleteCue('${c.id}')" title="Delete">🗑️</button>
-                    </td>
+                    <td>${c.type || ''}</td><td><strong>${c.cueNumber || ''}</strong></td><td>${c.page || ''}</td><td>${c.action || ''}</td><td>${c.description || ''}</td>
+                    <td><button class="btn-edit" onclick="editCue('${c.id}')">✏️</button><button class="btn-delete" onclick="deleteCue('${c.id}')">🗑️</button></td>
                 </tr>
             `).join('');
 
@@ -1867,8 +1899,7 @@
                 <div class="card ${isEditing ? 'editing' : ''}">
                     <h3 class="card-title ${isEditing ? 'editing' : ''}">${isEditing ? '✏️ Edit Cue' : 'Add Cue'}</h3>
                     <div class="form-grid">
-                        <div class="form-group">
-                            <label>Type *</label>
+                        <div class="form-group"><label>Type *</label>
                             <select id="cue_type">
                                 <option ${isEditing && editItem.type === 'Lighting' ? 'selected' : ''}>Lighting</option>
                                 <option ${isEditing && editItem.type === 'Sound' ? 'selected' : ''}>Sound</option>
@@ -1877,91 +1908,44 @@
                                 <option ${isEditing && editItem.type === 'Other' ? 'selected' : ''}>Other</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Cue # *</label>
-                            <input type="text" id="cue_number" placeholder="LQ 1" value="${isEditing ? editItem.cueNumber : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Page</label>
-                            <input type="text" id="cue_page" value="${isEditing ? editItem.page || '' : ''}">
-                        </div>
-                        <div class="form-group">
-                            <label>Action/Trigger</label>
-                            <input type="text" id="cue_action" placeholder="On line..." value="${isEditing ? editItem.action || '' : ''}">
-                        </div>
-                        <div class="form-group full-width">
-                            <label>Description *</label>
-                            <textarea id="cue_description">${isEditing ? editItem.description : ''}</textarea>
-                        </div>
-                        <div class="form-group full-width">
-                            <label>Notes</label>
-                            <textarea id="cue_notes">${isEditing ? editItem.notes || '' : ''}</textarea>
-                        </div>
+                        <div class="form-group"><label>Cue # *</label><input type="text" id="cue_number" value="${isEditing ? editItem.cueNumber || '' : ''}"></div>
+                        <div class="form-group"><label>Page</label><input type="text" id="cue_page" value="${isEditing ? editItem.page || '' : ''}"></div>
+                        <div class="form-group"><label>Action/Trigger</label><input type="text" id="cue_action" value="${isEditing ? editItem.action || '' : ''}"></div>
+                        <div class="form-group full-width"><label>Description *</label><textarea id="cue_description">${isEditing ? editItem.description || '' : ''}</textarea></div>
+                        <div class="form-group full-width"><label>Notes</label><textarea id="cue_notes">${isEditing ? editItem.notes || '' : ''}</textarea></div>
                     </div>
                     <div class="button-group">
-                        ${isEditing ? `
-                            <button class="btn-update" onclick="saveCue()">💾 Update Cue</button>
-                            <button class="btn-cancel" onclick="cancelEdit('cueSheet')">Cancel</button>
-                        ` : `
-                            <button class="btn-add" onclick="addCue()">+ Add Cue</button>
-                        `}
+                        ${isEditing ? `<button class="btn-update" onclick="saveCue()">💾 Update Cue</button><button class="btn-cancel" onclick="cancelEdit('cueSheet')">Cancel</button>` : `<button class="btn-add" onclick="addCue()">+ Add Cue</button>`}
                     </div>
                 </div>
-
-                <div class="card">
-                    <h3 class="card-title">Cue Sheets (${cueSheets.length})</h3>
-                    ${cueSheets.length === 0 ? 
-                        '<p class="empty-state">No cues yet.</p>' :
-                        `<div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Type</th>
-                                        <th>Cue #</th>
-                                        <th>Page</th>
-                                        <th>Action</th>
-                                        <th>Description</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${tableRows}</tbody>
-                            </table>
-                        </div>`
-                    }
+                <div class="card"><h3 class="card-title">Cue Sheets (${cueSheets.length})</h3>
+                    ${cueSheets.length === 0 ? '<p class="empty-state">No cues yet.</p>' :
+                        `<div class="table-wrapper"><table><thead><tr><th>Type</th><th>Cue #</th><th>Page</th><th>Action</th><th>Description</th><th>Actions</th></tr></thead><tbody>${tableRows}</tbody></table></div>`}
                 </div>
             `;
         }
 
-        function addCue() {
+        async function addCue() {
             const cueNumber = document.getElementById('cue_number').value.trim();
             const description = document.getElementById('cue_description').value.trim();
             if (!cueNumber || !description) return showNotification('Enter cue # and description', 'error');
-
             data.cueSheets.push({
-                id: generateId(),
-                productionId: activeProduction,
-                type: document.getElementById('cue_type').value,
-                cueNumber: cueNumber,
+                id: generateId(), productionId: activeProduction,
+                type: document.getElementById('cue_type').value, cueNumber,
                 page: document.getElementById('cue_page').value,
-                action: document.getElementById('cue_action').value,
-                description: description,
+                action: document.getElementById('cue_action').value, description,
                 notes: document.getElementById('cue_notes').value
             });
-            showNotification('Cue added!');
+            await saveSheetData('cueSheets');
             renderContent();
         }
 
-        function editCue(id) {
-            editing.cueSheet = id;
-            renderContent();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        function editCue(id) { editing.cueSheet = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
-        function saveCue() {
+        async function saveCue() {
             const cueNumber = document.getElementById('cue_number').value.trim();
             const description = document.getElementById('cue_description').value.trim();
             if (!cueNumber || !description) return showNotification('Enter cue # and description', 'error');
-
             const item = data.cueSheets.find(c => c.id === editing.cueSheet);
             if (item) {
                 item.type = document.getElementById('cue_type').value;
@@ -1972,14 +1956,15 @@
                 item.notes = document.getElementById('cue_notes').value;
             }
             editing.cueSheet = null;
-            showNotification('Cue updated!');
+            await saveSheetData('cueSheets');
             renderContent();
         }
 
-        function deleteCue(id) {
+        async function deleteCue(id) {
             if (confirm('Delete this cue?')) {
                 data.cueSheets = data.cueSheets.filter(c => c.id !== id);
                 if (editing.cueSheet === id) editing.cueSheet = null;
+                await saveSheetData('cueSheets');
                 renderContent();
             }
         }
@@ -1993,85 +1978,40 @@
             const isEditing = editing.email !== null;
             const editItem = isEditing ? emails.find(e => e.id === editing.email) : null;
 
-            let rehearsalOptions = rehearsals.map(r => 
-                `<option value="${r.id}">${r.date} - ${r.startTime}</option>`
-            ).join('');
+            let rehearsalOptions = rehearsals.map(r => `<option value="${r.id}">${r.date} - ${r.startTime}</option>`).join('');
 
-            let tableRows = emails.map(e => `
-                <tr class="${editing.email === e.id ? 'editing-row' : ''}">
-                    <td>${e.dateCreated}</td>
-                    <td><strong>${e.subject}</strong></td>
-                    <td><span class="badge ${getBadgeClass(e.status)}">${e.status}</span></td>
-                    <td>
-                        <button class="btn-edit" onclick="editEmail('${e.id}')" title="Edit">✏️</button>
-                        <button class="btn-action" onclick="copyEmail('${e.id}')" title="Copy">📋</button>
-                        <button class="btn-delete" onclick="deleteEmail('${e.id}')" title="Delete">🗑️</button>
-                    </td>
-                </tr>
-            `).join('');
+            let tableRows = emails.map(e => `<tr class="${editing.email === e.id ? 'editing-row' : ''}">
+                <td>${e.dateCreated || ''}</td><td><strong>${e.subject || ''}</strong></td>
+                <td><span class="badge ${getBadgeClass(e.status)}">${e.status || ''}</span></td>
+                <td><button class="btn-edit" onclick="editEmail('${e.id}')">✏️</button>
+                    <button class="btn-action" onclick="copyEmail('${e.id}')">📋</button>
+                    <button class="btn-delete" onclick="deleteEmail('${e.id}')">🗑️</button></td>
+            </tr>`).join('');
 
             return `
                 <div class="card ${isEditing ? 'editing' : ''}">
                     <h3 class="card-title ${isEditing ? 'editing' : ''}">${isEditing ? '✏️ Edit Email' : 'Compose Email'}</h3>
                     <div class="form-grid">
-                        <div class="form-group">
-                            <label>Recipients</label>
+                        <div class="form-group"><label>Recipients</label>
                             <select id="email_recipientType" onchange="updateEmailRecipients()">
-                                <option value="all">All Company</option>
-                                <option value="cast">Cast Only</option>
-                                <option value="crew">Crew Only</option>
-                                <option value="rehearsal">Called for Rehearsal</option>
+                                <option value="all">All Company</option><option value="cast">Cast Only</option><option value="crew">Crew Only</option><option value="rehearsal">Called for Rehearsal</option>
                             </select>
                         </div>
-                        <div class="form-group" id="rehearsalSelectGroup" style="display:none">
-                            <label>Rehearsal</label>
-                            <select id="email_rehearsal" onchange="updateEmailRecipients()">
-                                <option value="">Choose...</option>
-                                ${rehearsalOptions}
-                            </select>
+                        <div class="form-group" id="rehearsalSelectGroup" style="display:none"><label>Rehearsal</label>
+                            <select id="email_rehearsal" onchange="updateEmailRecipients()"><option value="">Choose...</option>${rehearsalOptions}</select>
                         </div>
-                        <div class="form-group full-width">
-                            <label>Email Addresses (click to copy)</label>
-                            <div class="email-box" id="emailAddressBox" onclick="copyEmailAddresses()">Loading...</div>
-                        </div>
-                        <div class="form-group full-width">
-                            <label>Subject *</label>
-                            <input type="text" id="email_subject" value="${isEditing ? editItem.subject : ''}">
-                        </div>
-                        <div class="form-group full-width">
-                            <label>Body *</label>
-                            <textarea id="email_body" style="min-height:120px">${isEditing ? editItem.body : ''}</textarea>
-                        </div>
+                        <div class="form-group full-width"><label>Email Addresses (click to copy)</label><div class="email-box" id="emailAddressBox" onclick="copyEmailAddresses()">Loading...</div></div>
+                        <div class="form-group full-width"><label>Subject *</label><input type="text" id="email_subject" value="${isEditing ? editItem.subject || '' : ''}"></div>
+                        <div class="form-group full-width"><label>Body *</label><textarea id="email_body" style="min-height:120px">${isEditing ? editItem.body || '' : ''}</textarea></div>
                     </div>
                     <div class="button-group">
-                        ${isEditing ? `
-                            <button class="btn-update" onclick="saveEmail()">💾 Update Email</button>
-                            <button class="btn-cancel" onclick="cancelEdit('email')">Cancel</button>
-                        ` : `
-                            <button class="btn-add" onclick="addEmail()">💾 Save Draft</button>
-                        `}
+                        ${isEditing ? `<button class="btn-update" onclick="saveEmail()">💾 Update Email</button><button class="btn-cancel" onclick="cancelEdit('email')">Cancel</button>` : `<button class="btn-add" onclick="addEmail()">💾 Save Draft</button>`}
                         <button class="btn-add" style="background:#27ae60" onclick="copyFullEmail()">📋 Copy Email</button>
                     </div>
                 </div>
-
-                <div class="card">
-                    <h3 class="card-title">Saved Emails (${emails.length})</h3>
-                    ${emails.length === 0 ? 
-                        '<p class="empty-state">No emails yet.</p>' :
-                        `<div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Subject</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${tableRows}</tbody>
-                            </table>
-                        </div>`
-                    }
+                <div class="card"><h3 class="card-title">Saved Emails (${emails.length})</h3>
+                    ${emails.length === 0 ? '<p class="empty-state">No emails yet.</p>' :
+                        `<div class="table-wrapper"><table><thead><tr><th>Date</th><th>Subject</th><th>Status</th><th>Actions</th></tr></thead><tbody>${tableRows}</tbody></table></div>`}
                 </div>
             `;
         }
@@ -2083,289 +2023,74 @@
 
             const people = getProductionData('people');
             let recipients = [];
-
-            if (type === 'all') {
-                recipients = people.filter(p => p.email);
-            } else if (type === 'cast') {
-                recipients = people.filter(p => p.email && p.role && p.role.includes('Cast'));
-            } else if (type === 'crew') {
-                recipients = people.filter(p => p.email && (!p.role || !p.role.includes('Cast')));
-            } else if (type === 'rehearsal') {
-                const rehearsalSelect = document.getElementById('email_rehearsal');
-                const rehearsalId = rehearsalSelect ? rehearsalSelect.value : '';
+            if (type === 'all') recipients = people.filter(p => p.email);
+            else if (type === 'cast') recipients = people.filter(p => p.email && p.role && p.role.includes('Cast'));
+            else if (type === 'crew') recipients = people.filter(p => p.email && (!p.role || !p.role.includes('Cast')));
+            else if (type === 'rehearsal') {
+                const rehearsalId = document.getElementById('email_rehearsal')?.value;
                 if (rehearsalId) {
                     const rehearsal = data.rehearsals.find(r => r.id === rehearsalId);
-                    if (rehearsal) {
-                        recipients = people.filter(p => p.email && (rehearsal.calledCastIds || []).includes(p.id));
-                    }
+                    if (rehearsal) recipients = people.filter(p => p.email && (rehearsal.calledCastIds || []).includes(p.id));
                 }
             }
-
-            const emailsText = recipients.map(p => p.email).join(', ');
             const box = document.getElementById('emailAddressBox');
-            if (box) box.textContent = emailsText || 'No emails found';
+            if (box) box.textContent = recipients.map(p => p.email).join(', ') || 'No emails found';
         }
 
         function copyEmailAddresses() {
-            const text = document.getElementById('emailAddressBox').textContent;
-            navigator.clipboard.writeText(text);
+            navigator.clipboard.writeText(document.getElementById('emailAddressBox').textContent);
             showNotification('Copied!');
         }
 
         function copyFullEmail() {
-            const subject = document.getElementById('email_subject').value;
-            const body = document.getElementById('email_body').value;
-            navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
+            navigator.clipboard.writeText(`Subject: ${document.getElementById('email_subject').value}\n\n${document.getElementById('email_body').value}`);
             showNotification('Email copied!');
         }
 
-        function addEmail() {
+        async function addEmail() {
             const subject = document.getElementById('email_subject').value.trim();
             const body = document.getElementById('email_body').value.trim();
             if (!subject || !body) return showNotification('Enter subject and body', 'error');
-
             data.emails.push({
-                id: generateId(),
-                productionId: activeProduction,
-                subject: subject,
-                body: body,
+                id: generateId(), productionId: activeProduction, subject, body,
                 recipients: document.getElementById('emailAddressBox').textContent,
-                dateCreated: new Date().toISOString().split('T')[0],
-                status: 'Draft'
+                dateCreated: new Date().toISOString().split('T')[0], status: 'Draft'
             });
-            showNotification('Saved!');
+            await saveSheetData('emails');
             renderContent();
         }
 
-        function editEmail(id) {
-            editing.email = id;
-            renderContent();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            setTimeout(updateEmailRecipients, 100);
-        }
+        function editEmail(id) { editing.email = id; renderContent(); window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(updateEmailRecipients, 100); }
 
-        function saveEmail() {
+        async function saveEmail() {
             const subject = document.getElementById('email_subject').value.trim();
             const body = document.getElementById('email_body').value.trim();
             if (!subject || !body) return showNotification('Enter subject and body', 'error');
-
             const item = data.emails.find(e => e.id === editing.email);
-            if (item) {
-                item.subject = subject;
-                item.body = body;
-                item.recipients = document.getElementById('emailAddressBox').textContent;
-            }
+            if (item) { item.subject = subject; item.body = body; item.recipients = document.getElementById('emailAddressBox').textContent; }
             editing.email = null;
-            showNotification('Email updated!');
+            await saveSheetData('emails');
             renderContent();
         }
 
         function copyEmail(id) {
             const email = data.emails.find(e => e.id === id);
-            if (email) {
-                navigator.clipboard.writeText(`Subject: ${email.subject}\n\n${email.body}`);
-                showNotification('Copied!');
-            }
+            if (email) { navigator.clipboard.writeText(`Subject: ${email.subject}\n\n${email.body}`); showNotification('Copied!'); }
         }
 
-        function deleteEmail(id) {
+        async function deleteEmail(id) {
             if (confirm('Delete this email?')) {
                 data.emails = data.emails.filter(e => e.id !== id);
                 if (editing.email === id) editing.email = null;
+                await saveSheetData('emails');
                 renderContent();
             }
         }
 
-        // ==================== EXCEL IMPORT/EXPORT ====================
-        function exportToExcel() {
-            const wb = XLSX.utils.book_new();
-            
-            const productionsData = data.productions.map(p => ({
-                ID: p.id, Title: p.title, Venue: p.venue, StartDate: p.startDate, EndDate: p.endDate,
-                Synopsis: p.synopsis, Director: p.director, MusicDirector: p.musicDirector,
-                Choreographer: p.choreographer, StageManager: p.stageManager, Status: p.status
-            }));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(productionsData), 'Productions');
-
-            const peopleData = data.people.map(p => ({
-                ID: p.id, ProductionID: p.productionId, FirstName: p.firstName, LastName: p.lastName,
-                Email: p.email, Phone: p.phone, EmergencyContact: p.emergencyContact,
-                EmergencyPhone: p.emergencyPhone, Role: p.role, Character: p.character, Notes: p.notes
-            }));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(peopleData), 'People');
-
-            const scenesData = data.scenes.map(s => ({
-                ID: s.id, ProductionID: s.productionId, SceneNumber: s.sceneNumber, Title: s.title,
-                Act: s.act, Description: s.description, Status: s.status, CastIDs: (s.castIds || []).join(','), Notes: s.notes
-            }));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(scenesData), 'Scenes');
-
-            const rehearsalsData = data.rehearsals.map(r => ({
-                ID: r.id, ProductionID: r.productionId, Date: r.date, StartTime: r.startTime, EndTime: r.endTime,
-                Location: r.location, Type: r.type, SceneIDs: (r.sceneIds || []).join(','),
-                CalledCastIDs: (r.calledCastIds || []).join(','), Notes: r.notes
-            }));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rehearsalsData), 'Rehearsals');
-
-            const attendanceData = data.attendance.map(a => ({
-                ID: a.id, RehearsalID: a.rehearsalId, PersonID: a.personId, Status: a.status,
-                ArrivalTime: a.arrivalTime, Notes: a.notes
-            }));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(attendanceData), 'Attendance');
-
-            const inventoryData = data.inventory.map(i => ({
-                ID: i.id, ProductionID: i.productionId, Category: i.category, Name: i.name,
-                Description: i.description, SceneIDs: (i.sceneIds || []).join(','),
-                CharacterIDs: (i.characterIds || []).join(','), Status: i.status, Notes: i.notes, Cost: i.cost
-            }));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(inventoryData), 'Inventory');
-
-            const budgetData = data.budget.map(b => ({
-                ID: b.id, ProductionID: b.productionId, Category: b.category, Description: b.description,
-                PlannedAmount: b.plannedAmount, ActualAmount: b.actualAmount, Date: b.date, Vendor: b.vendor, Notes: b.notes
-            }));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(budgetData), 'Budget');
-
-            const documentsData = data.documents.map(d => ({
-                ID: d.id, ProductionID: d.productionId, Title: d.title, Category: d.category,
-                URL: d.url, Version: d.version, Notes: d.notes, DateAdded: d.dateAdded
-            }));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(documentsData), 'Documents');
-
-            const cueSheetsData = data.cueSheets.map(c => ({
-                ID: c.id, ProductionID: c.productionId, Type: c.type, CueNumber: c.cueNumber,
-                Page: c.page, Action: c.action, Description: c.description, Notes: c.notes
-            }));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cueSheetsData), 'CueSheets');
-
-            const emailsData = data.emails.map(e => ({
-                ID: e.id, ProductionID: e.productionId, Subject: e.subject, Body: e.body,
-                Recipients: e.recipients, DateCreated: e.dateCreated, Status: e.status
-            }));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(emailsData), 'Emails');
-
-            XLSX.writeFile(wb, 'TheaterProductionData.xlsx');
-            showNotification('Exported to Excel!');
-        }
-
-        document.getElementById('importFile').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                try {
-                    const wb = XLSX.read(evt.target.result, { type: 'binary' });
-                    
-                    if (wb.SheetNames.includes('Productions')) {
-                        data.productions = XLSX.utils.sheet_to_json(wb.Sheets['Productions']).map(r => ({
-                            id: r.ID || generateId(), title: r.Title || '', venue: r.Venue || '',
-                            startDate: r.StartDate || '', endDate: r.EndDate || '', synopsis: r.Synopsis || '',
-                            director: r.Director || '', musicDirector: r.MusicDirector || '',
-                            choreographer: r.Choreographer || '', stageManager: r.StageManager || '', status: r.Status || 'Planning'
-                        }));
-                    }
-
-                    if (wb.SheetNames.includes('People')) {
-                        data.people = XLSX.utils.sheet_to_json(wb.Sheets['People']).map(r => ({
-                            id: r.ID || generateId(), productionId: r.ProductionID || '',
-                            firstName: r.FirstName || '', lastName: r.LastName || '', email: r.Email || '',
-                            phone: r.Phone || '', emergencyContact: r.EmergencyContact || '',
-                            emergencyPhone: r.EmergencyPhone || '', role: r.Role || '', character: r.Character || '', notes: r.Notes || ''
-                        }));
-                    }
-
-                    if (wb.SheetNames.includes('Scenes')) {
-                        data.scenes = XLSX.utils.sheet_to_json(wb.Sheets['Scenes']).map(r => ({
-                            id: r.ID || generateId(), productionId: r.ProductionID || '',
-                            sceneNumber: r.SceneNumber || '', title: r.Title || '', act: r.Act || '',
-                            description: r.Description || '', status: r.Status || 'Not Started',
-                            castIds: r.CastIDs ? String(r.CastIDs).split(',').filter(Boolean) : [], notes: r.Notes || ''
-                        }));
-                    }
-
-                    if (wb.SheetNames.includes('Rehearsals')) {
-                        data.rehearsals = XLSX.utils.sheet_to_json(wb.Sheets['Rehearsals']).map(r => ({
-                            id: r.ID || generateId(), productionId: r.ProductionID || '',
-                            date: r.Date || '', startTime: r.StartTime || '', endTime: r.EndTime || '',
-                            location: r.Location || '', type: r.Type || '',
-                            sceneIds: r.SceneIDs ? String(r.SceneIDs).split(',').filter(Boolean) : [],
-                            calledCastIds: r.CalledCastIDs ? String(r.CalledCastIDs).split(',').filter(Boolean) : [], notes: r.Notes || ''
-                        }));
-                    }
-
-                    if (wb.SheetNames.includes('Attendance')) {
-                        data.attendance = XLSX.utils.sheet_to_json(wb.Sheets['Attendance']).map(r => ({
-                            id: r.ID || generateId(), rehearsalId: r.RehearsalID || '', personId: r.PersonID || '',
-                            status: r.Status || 'Pending', arrivalTime: r.ArrivalTime || '', notes: r.Notes || ''
-                        }));
-                    }
-
-                    if (wb.SheetNames.includes('Inventory')) {
-                        data.inventory = XLSX.utils.sheet_to_json(wb.Sheets['Inventory']).map(r => ({
-                            id: r.ID || generateId(), productionId: r.ProductionID || '', category: r.Category || '',
-                            name: r.Name || '', description: r.Description || '',
-                            sceneIds: r.SceneIDs ? String(r.SceneIDs).split(',').filter(Boolean) : [],
-                            characterIds: r.CharacterIDs ? String(r.CharacterIDs).split(',').filter(Boolean) : [],
-                            status: r.Status || 'Needed', notes: r.Notes || '', cost: r.Cost || 0
-                        }));
-                    }
-
-                    if (wb.SheetNames.includes('Budget')) {
-                        data.budget = XLSX.utils.sheet_to_json(wb.Sheets['Budget']).map(r => ({
-                            id: r.ID || generateId(), productionId: r.ProductionID || '', category: r.Category || '',
-                            description: r.Description || '', plannedAmount: r.PlannedAmount || 0,
-                            actualAmount: r.ActualAmount || 0, date: r.Date || '', vendor: r.Vendor || '', notes: r.Notes || ''
-                        }));
-                    }
-
-                    if (wb.SheetNames.includes('Documents')) {
-                        data.documents = XLSX.utils.sheet_to_json(wb.Sheets['Documents']).map(r => ({
-                            id: r.ID || generateId(), productionId: r.ProductionID || '', title: r.Title || '',
-                            category: r.Category || '', url: r.URL || '', version: r.Version || '1.0',
-                            notes: r.Notes || '', dateAdded: r.DateAdded || ''
-                        }));
-                    }
-
-                    if (wb.SheetNames.includes('CueSheets')) {
-                        data.cueSheets = XLSX.utils.sheet_to_json(wb.Sheets['CueSheets']).map(r => ({
-                            id: r.ID || generateId(), productionId: r.ProductionID || '', type: r.Type || '',
-                            cueNumber: r.CueNumber || '', page: r.Page || '', action: r.Action || '',
-                            description: r.Description || '', notes: r.Notes || ''
-                        }));
-                    }
-
-                    if (wb.SheetNames.includes('Emails')) {
-                        data.emails = XLSX.utils.sheet_to_json(wb.Sheets['Emails']).map(r => ({
-                            id: r.ID || generateId(), productionId: r.ProductionID || '', subject: r.Subject || '',
-                            body: r.Body || '', recipients: r.Recipients || '', dateCreated: r.DateCreated || '', status: r.Status || 'Draft'
-                        }));
-                    }
-
-                    if (data.productions.length > 0) {
-                        activeProduction = data.productions[0].id;
-                    }
-
-                    showNotification('Imported from Excel!');
-                    renderContent();
-                } catch (error) {
-                    showNotification('Error importing: ' + error.message, 'error');
-                }
-            };
-            reader.readAsBinaryString(file);
-            e.target.value = '';
-        });
-
-        // Initialize
-        renderContent();
-
-        // Update email recipients when emails tab loads
-        const originalRenderContent = renderContent;
-        renderContent = function() {
-            originalRenderContent();
-            if (activeTab === 'emails' && activeProduction) {
-                setTimeout(updateEmailRecipients, 0);
-            }
+        // ==================== INITIALIZE ====================
+        window.onload = function() {
+            gapiLoaded();
+            gisLoaded();
         };
     </script>
 </body>
