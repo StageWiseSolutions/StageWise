@@ -839,6 +839,16 @@
                 }
             }
             
+            // Restore activeProduction from localStorage if valid
+            const savedProd = localStorage.getItem('activeProduction');
+            if (savedProd && data.productions.find(p => p.id === savedProd)) {
+                activeProduction = savedProd;
+            } else if (data.productions.length > 0 && !activeProduction) {
+                // Auto-select first production if none selected
+                activeProduction = data.productions[0].id;
+                localStorage.setItem('activeProduction', activeProduction);
+            }
+            
             setSyncStatus('synced');
         }
 
@@ -989,16 +999,39 @@
 
         function setActiveProduction(id) {
             activeProduction = id || null;
+            // Save to localStorage so it persists
+            if (activeProduction) {
+                localStorage.setItem('activeProduction', activeProduction);
+            } else {
+                localStorage.removeItem('activeProduction');
+            }
             Object.keys(editing).forEach(key => editing[key] = null);
             renderContent();
         }
 
         function updateProductionSelector() {
             const select = document.getElementById('activeProductionSelect');
+            if (!select) return;
+            
+            // Restore from localStorage if needed
+            if (!activeProduction && localStorage.getItem('activeProduction')) {
+                const savedProd = localStorage.getItem('activeProduction');
+                // Make sure the production still exists
+                if (data.productions.find(p => p.id === savedProd)) {
+                    activeProduction = savedProd;
+                }
+            }
+            
             select.innerHTML = '<option value="">Select production...</option>';
             data.productions.forEach(p => {
-                select.innerHTML += `<option value="${p.id}" ${p.id === activeProduction ? 'selected' : ''}>${p.title}</option>`;
+                const isSelected = p.id === activeProduction;
+                select.innerHTML += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${p.title || 'Untitled'}</option>`;
             });
+            
+            // Make sure the select element reflects the current value
+            if (activeProduction) {
+                select.value = activeProduction;
+            }
         }
 
         function cancelEdit(type) {
@@ -1171,6 +1204,7 @@
 
         function selectProduction(id) {
             activeProduction = id;
+            localStorage.setItem('activeProduction', id);
             activeTab = 'people';
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
             document.querySelector('[data-tab="people"]').classList.add('active');
@@ -1189,7 +1223,10 @@
                 data.cueSheets = data.cueSheets.filter(c => c.productionId !== id);
                 data.emails = data.emails.filter(e => e.productionId !== id);
                 
-                if (activeProduction === id) activeProduction = null;
+                if (activeProduction === id) {
+                    activeProduction = null;
+                    localStorage.removeItem('activeProduction');
+                }
                 if (editing.production === id) editing.production = null;
                 
                 // Save all affected sheets
