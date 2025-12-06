@@ -626,6 +626,62 @@
             emails: ['ID', 'ProductionID', 'Subject', 'Body', 'Recipients', 'DateCreated', 'Status']
         };
 
+        // Mapping from sheet headers to object property names
+        const HEADER_TO_PROP = {
+            'ID': 'id',
+            'ProductionID': 'productionId',
+            'RehearsalID': 'rehearsalId',
+            'PersonID': 'personId',
+            'Title': 'title',
+            'Venue': 'venue',
+            'StartDate': 'startDate',
+            'EndDate': 'endDate',
+            'Synopsis': 'synopsis',
+            'Director': 'director',
+            'MusicDirector': 'musicDirector',
+            'Choreographer': 'choreographer',
+            'StageManager': 'stageManager',
+            'Status': 'status',
+            'FirstName': 'firstName',
+            'LastName': 'lastName',
+            'Email': 'email',
+            'Phone': 'phone',
+            'EmergencyContact': 'emergencyContact',
+            'EmergencyPhone': 'emergencyPhone',
+            'Role': 'role',
+            'Character': 'character',
+            'Notes': 'notes',
+            'SceneNumber': 'sceneNumber',
+            'Act': 'act',
+            'Description': 'description',
+            'CastIDs': 'castIds',
+            'SceneIDs': 'sceneIds',
+            'CalledCastIDs': 'calledCastIds',
+            'CharacterIDs': 'characterIds',
+            'Date': 'date',
+            'StartTime': 'startTime',
+            'EndTime': 'endTime',
+            'Location': 'location',
+            'Type': 'type',
+            'ArrivalTime': 'arrivalTime',
+            'Category': 'category',
+            'Name': 'name',
+            'Cost': 'cost',
+            'PlannedAmount': 'plannedAmount',
+            'ActualAmount': 'actualAmount',
+            'Vendor': 'vendor',
+            'URL': 'url',
+            'Version': 'version',
+            'DateAdded': 'dateAdded',
+            'CueNumber': 'cueNumber',
+            'Page': 'page',
+            'Action': 'action',
+            'Subject': 'subject',
+            'Body': 'body',
+            'Recipients': 'recipients',
+            'DateCreated': 'dateCreated'
+        };
+
         // ==================== STATE ====================
         let tokenClient;
         let gapiInited = false;
@@ -819,13 +875,16 @@
                             const obj = {};
                             headers.forEach((header, i) => {
                                 let value = row[i] || '';
+                                // Use proper mapping for property names
+                                const propName = HEADER_TO_PROP[header] || header.charAt(0).toLowerCase() + header.slice(1);
+                                
                                 // Parse arrays stored as comma-separated strings
-                                if (['CastIDs', 'SceneIDs', 'CalledCastIDs', 'CharacterIDs'].includes(header)) {
-                                    obj[header.charAt(0).toLowerCase() + header.slice(1)] = value ? value.split(',').filter(Boolean) : [];
-                                } else if (['PlannedAmount', 'ActualAmount', 'Cost'].includes(header)) {
-                                    obj[header.charAt(0).toLowerCase() + header.slice(1)] = parseFloat(value) || 0;
+                                if (['castIds', 'sceneIds', 'calledCastIds', 'characterIds'].includes(propName)) {
+                                    obj[propName] = value ? value.split(',').filter(Boolean) : [];
+                                } else if (['plannedAmount', 'actualAmount', 'cost'].includes(propName)) {
+                                    obj[propName] = parseFloat(value) || 0;
                                 } else {
-                                    obj[header.charAt(0).toLowerCase() + header.slice(1)] = value;
+                                    obj[propName] = value;
                                 }
                             });
                             return obj;
@@ -860,7 +919,7 @@
             
             const rows = data[sheetKey].map(item => {
                 return headers.map(header => {
-                    const key = header.charAt(0).toLowerCase() + header.slice(1);
+                    const key = HEADER_TO_PROP[header] || header.charAt(0).toLowerCase() + header.slice(1);
                     const value = item[key];
                     
                     // Convert arrays back to comma-separated strings
