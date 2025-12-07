@@ -2032,7 +2032,7 @@
             productions: ['ID', 'Title', 'Venue', 'StartDate', 'EndDate', 'Synopsis', 'Director', 'MusicDirector', 'Choreographer', 'StageManager', 'Status'],
             people: ['ID', 'ProductionID', 'ContactID', 'FirstName', 'LastName', 'Email', 'Phone', 'EmergencyContact', 'EmergencyPhone', 'Role', 'Character', 'Notes'],
             contacts: ['ID', 'FirstName', 'LastName', 'Email', 'Phone', 'EmergencyContact', 'EmergencyPhone', 'Notes'],
-            scenes: ['ID', 'ProductionID', 'SceneNumber', 'Title', 'Act', 'Description', 'Status', 'CastIDs', 'Notes'],
+            scenes: ['ID', 'ProductionID', 'SceneNumber', 'Title', 'Act', 'Setting', 'Description', 'Status', 'CastIDs', 'Notes'],
             rehearsals: ['ID', 'ProductionID', 'Date', 'StartTime', 'EndTime', 'Location', 'Type', 'SceneIDs', 'CalledCastIDs', 'Notes'],
             attendance: ['ID', 'RehearsalID', 'PersonID', 'Status', 'ArrivalTime', 'Notes'],
             inventory: ['ID', 'ProductionID', 'Category', 'Name', 'Description', 'SceneIDs', 'CharacterIDs', 'Status', 'Notes', 'Cost'],
@@ -2048,7 +2048,7 @@
             'Director': 'director', 'MusicDirector': 'musicDirector', 'Choreographer': 'choreographer', 'StageManager': 'stageManager',
             'Status': 'status', 'FirstName': 'firstName', 'LastName': 'lastName', 'Email': 'email', 'Phone': 'phone',
             'EmergencyContact': 'emergencyContact', 'EmergencyPhone': 'emergencyPhone', 'Role': 'role', 'Character': 'character',
-            'Notes': 'notes', 'SceneNumber': 'sceneNumber', 'Act': 'act', 'Description': 'description',
+            'Notes': 'notes', 'SceneNumber': 'sceneNumber', 'Act': 'act', 'Setting': 'setting', 'Description': 'description',
             'CastIDs': 'castIds', 'SceneIDs': 'sceneIds', 'CalledCastIDs': 'calledCastIds', 'CharacterIDs': 'characterIds',
             'Date': 'date', 'StartTime': 'startTime', 'EndTime': 'endTime', 'Location': 'location', 'Type': 'type',
             'ArrivalTime': 'arrivalTime', 'Category': 'category', 'Name': 'name', 'Cost': 'cost',
@@ -2215,6 +2215,32 @@
         
         // Initialize dark mode on page load
         initDarkMode();
+
+        // ==================== TIME HELPERS ====================
+        function generateTimeOptions(selectedValue = '') {
+            const options = ['<option value="">Select...</option>'];
+            for (let h = 0; h < 24; h++) {
+                for (let m = 0; m < 60; m += 15) {
+                    const hour24 = String(h).padStart(2, '0');
+                    const min = String(m).padStart(2, '0');
+                    const value = `${hour24}:${min}`;
+                    const hour12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
+                    const ampm = h < 12 ? 'AM' : 'PM';
+                    const label = `${hour12}:${min} ${ampm}`;
+                    const selected = selectedValue === value ? 'selected' : '';
+                    options.push(`<option value="${value}" ${selected}>${label}</option>`);
+                }
+            }
+            return options.join('');
+        }
+        
+        function formatTime12(time24) {
+            if (!time24) return '';
+            const [h, m] = time24.split(':').map(Number);
+            const hour12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
+            const ampm = h < 12 ? 'AM' : 'PM';
+            return `${hour12}:${String(m).padStart(2, '0')} ${ampm}`;
+        }
 
         // ==================== MODAL FUNCTIONS ====================
         function openModal(title, bodyHtml, footerHtml) {
@@ -2385,7 +2411,7 @@
                         ${allTodayRehearsals.length === 0 ? '<div class="no-rehearsals">No rehearsals scheduled for today</div>' :
                             `<div class="today-rehearsals">${allTodayRehearsals.map(r => `
                                 <div class="today-rehearsal" onclick="activeProduction='${r.productionId}'; localStorage.setItem('activeProduction','${r.productionId}'); viewRehearsalModal('${r.id}'); renderContent();" style="cursor: pointer;">
-                                    <div class="rehearsal-time">${r.startTime || ''} - ${r.endTime || ''}</div>
+                                    <div class="rehearsal-time">${formatTime12(r.startTime)} - ${formatTime12(r.endTime)}</div>
                                     <div class="rehearsal-info">
                                         <div class="rehearsal-type">${r.type || 'Rehearsal'}</div>
                                         <div class="rehearsal-location">${getProdName(r.productionId)} • ${r.location || 'TBD'}</div>
@@ -2444,7 +2470,7 @@
                                     `<ul class="quick-list" style="padding: 0 16px;">${allUpcomingRehearsals.map(r => `
                                         <li class="quick-list-item" onclick="activeProduction='${r.productionId}'; localStorage.setItem('activeProduction','${r.productionId}'); viewRehearsalModal('${r.id}'); renderContent();" style="cursor: pointer;">
                                             <div>
-                                                <div class="quick-list-name">${formatDate(r.date)} • ${r.startTime || ''}</div>
+                                                <div class="quick-list-name">${formatDate(r.date)} • ${formatTime12(r.startTime)}</div>
                                                 <div class="quick-list-meta">${getProdName(r.productionId)} • ${r.type || 'Rehearsal'}</div>
                                             </div>
                                             <span class="badge badge-in-progress">${(r.calledCastIds || []).length}</span>
@@ -2500,7 +2526,7 @@
                     ${todayRehearsals.length === 0 ? '<div class="no-rehearsals">No rehearsals scheduled for today</div>' :
                         `<div class="today-rehearsals">${todayRehearsals.map(r => `
                             <div class="today-rehearsal" onclick="viewRehearsalModal('${r.id}')" style="cursor: pointer;">
-                                <div class="rehearsal-time">${r.startTime || ''} - ${r.endTime || ''}</div>
+                                <div class="rehearsal-time">${formatTime12(r.startTime)} - ${formatTime12(r.endTime)}</div>
                                 <div class="rehearsal-info">
                                     <div class="rehearsal-type">${r.type || 'Rehearsal'}</div>
                                     <div class="rehearsal-location">${r.location || 'TBD'}</div>
@@ -2541,7 +2567,7 @@
                             ${upcomingRehearsals.length === 0 ? '<div class="empty-state">No upcoming rehearsals</div>' :
                                 `<ul class="quick-list" style="padding: 0 16px;">${upcomingRehearsals.map(r => `
                                     <li class="quick-list-item" onclick="viewRehearsalModal('${r.id}')" style="cursor: pointer;">
-                                        <div><div class="quick-list-name">${formatDate(r.date)} • ${r.startTime || ''}</div><div class="quick-list-meta">${r.type || 'Rehearsal'} • ${r.location || 'TBD'}</div></div>
+                                        <div><div class="quick-list-name">${formatDate(r.date)} • ${formatTime12(r.startTime)}</div><div class="quick-list-meta">${r.type || 'Rehearsal'} • ${r.location || 'TBD'}</div></div>
                                         <span class="badge badge-in-progress">${(r.calledCastIds || []).length} called</span>
                                     </li>
                                 `).join('')}</ul>`
@@ -2896,6 +2922,7 @@
                         <label class="form-label">Role in Production *</label>
                         <select class="form-select" id="person_role">
                             <option value="">Select role...</option>
+                            <option ${isEditing && editItem && editItem.role === 'Cast' ? 'selected' : ''}>Cast</option>
                             <option ${isEditing && editItem && editItem.role === 'Cast - Principal' ? 'selected' : ''}>Cast - Principal</option>
                             <option ${isEditing && editItem && editItem.role === 'Cast - Supporting' ? 'selected' : ''}>Cast - Supporting</option>
                             <option ${isEditing && editItem && editItem.role === 'Cast - Ensemble' ? 'selected' : ''}>Cast - Ensemble</option>
@@ -2996,6 +3023,7 @@
                     <div class="form-group"><label class="form-label">Title *</label><input type="text" class="form-input" id="scene_title" value="${isEditing ? editItem.title || '' : ''}"></div>
                     <div class="form-group"><label class="form-label">Act</label><select class="form-select" id="scene_act"><option value="">Select...</option><option ${isEditing && editItem.act === 'Act 1' ? 'selected' : ''}>Act 1</option><option ${isEditing && editItem.act === 'Act 2' ? 'selected' : ''}>Act 2</option><option ${isEditing && editItem.act === 'Prologue' ? 'selected' : ''}>Prologue</option><option ${isEditing && editItem.act === 'Epilogue' ? 'selected' : ''}>Epilogue</option></select></div>
                     <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="scene_status"><option ${isEditing && editItem.status === 'Not Started' ? 'selected' : ''}>Not Started</option><option ${isEditing && editItem.status === 'In Progress' ? 'selected' : ''}>In Progress</option><option ${isEditing && editItem.status === 'Polished' ? 'selected' : ''}>Polished</option></select></div>
+                    <div class="form-group full-width"><label class="form-label">Setting / Location</label><input type="text" class="form-input" id="scene_setting" value="${isEditing ? editItem.setting || '' : ''}" placeholder="e.g., Town Square, Library, etc."></div>
                     <div class="form-group full-width"><label class="form-label">Cast (Ctrl+Click to select multiple)</label><select multiple class="form-select" id="scene_cast" style="min-height: 120px;">${castOptions}</select></div>
                     <div class="form-group full-width"><label class="form-label">Description</label><textarea class="form-textarea" id="scene_description">${isEditing ? editItem.description || '' : ''}</textarea></div>
                 </div>
@@ -3016,7 +3044,7 @@
             const num = document.getElementById('scene_number').value.trim(), title = document.getElementById('scene_title').value.trim();
             if (!num || !title) return showNotification('Enter scene # and title', 'error');
             const castIds = Array.from(document.getElementById('scene_cast').selectedOptions).map(o => o.value);
-            data.scenes.push({ id: generateId(), productionId: activeProduction, sceneNumber: num, title, act: document.getElementById('scene_act').value, status: document.getElementById('scene_status').value, castIds, description: document.getElementById('scene_description').value, notes: '' });
+            data.scenes.push({ id: generateId(), productionId: activeProduction, sceneNumber: num, title, act: document.getElementById('scene_act').value, status: document.getElementById('scene_status').value, setting: document.getElementById('scene_setting').value, castIds, description: document.getElementById('scene_description').value, notes: '' });
             await saveSheetData('scenes');
             closeModal();
             renderContent();
@@ -3027,7 +3055,7 @@
             if (!num || !title) return showNotification('Enter scene # and title', 'error');
             const castIds = Array.from(document.getElementById('scene_cast').selectedOptions).map(o => o.value);
             const item = data.scenes.find(s => s.id === editing.scene);
-            if (item) { item.sceneNumber = num; item.title = title; item.act = document.getElementById('scene_act').value; item.status = document.getElementById('scene_status').value; item.castIds = castIds; item.description = document.getElementById('scene_description').value; }
+            if (item) { item.sceneNumber = num; item.title = title; item.act = document.getElementById('scene_act').value; item.status = document.getElementById('scene_status').value; item.setting = document.getElementById('scene_setting').value; item.castIds = castIds; item.description = document.getElementById('scene_description').value; }
             editing.scene = null;
             await saveSheetData('scenes');
             closeModal();
@@ -3085,7 +3113,7 @@
                 const maxDisplay = 2;
                 dayRehearsals.slice(0, maxDisplay).forEach(r => {
                     const typeClass = (r.type || '').toLowerCase().replace(/[^a-z]/g, '-');
-                    eventsHtml += `<div class="calendar-event ${typeClass}" onclick="viewRehearsalModal('${r.id}')" title="${r.startTime} - ${r.type || 'Rehearsal'}">${r.startTime || ''} ${r.type || ''}</div>`;
+                    eventsHtml += `<div class="calendar-event ${typeClass}" onclick="viewRehearsalModal('${r.id}')" title="${formatTime12(r.startTime)} - ${r.type || 'Rehearsal'}">${formatTime12(r.startTime)} ${r.type || ''}</div>`;
                 });
                 if (dayRehearsals.length > maxDisplay) {
                     eventsHtml += `<div class="calendar-more" onclick="showDayRehearsals('${dateStr}')">+${dayRehearsals.length - maxDisplay} more</div>`;
@@ -3141,8 +3169,8 @@
                     listHtml += `
                         <div class="calendar-list-item" onclick="viewRehearsalModal('${r.id}')">
                             <div class="calendar-list-time">
-                                ${r.startTime || ''}
-                                <span>${r.endTime || ''}</span>
+                                ${formatTime12(r.startTime)}
+                                <span>${formatTime12(r.endTime)}</span>
                             </div>
                             <div class="calendar-list-content">
                                 <div class="calendar-list-title">${r.type || 'Rehearsal'}</div>
@@ -3195,7 +3223,7 @@
             const listHtml = rehearsals.map(r => `
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--gray-100);">
                     <div>
-                        <div style="font-weight: 600; color: var(--gray-900);">${r.startTime || ''} - ${r.endTime || ''}</div>
+                        <div style="font-weight: 600; color: var(--gray-900);">${formatTime12(r.startTime)} - ${formatTime12(r.endTime)}</div>
                         <div style="font-size: 14px; color: var(--gray-600);">${r.type || 'Rehearsal'} • ${r.location || 'TBD'}</div>
                     </div>
                     <button class="btn btn-sm btn-secondary" onclick="closeModal(); viewRehearsalModal('${r.id}')">View</button>
@@ -3233,7 +3261,7 @@
                         </div>
                         <div>
                             <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">Time</div>
-                            <div style="font-weight: 500; color: var(--gray-900);">${rehearsal.startTime || ''} - ${rehearsal.endTime || ''}</div>
+                            <div style="font-weight: 500; color: var(--gray-900);">${formatTime12(rehearsal.startTime)} - ${formatTime12(rehearsal.endTime)}</div>
                         </div>
                         <div>
                             <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">Type</div>
@@ -3343,6 +3371,7 @@
 
         function openRehearsalModal(id = null, presetDate = null) {
             const scenes = getProductionData('scenes');
+            const people = getProductionData('people');
             const isEditing = id !== null;
             const editItem = isEditing ? data.rehearsals.find(r => r.id === id) : null;
             editing.rehearsal = id;
@@ -3350,6 +3379,8 @@
             const sceneOptions = scenes.map(s => `<option value="${s.id}" ${isEditing && editItem.sceneIds && editItem.sceneIds.includes(s.id) ? 'selected' : ''}>${s.sceneNumber}: ${s.title}</option>`).join('');
             
             const defaultDate = presetDate || (isEditing ? editItem.date : new Date().toISOString().split('T')[0]);
+            const defaultStartTime = isEditing ? editItem.startTime || '' : '19:00';
+            const defaultEndTime = isEditing ? editItem.endTime || '' : '22:00';
 
             const bodyHtml = `
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
@@ -3372,11 +3403,11 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Start Time *</label>
-                        <input type="time" class="form-input" id="reh_startTime" value="${isEditing ? editItem.startTime || '' : ''}">
+                        <select class="form-select" id="reh_startTime">${generateTimeOptions(defaultStartTime)}</select>
                     </div>
                     <div class="form-group">
                         <label class="form-label">End Time</label>
-                        <input type="time" class="form-input" id="reh_endTime" value="${isEditing ? editItem.endTime || '' : ''}">
+                        <select class="form-select" id="reh_endTime">${generateTimeOptions(defaultEndTime)}</select>
                     </div>
                     <div class="form-group full-width">
                         <label class="form-label">Location</label>
@@ -3388,6 +3419,11 @@
                     </div>
                     <div class="form-group full-width">
                         <label class="form-label">Called Cast</label>
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="selectAllCast()">All Cast</button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="selectEnsemble()">Ensemble</button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="clearCastSelection()">Clear</button>
+                        </div>
                         <div class="called-box" id="calledCastBox">Select scenes to see who will be called</div>
                     </div>
                     <div class="form-group full-width">
@@ -3409,6 +3445,33 @@
             
             // Update called cast after modal opens
             setTimeout(updateCalledCastModal, 100);
+        }
+        
+        function selectAllCast() {
+            const sceneSelect = document.getElementById('reh_scenes');
+            const scenes = getProductionData('scenes');
+            // Select all scenes
+            Array.from(sceneSelect.options).forEach(opt => opt.selected = true);
+            updateCalledCastModal();
+        }
+        
+        function selectEnsemble() {
+            const sceneSelect = document.getElementById('reh_scenes');
+            const scenes = getProductionData('scenes');
+            const people = getProductionData('people');
+            // Find scenes that have ensemble cast
+            const ensembleIds = people.filter(p => p.role === 'Cast - Ensemble').map(p => p.id);
+            const ensembleSceneIds = scenes.filter(s => s.castIds && s.castIds.some(id => ensembleIds.includes(id))).map(s => s.id);
+            Array.from(sceneSelect.options).forEach(opt => {
+                opt.selected = ensembleSceneIds.includes(opt.value);
+            });
+            updateCalledCastModal();
+        }
+        
+        function clearCastSelection() {
+            const sceneSelect = document.getElementById('reh_scenes');
+            Array.from(sceneSelect.options).forEach(opt => opt.selected = false);
+            updateCalledCastModal();
         }
 
         function updateCalledCastModal() {
@@ -3495,7 +3558,7 @@
                             <label class="form-label">Select Rehearsal</label>
                             <select class="form-select" id="att_rehearsal" onchange="loadAttendance()">
                                 <option value="">Choose...</option>
-                                ${rehearsals.map(r => `<option value="${r.id}">${formatDate(r.date)} - ${r.startTime} (${r.type || 'Rehearsal'})</option>`).join('')}
+                                ${rehearsals.map(r => `<option value="${r.id}">${formatDate(r.date)} - ${formatTime12(r.startTime)} (${r.type || 'Rehearsal'})</option>`).join('')}
                             </select>
                         </div>
                         <div id="attendanceTable" style="margin-top: 24px;"></div>
@@ -3651,7 +3714,7 @@
                     ${BUDGET_CATEGORIES.map(cat => `
                         <div class="form-group">
                             <label class="form-label">${cat}</label>
-                            <input type="number" class="form-input" id="budget_${cat.toLowerCase()}" value="${plannedByCategory[cat]}" step="0.01" min="0" placeholder="0.00">
+                            <input type="number" class="form-input" id="budget_${cat.toLowerCase()}" value="${plannedByCategory[cat] > 0 ? plannedByCategory[cat] : ''}" step="0.01" min="0" placeholder="0.00">
                         </div>
                     `).join('')}
                 </div>
@@ -4032,7 +4095,7 @@
             const editItem = isEditing ? data.emails.find(e => e.id === id) : null;
             editing.email = id;
 
-            const rehOptions = rehearsals.map(r => `<option value="${r.id}">${formatDate(r.date)} - ${r.startTime}</option>`).join('');
+            const rehOptions = rehearsals.map(r => `<option value="${r.id}">${formatDate(r.date)} - ${formatTime12(r.startTime)}</option>`).join('');
 
             const bodyHtml = `
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
