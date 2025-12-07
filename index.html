@@ -1174,10 +1174,7 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Production</div>
                     <div class="nav-item" data-tab="inventory">
-                        <span class="nav-item-icon">🎪</span> Inventory
-                    </div>
-                    <div class="nav-item" data-tab="budget">
-                        <span class="nav-item-icon">💰</span> Budget
+                        <span class="nav-item-icon">💰</span> Inventory & Budget
                     </div>
                     <div class="nav-item" data-tab="cueSheets">
                         <span class="nav-item-icon">🎚️</span> Cue Sheets
@@ -1474,7 +1471,7 @@
         // ==================== RENDER ====================
         function renderContent() {
             const content = document.getElementById('contentArea');
-            const titles = { dashboard: 'Dashboard', productions: 'Productions', people: 'Cast & Crew', scenes: 'Scenes', rehearsals: 'Rehearsals', inventory: 'Inventory', budget: 'Budget', documents: 'Documents', cueSheets: 'Cue Sheets', emails: 'Emails', contacts: 'Company Roster' };
+            const titles = { dashboard: 'Dashboard', productions: 'Productions', people: 'Cast & Crew', scenes: 'Scenes', rehearsals: 'Rehearsals', inventory: 'Inventory & Budget', documents: 'Documents', cueSheets: 'Cue Sheets', emails: 'Emails', contacts: 'Company Roster' };
             
             // Show production name in title when one is selected
             const prod = data.productions.find(p => p.id === activeProduction);
@@ -1503,7 +1500,6 @@
                 case 'scenes': content.innerHTML = renderScenes(); break;
                 case 'rehearsals': content.innerHTML = renderRehearsals(); break;
                 case 'inventory': content.innerHTML = renderInventory(); break;
-                case 'budget': content.innerHTML = renderBudget(); break;
                 case 'documents': content.innerHTML = renderDocuments(); break;
                 case 'cueSheets': content.innerHTML = renderCueSheets(); break;
                 case 'emails': content.innerHTML = renderEmails(); break;
@@ -2633,29 +2629,108 @@
         async function setAttendance(rehId, personId, status) { const existing = data.attendance.find(a => a.rehearsalId === rehId && a.personId === personId); if (existing) existing.status = status; else data.attendance.push({ id: generateId(), rehearsalId: rehId, personId, status, arrivalTime: '', notes: '' }); await saveSheetData('attendance'); loadAttendance(); }
 
         // ==================== INVENTORY ====================
+        // ==================== INVENTORY & BUDGET (COMBINED) ====================
+        const BUDGET_CATEGORIES = ['Props', 'Costumes', 'Set', 'Furniture', 'Lighting', 'Sound', 'Marketing', 'Royalties', 'Venue', 'Other'];
+        
         function renderInventory() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">🎪</div><div class="empty-state-title">Select a production first</div></div>';
             const inventory = getProductionData('inventory');
-            const stats = { Props: inventory.filter(i => i.category === 'Props').length, Costumes: inventory.filter(i => i.category === 'Costumes').length, Set: inventory.filter(i => i.category === 'Set').length, Ready: inventory.filter(i => i.status === 'Ready').length };
+            const budgetEntries = getProductionData('budget');
+            
+            // Calculate actual spent per category from inventory
+            const actualByCategory = {};
+            BUDGET_CATEGORIES.forEach(cat => actualByCategory[cat] = 0);
+            inventory.forEach(item => {
+                if (actualByCategory.hasOwnProperty(item.category)) {
+                    actualByCategory[item.category] += (item.cost || 0);
+                } else {
+                    actualByCategory['Other'] += (item.cost || 0);
+                }
+            });
+            
+            // Get planned amounts from budget entries
+            const plannedByCategory = {};
+            BUDGET_CATEGORIES.forEach(cat => plannedByCategory[cat] = 0);
+            budgetEntries.forEach(b => {
+                if (plannedByCategory.hasOwnProperty(b.category)) {
+                    plannedByCategory[b.category] = b.plannedAmount || 0;
+                }
+            });
+            
+            // Calculate totals
+            const totalPlanned = Object.values(plannedByCategory).reduce((a, b) => a + b, 0);
+            const totalActual = Object.values(actualByCategory).reduce((a, b) => a + b, 0);
+            const totalVariance = totalPlanned - totalActual;
+            
+            // Stats for inventory items
+            const readyCount = inventory.filter(i => i.status === 'Ready').length;
+            const neededCount = inventory.filter(i => i.status === 'Needed').length;
 
             return `
-                <div class="dashboard-grid" style="margin-bottom: 24px;">
-                    <div class="stat-card"><div class="stat-value">${stats.Props}</div><div class="stat-label">Props</div></div>
-                    <div class="stat-card"><div class="stat-value">${stats.Costumes}</div><div class="stat-label">Costumes</div></div>
-                    <div class="stat-card"><div class="stat-value">${stats.Set}</div><div class="stat-label">Set Pieces</div></div>
-                    <div class="stat-card"><div class="stat-value">${stats.Ready}</div><div class="stat-label">Ready</div></div>
-                </div>
-                <div class="card">
-                    <div class="card-header"><span class="card-title">Inventory (${inventory.length})</span></div>
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <span class="card-title">💰 Budget Summary</span>
+                        <button class="btn btn-sm btn-secondary" onclick="openBudgetPlannerModal()">✏️ Edit Planned Budgets</button>
+                    </div>
                     <div class="card-body no-padding">
-                        ${inventory.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🎪</div><div class="empty-state-title">No items yet</div><p>Click the + button to add items.</p></div>' :
-                            `<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Category</th><th>Status</th><th>Cost</th><th>Actions</th></tr></thead>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr><th>Category</th><th style="text-align:right">Planned</th><th style="text-align:right">Actual</th><th style="text-align:right">Variance</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${BUDGET_CATEGORIES.map(cat => {
+                                        const planned = plannedByCategory[cat];
+                                        const actual = actualByCategory[cat];
+                                        const variance = planned - actual;
+                                        const hasData = planned > 0 || actual > 0;
+                                        if (!hasData) return '';
+                                        return `
+                                        <tr>
+                                            <td>${cat}</td>
+                                            <td style="text-align:right">$${planned.toFixed(2)}</td>
+                                            <td style="text-align:right">$${actual.toFixed(2)}</td>
+                                            <td style="text-align:right; color: ${variance >= 0 ? 'var(--success)' : 'var(--danger)'}; font-weight: 500;">
+                                                ${variance >= 0 ? '+' : ''}$${variance.toFixed(2)}
+                                            </td>
+                                        </tr>`;
+                                    }).join('')}
+                                    ${totalPlanned === 0 && totalActual === 0 ? '<tr><td colspan="4" style="text-align:center; color: var(--gray-500); padding: 20px;">No budget data yet. Add inventory items or set planned budgets.</td></tr>' : ''}
+                                </tbody>
+                                ${(totalPlanned > 0 || totalActual > 0) ? `
+                                <tfoot style="border-top: 2px solid var(--gray-200); font-weight: 600;">
+                                    <tr>
+                                        <td>TOTAL</td>
+                                        <td style="text-align:right">$${totalPlanned.toFixed(2)}</td>
+                                        <td style="text-align:right">$${totalActual.toFixed(2)}</td>
+                                        <td style="text-align:right; color: ${totalVariance >= 0 ? 'var(--success)' : 'var(--danger)'};">
+                                            ${totalVariance >= 0 ? '+' : ''}$${totalVariance.toFixed(2)}
+                                        </td>
+                                    </tr>
+                                </tfoot>` : ''}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid" style="margin-bottom: 24px;">
+                    <div class="stat-card"><div class="stat-value">${inventory.length}</div><div class="stat-label">Total Items</div></div>
+                    <div class="stat-card"><div class="stat-value">${readyCount}</div><div class="stat-label">Ready</div></div>
+                    <div class="stat-card"><div class="stat-value" style="color: ${neededCount > 0 ? 'var(--warning)' : 'var(--success)'}">${neededCount}</div><div class="stat-label">Still Needed</div></div>
+                    <div class="stat-card"><div class="stat-value">$${totalActual.toFixed(0)}</div><div class="stat-label">Total Spent</div></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><span class="card-title">🎪 Inventory Items (${inventory.length})</span></div>
+                    <div class="card-body no-padding">
+                        ${inventory.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🎪</div><div class="empty-state-title">No items yet</div><p>Click the + button to add props, costumes, and other items.</p></div>' :
+                            `<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Category</th><th>Status</th><th style="text-align:right">Cost</th><th>Actions</th></tr></thead>
                             <tbody>${inventory.map(i => `
                                 <tr>
                                     <td><div class="table-name">${i.name || ''}</div><div class="table-meta">${i.description || ''}</div></td>
                                     <td>${i.category || '-'}</td>
                                     <td><span class="${getBadgeClass(i.status)}">${i.status || ''}</span></td>
-                                    <td>$${(i.cost || 0).toFixed(2)}</td>
+                                    <td style="text-align:right">$${(i.cost || 0).toFixed(2)}</td>
                                     <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openInventoryModal('${i.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteInventory('${i.id}')">🗑️</button></div></td>
                                 </tr>
                             `).join('')}</tbody></table></div>`}
@@ -2665,18 +2740,93 @@
             `;
         }
 
+        function openBudgetPlannerModal() {
+            const budgetEntries = getProductionData('budget');
+            const plannedByCategory = {};
+            BUDGET_CATEGORIES.forEach(cat => plannedByCategory[cat] = 0);
+            budgetEntries.forEach(b => {
+                if (plannedByCategory.hasOwnProperty(b.category)) {
+                    plannedByCategory[b.category] = b.plannedAmount || 0;
+                }
+            });
+
+            const bodyHtml = `
+                <p style="margin-bottom: 16px; color: var(--gray-600);">Set your planned budget for each category. Actual amounts are calculated from inventory items.</p>
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    ${BUDGET_CATEGORIES.map(cat => `
+                        <div class="form-group">
+                            <label class="form-label">${cat}</label>
+                            <input type="number" class="form-input" id="budget_${cat.toLowerCase()}" value="${plannedByCategory[cat]}" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            const footerHtml = `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveBudgetPlanner()">💾 Save Budgets</button>
+            `;
+
+            openModal('📊 Set Planned Budgets', bodyHtml, footerHtml);
+        }
+
+        async function saveBudgetPlanner() {
+            // Remove old budget entries for this production
+            data.budget = data.budget.filter(b => b.productionId !== activeProduction);
+            
+            // Add new entries for each category with a planned amount
+            BUDGET_CATEGORIES.forEach(cat => {
+                const input = document.getElementById(`budget_${cat.toLowerCase()}`);
+                const planned = parseFloat(input?.value) || 0;
+                if (planned > 0) {
+                    data.budget.push({
+                        id: generateId(),
+                        productionId: activeProduction,
+                        category: cat,
+                        plannedAmount: planned,
+                        actualAmount: 0,
+                        description: `${cat} Budget`,
+                        date: '',
+                        vendor: '',
+                        notes: ''
+                    });
+                }
+            });
+            
+            await saveSheetData('budget');
+            closeModal();
+            renderContent();
+            showNotification('Budgets saved!', 'success');
+        }
+
         function openInventoryModal(id = null) {
             const isEditing = id !== null;
             const editItem = isEditing ? data.inventory.find(i => i.id === id) : null;
             editing.inventory = id;
 
+            const categoryOptions = BUDGET_CATEGORIES.map(cat => 
+                `<option ${isEditing && editItem.category === cat ? 'selected' : ''}>${cat}</option>`
+            ).join('');
+
             const bodyHtml = `
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
-                    <div class="form-group"><label class="form-label">Category *</label><select class="form-select" id="inv_category"><option ${isEditing && editItem.category === 'Props' ? 'selected' : ''}>Props</option><option ${isEditing && editItem.category === 'Costumes' ? 'selected' : ''}>Costumes</option><option ${isEditing && editItem.category === 'Set' ? 'selected' : ''}>Set</option><option ${isEditing && editItem.category === 'Furniture' ? 'selected' : ''}>Furniture</option><option ${isEditing && editItem.category === 'Other' ? 'selected' : ''}>Other</option></select></div>
-                    <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="inv_status"><option ${isEditing && editItem.status === 'Needed' ? 'selected' : ''}>Needed</option><option ${isEditing && editItem.status === 'Acquired' ? 'selected' : ''}>Acquired</option><option ${isEditing && editItem.status === 'Built' ? 'selected' : ''}>Built</option><option ${isEditing && editItem.status === 'Ready' ? 'selected' : ''}>Ready</option></select></div>
-                    <div class="form-group full-width"><label class="form-label">Name *</label><input type="text" class="form-input" id="inv_name" value="${isEditing ? editItem.name || '' : ''}"></div>
-                    <div class="form-group full-width"><label class="form-label">Description</label><textarea class="form-textarea" id="inv_description">${isEditing ? editItem.description || '' : ''}</textarea></div>
-                    <div class="form-group"><label class="form-label">Cost ($)</label><input type="number" class="form-input" id="inv_cost" value="${isEditing ? editItem.cost || 0 : 0}" step="0.01"></div>
+                    <div class="form-group">
+                        <label class="form-label">Category *</label>
+                        <select class="form-select" id="inv_category">${categoryOptions}</select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="inv_status">
+                            <option ${isEditing && editItem.status === 'Needed' ? 'selected' : ''}>Needed</option>
+                            <option ${isEditing && editItem.status === 'Ordered' ? 'selected' : ''}>Ordered</option>
+                            <option ${isEditing && editItem.status === 'Acquired' ? 'selected' : ''}>Acquired</option>
+                            <option ${isEditing && editItem.status === 'Built' ? 'selected' : ''}>Built</option>
+                            <option ${isEditing && editItem.status === 'Ready' ? 'selected' : ''}>Ready</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width"><label class="form-label">Name *</label><input type="text" class="form-input" id="inv_name" value="${isEditing ? editItem.name || '' : ''}" placeholder="e.g., Harold's Suitcase"></div>
+                    <div class="form-group full-width"><label class="form-label">Description</label><textarea class="form-textarea" id="inv_description" placeholder="Additional details...">${isEditing ? editItem.description || '' : ''}</textarea></div>
+                    <div class="form-group"><label class="form-label">Cost ($)</label><input type="number" class="form-input" id="inv_cost" value="${isEditing ? editItem.cost || 0 : 0}" step="0.01" min="0"></div>
                 </div>
             `;
 
