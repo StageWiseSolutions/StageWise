@@ -387,27 +387,6 @@
             border-top: 1px solid var(--gray-200);
             margin: 4px 0;
         }
-        .top-bar-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .sync-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: var(--gray-500);
-        }
-        .sync-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success);
-        }
-        .sync-dot.syncing { background: var(--warning); animation: pulse 1s infinite; }
-        .sync-dot.error { background: var(--danger); }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
         .content-area {
             padding: 32px;
@@ -860,9 +839,6 @@
         .mobile-nav-scroll-hint {
             display: none;
         }
-        .mobile-menu-btn {
-            display: none;
-        }
 
         /* ==================== MOBILE RESPONSIVE ==================== */
         @media (max-width: 1024px) {
@@ -876,10 +852,7 @@
 
         @media (max-width: 768px) {
             .sidebar {
-                transform: translateX(-100%);
-            }
-            .sidebar.open {
-                transform: translateX(0);
+                display: none;
             }
             .main-content {
                 margin-left: 0;
@@ -887,9 +860,6 @@
             }
             .mobile-nav {
                 display: block;
-            }
-            .mobile-menu-btn {
-                display: flex;
             }
             .content-area {
                 padding: 20px;
@@ -1290,15 +1260,7 @@
         <!-- Main Content -->
         <main class="main-content">
             <header class="top-bar">
-                <button class="btn btn-icon btn-ghost mobile-menu-btn" onclick="toggleSidebar()">☰</button>
                 <div class="page-title" id="pageTitle" style="position: relative;">Dashboard</div>
-                <div class="top-bar-actions">
-                    <div class="sync-status">
-                        <div class="sync-dot" id="syncDot"></div>
-                        <span id="syncText">Synced</span>
-                    </div>
-                    <button class="btn btn-secondary btn-sm" onclick="syncNow()">🔄 Sync</button>
-                </div>
             </header>
 
             <div class="content-area" id="contentArea"></div>
@@ -1523,14 +1485,13 @@
         function showLoading(text) { document.getElementById('loadingText').textContent = text; document.getElementById('loadingOverlay').classList.remove('hidden'); }
         function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
         function showNotification(msg, type = 'success') { const n = document.getElementById('notification'); n.textContent = msg; n.className = 'notification ' + type; setTimeout(() => n.classList.add('hidden'), 3000); }
-        function setSyncStatus(status) { const dot = document.getElementById('syncDot'), text = document.getElementById('syncText'); dot.className = 'sync-dot' + (status === 'syncing' ? ' syncing' : status === 'error' ? ' error' : ''); text.textContent = status === 'syncing' ? 'Syncing...' : status === 'error' ? 'Error' : 'Synced'; }
+        function setSyncStatus(status) { /* Sync status UI removed */ }
         function generateId() { return Math.random().toString(36).substr(2, 9); }
         function getBadgeClass(status) { return 'badge badge-' + (status || '').toLowerCase().replace(/\s+/g, '-'); }
         function getProductionData(collection) { return activeProduction ? data[collection].filter(item => item.productionId === activeProduction) : []; }
         function getCalledCast(sceneIds) { const castIds = new Set(); data.scenes.filter(s => sceneIds.includes(s.id)).forEach(s => (s.castIds || []).forEach(id => castIds.add(id))); return Array.from(castIds); }
         function formatDate(dateStr) { if (!dateStr) return ''; try { return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); } catch { return dateStr; } }
         function isToday(dateStr) { const today = new Date().toISOString().split('T')[0]; return dateStr === today; }
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
         // ==================== MODAL FUNCTIONS ====================
         function openModal(title, bodyHtml, footerHtml) {
