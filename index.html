@@ -305,52 +305,6 @@
         }
         .nav-item-icon { font-size: 18px; width: 24px; text-align: center; }
 
-        .sidebar-footer {
-            padding: 16px;
-            border-top: 1px solid var(--gray-100);
-        }
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--gray-200);
-        }
-        .user-details { flex: 1; min-width: 0; }
-        .user-name {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--gray-800);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .user-email {
-            font-size: 12px;
-            color: var(--gray-500);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .btn-signout {
-            margin-top: 12px;
-            width: 100%;
-            padding: 8px;
-            background: var(--gray-100);
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--gray-600);
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-        .btn-signout:hover { background: var(--gray-200); color: var(--gray-800); }
-
         /* Main Content */
         .main-content {
             flex: 1;
@@ -385,8 +339,8 @@
             font-weight: 500;
         }
         .top-bar {
-            background: white;
-            border-bottom: 1px solid var(--gray-200);
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
             padding: 16px 32px;
             display: flex;
             align-items: center;
@@ -1253,10 +1207,6 @@
         .dark-mode .sidebar-header {
             border-color: var(--border-light);
         }
-        .dark-mode .sidebar-footer {
-            border-color: var(--border-color);
-            background: var(--bg-tertiary);
-        }
         .dark-mode .nav-item:hover {
             background: var(--bg-hover);
         }
@@ -1409,33 +1359,7 @@
             border-color: var(--border-color);
         }
         
-        /* Dark mode toggle button */
-        .theme-toggle {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 8px 12px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: var(--text-secondary);
-            transition: all 0.15s;
-            width: 100%;
-            margin-bottom: 12px;
-        }
-        .theme-toggle:hover {
-            background: var(--bg-hover);
-            border-color: var(--text-light);
-        }
-        .theme-toggle-icon {
-            font-size: 16px;
-        }
-        .theme-toggle-text {
-            flex: 1;
-            text-align: left;
-        }
+        /* Theme toggle icons (shared) */
         .theme-icon-dark {
             display: none;
         }
@@ -1444,9 +1368,6 @@
         }
         .dark-mode .theme-icon-dark {
             display: inline;
-        }
-        .dark-mode .theme-toggle-text::after {
-            content: ' On';
         }
         
         /* Mobile theme toggle */
@@ -1478,6 +1399,45 @@
         }
         .dark-mode .mobile-theme-toggle .theme-icon-dark {
             display: inline;
+        }
+        
+        /* Desktop theme toggle (in top bar) */
+        .desktop-theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .desktop-theme-toggle:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-light);
+        }
+        .desktop-theme-toggle .theme-icon-light,
+        .desktop-theme-toggle .theme-icon-dark {
+            font-size: 18px;
+        }
+        .desktop-theme-toggle .theme-icon-dark {
+            display: none;
+        }
+        .dark-mode .desktop-theme-toggle .theme-icon-light {
+            display: none;
+        }
+        .dark-mode .desktop-theme-toggle .theme-icon-dark {
+            display: inline;
+        }
+        
+        /* Hide desktop toggle on mobile, show on desktop */
+        @media (max-width: 768px) {
+            .desktop-theme-toggle {
+                display: none;
+            }
         }
 
         .hidden { display: none !important; }
@@ -1963,22 +1923,7 @@
                 </div>
             </nav>
 
-            <div class="sidebar-footer">
-                <button class="theme-toggle" onclick="toggleDarkMode()">
-                    <span class="theme-toggle-icon theme-icon-light">☀️</span>
-                    <span class="theme-toggle-icon theme-icon-dark">🌙</span>
-                    <span class="theme-toggle-text">Dark Mode</span>
-                </button>
-                <div class="user-info">
-                    <img id="userAvatar" class="user-avatar" src="" alt="">
-                    <div class="user-details">
-                        <div class="user-name" id="userName"></div>
-                        <div class="user-email" id="userEmail"></div>
-                    </div>
-                </div>
-                <button class="btn-signout" onclick="handleSignOut()">Sign Out</button>
-            </div>
-        </aside>
+            </aside>
 
         <!-- Main Content -->
         <main class="main-content">
@@ -1995,6 +1940,10 @@
             </div>
             <header class="top-bar">
                 <div class="page-title" id="pageTitle" style="position: relative;">Dashboard</div>
+                <button class="desktop-theme-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">
+                    <span class="theme-icon-light">☀️</span>
+                    <span class="theme-icon-dark">🌙</span>
+                </button>
             </header>
 
             <div class="content-area" id="contentArea"></div>
@@ -2128,9 +2077,6 @@
             showLoading('Loading your data...');
             try {
                 const userInfo = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: `Bearer ${accessToken}` } }).then(r => r.json());
-                document.getElementById('userAvatar').src = userInfo.picture || '';
-                document.getElementById('userName').textContent = userInfo.name || '';
-                document.getElementById('userEmail').textContent = userInfo.email || '';
                 await initializeSheets();
                 await loadAllData();
                 document.getElementById('loginScreen').classList.add('hidden');
