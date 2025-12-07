@@ -1151,12 +1151,18 @@
                     </div>
                 </div>
                 <div class="nav-section">
+                    <div class="nav-section-title">Company</div>
+                    <div class="nav-item" data-tab="contacts">
+                        <span class="nav-item-icon">📇</span> Company Roster
+                    </div>
+                </div>
+                <div class="nav-section">
                     <div class="nav-section-title">Manage</div>
                     <div class="nav-item" data-tab="productions">
                         <span class="nav-item-icon">🎭</span> Productions
                     </div>
                     <div class="nav-item" data-tab="people">
-                        <span class="nav-item-icon">👥</span> People
+                        <span class="nav-item-icon">👥</span> Cast & Crew
                     </div>
                     <div class="nav-item" data-tab="scenes">
                         <span class="nav-item-icon">🎬</span> Scenes
@@ -1260,12 +1266,13 @@
         const SHEETS = {
             productions: 'Productions', people: 'People', scenes: 'Scenes', rehearsals: 'Rehearsals',
             attendance: 'Attendance', inventory: 'Inventory', budget: 'Budget',
-            documents: 'Documents', cueSheets: 'CueSheets', emails: 'Emails'
+            documents: 'Documents', cueSheets: 'CueSheets', emails: 'Emails', contacts: 'Contacts'
         };
 
         const HEADERS = {
             productions: ['ID', 'Title', 'Venue', 'StartDate', 'EndDate', 'Synopsis', 'Director', 'MusicDirector', 'Choreographer', 'StageManager', 'Status'],
-            people: ['ID', 'ProductionID', 'FirstName', 'LastName', 'Email', 'Phone', 'EmergencyContact', 'EmergencyPhone', 'Role', 'Character', 'Notes'],
+            people: ['ID', 'ProductionID', 'ContactID', 'Role', 'Character', 'Notes'],
+            contacts: ['ID', 'FirstName', 'LastName', 'Email', 'Phone', 'EmergencyContact', 'EmergencyPhone', 'Notes'],
             scenes: ['ID', 'ProductionID', 'SceneNumber', 'Title', 'Act', 'Description', 'Status', 'CastIDs', 'Notes'],
             rehearsals: ['ID', 'ProductionID', 'Date', 'StartTime', 'EndTime', 'Location', 'Type', 'SceneIDs', 'CalledCastIDs', 'Notes'],
             attendance: ['ID', 'RehearsalID', 'PersonID', 'Status', 'ArrivalTime', 'Notes'],
@@ -1277,7 +1284,7 @@
         };
 
         const HEADER_TO_PROP = {
-            'ID': 'id', 'ProductionID': 'productionId', 'RehearsalID': 'rehearsalId', 'PersonID': 'personId',
+            'ID': 'id', 'ProductionID': 'productionId', 'RehearsalID': 'rehearsalId', 'PersonID': 'personId', 'ContactID': 'contactId',
             'Title': 'title', 'Venue': 'venue', 'StartDate': 'startDate', 'EndDate': 'endDate', 'Synopsis': 'synopsis',
             'Director': 'director', 'MusicDirector': 'musicDirector', 'Choreographer': 'choreographer', 'StageManager': 'stageManager',
             'Status': 'status', 'FirstName': 'firstName', 'LastName': 'lastName', 'Email': 'email', 'Phone': 'phone',
@@ -1294,9 +1301,9 @@
 
         // ==================== STATE ====================
         let tokenClient, gapiInited = false, gisInited = false, accessToken = null;
-        let data = { productions: [], people: [], scenes: [], rehearsals: [], attendance: [], inventory: [], budget: [], documents: [], cueSheets: [], emails: [] };
+        let data = { productions: [], people: [], scenes: [], rehearsals: [], attendance: [], inventory: [], budget: [], documents: [], cueSheets: [], emails: [], contacts: [] };
         let activeProduction = null, activeTab = 'dashboard';
-        let editing = { production: null, person: null, scene: null, rehearsal: null, inventory: null, budget: null, document: null, cueSheet: null, email: null };
+        let editing = { production: null, person: null, scene: null, rehearsal: null, inventory: null, budget: null, document: null, cueSheet: null, email: null, contact: null };
         let calendarDate = new Date(); // Current calendar view month
 
         // ==================== INIT ====================
@@ -1470,13 +1477,13 @@
         // ==================== RENDER ====================
         function renderContent() {
             const content = document.getElementById('contentArea');
-            const titles = { dashboard: 'Dashboard', productions: 'Productions', people: 'People', scenes: 'Scenes', rehearsals: 'Rehearsals', attendance: 'Attendance', inventory: 'Inventory', budget: 'Budget', documents: 'Documents', cueSheets: 'Cue Sheets', emails: 'Emails' };
+            const titles = { dashboard: 'Dashboard', productions: 'Productions', people: 'Cast & Crew', scenes: 'Scenes', rehearsals: 'Rehearsals', attendance: 'Attendance', inventory: 'Inventory', budget: 'Budget', documents: 'Documents', cueSheets: 'Cue Sheets', emails: 'Emails', contacts: 'Company Roster' };
             
             // Show production name in title when one is selected
             const prod = data.productions.find(p => p.id === activeProduction);
-            if (activeTab === 'productions') {
-                document.getElementById('pageTitle').textContent = 'Productions';
-                document.title = 'Productions • StageWise';
+            if (activeTab === 'productions' || activeTab === 'contacts') {
+                document.getElementById('pageTitle').textContent = titles[activeTab];
+                document.title = `${titles[activeTab]} • StageWise`;
             } else if (prod) {
                 document.getElementById('pageTitle').innerHTML = `<span style="color: var(--primary);">${prod.title}</span> <span style="color: var(--gray-400); font-weight: 400;">•</span> <span style="font-weight: 400; color: var(--gray-600);">${titles[activeTab] || 'Dashboard'}</span>`;
                 document.title = `${prod.title} • ${titles[activeTab] || 'Dashboard'} • StageWise`;
@@ -1488,12 +1495,13 @@
                 document.title = `${titles[activeTab] || 'Dashboard'} • StageWise`;
             }
             
-            document.getElementById('productionSelectContainer').style.display = activeTab === 'productions' ? 'none' : 'block';
+            document.getElementById('productionSelectContainer').style.display = (activeTab === 'productions' || activeTab === 'contacts') ? 'none' : 'block';
             updateProductionSelector();
 
             switch(activeTab) {
                 case 'dashboard': content.innerHTML = renderDashboard(); break;
                 case 'productions': content.innerHTML = renderProductions(); break;
+                case 'contacts': content.innerHTML = renderContacts(); break;
                 case 'people': content.innerHTML = renderPeople(); break;
                 case 'scenes': content.innerHTML = renderScenes(); break;
                 case 'rehearsals': content.innerHTML = renderRehearsals(); break;
@@ -1711,12 +1719,14 @@
                         <div class="card-header"><span class="card-title">Called Today</span></div>
                         <div class="card-body no-padding">
                             ${calledPeople.length === 0 ? '<div class="empty-state">No one called today</div>' :
-                                `<ul class="quick-list" style="padding: 0 16px;">${calledPeople.slice(0, 8).map(p => `
+                                `<ul class="quick-list" style="padding: 0 16px;">${calledPeople.slice(0, 8).map(p => {
+                                    const c = getContact(p.contactId);
+                                    return `
                                     <li class="quick-list-item">
-                                        <div class="quick-list-name">${p.firstName} ${p.lastName}</div>
+                                        <div class="quick-list-name">${c.firstName} ${c.lastName}</div>
                                         <div class="quick-list-meta">${p.character || p.role || ''}</div>
                                     </li>
-                                `).join('')}${calledPeople.length > 8 ? `<li class="quick-list-item"><div class="quick-list-meta">+${calledPeople.length - 8} more</div></li>` : ''}</ul>`
+                                `}).join('')}${calledPeople.length > 8 ? `<li class="quick-list-item"><div class="quick-list-meta">+${calledPeople.length - 8} more</div></li>` : ''}</ul>`
                             }
                         </div>
                     </div>
@@ -1843,6 +1853,102 @@
         }
 
         // ==================== PEOPLE ====================
+        // ==================== CONTACTS (COMPANY ROSTER) ====================
+        function renderContacts() {
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Company Roster (${data.contacts.length})</span>
+                    </div>
+                    <div class="card-body no-padding">
+                        ${data.contacts.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">📇</div><div class="empty-state-title">No contacts yet</div><p>Add people to your company roster. They can then be assigned to productions.</p></div>' :
+                            `<div class="table-wrapper"><table>
+                                <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Emergency</th><th>Actions</th></tr></thead>
+                                <tbody>${data.contacts.sort((a, b) => (a.lastName || '').localeCompare(b.lastName || '')).map(c => `
+                                    <tr>
+                                        <td class="table-name">${c.firstName || ''} ${c.lastName || ''}</td>
+                                        <td>${c.email ? `<a href="mailto:${c.email}" style="color:var(--primary)">${c.email}</a>` : '-'}</td>
+                                        <td>${c.phone ? `<a href="tel:${c.phone}" style="color:var(--primary)">${c.phone}</a>` : '-'}</td>
+                                        <td><div class="table-meta">${c.emergencyContact || '-'}</div><div class="table-meta">${c.emergencyPhone || ''}</div></td>
+                                        <td><div class="table-actions">
+                                            <button class="btn btn-ghost btn-icon" onclick="openContactModal('${c.id}')" title="Edit">✏️</button>
+                                            <button class="btn btn-ghost btn-icon" onclick="deleteContact('${c.id}')" title="Delete">🗑️</button>
+                                        </div></td>
+                                    </tr>
+                                `).join('')}</tbody>
+                            </table></div>`
+                        }
+                    </div>
+                </div>
+                <button class="fab" onclick="openContactModal()" title="Add Contact">+</button>
+            `;
+        }
+
+        function openContactModal(id = null) {
+            const isEditing = id !== null;
+            const editItem = isEditing ? data.contacts.find(c => c.id === id) : null;
+            editing.contact = id;
+
+            const bodyHtml = `
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group"><label class="form-label">First Name *</label><input type="text" class="form-input" id="contact_firstName" value="${isEditing ? editItem.firstName || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Last Name *</label><input type="text" class="form-input" id="contact_lastName" value="${isEditing ? editItem.lastName || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="contact_email" value="${isEditing ? editItem.email || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" id="contact_phone" value="${isEditing ? editItem.phone || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Emergency Contact</label><input type="text" class="form-input" id="contact_emergencyContact" value="${isEditing ? editItem.emergencyContact || '' : ''}"></div>
+                    <div class="form-group"><label class="form-label">Emergency Phone</label><input type="tel" class="form-input" id="contact_emergencyPhone" value="${isEditing ? editItem.emergencyPhone || '' : ''}"></div>
+                    <div class="form-group full-width"><label class="form-label">Notes</label><textarea class="form-textarea" id="contact_notes">${isEditing ? editItem.notes || '' : ''}</textarea></div>
+                </div>
+            `;
+
+            const footerHtml = isEditing ? `
+                <button class="btn btn-secondary" onclick="deleteContact('${id}')">🗑️ Delete</button>
+                <button class="btn btn-primary" onclick="saveContactFromModal()">💾 Save Changes</button>
+            ` : `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addContactFromModal()">+ Add Contact</button>
+            `;
+
+            openModal(isEditing ? '✏️ Edit Contact' : '➕ Add Contact', bodyHtml, footerHtml);
+        }
+
+        async function addContactFromModal() {
+            const fn = document.getElementById('contact_firstName').value.trim(), ln = document.getElementById('contact_lastName').value.trim();
+            if (!fn || !ln) return showNotification('Enter first and last name', 'error');
+            data.contacts.push({ id: generateId(), firstName: fn, lastName: ln, email: document.getElementById('contact_email').value, phone: document.getElementById('contact_phone').value, emergencyContact: document.getElementById('contact_emergencyContact').value, emergencyPhone: document.getElementById('contact_emergencyPhone').value, notes: document.getElementById('contact_notes').value });
+            await saveSheetData('contacts');
+            closeModal();
+            renderContent();
+        }
+
+        async function saveContactFromModal() {
+            const fn = document.getElementById('contact_firstName').value.trim(), ln = document.getElementById('contact_lastName').value.trim();
+            if (!fn || !ln) return showNotification('Enter first and last name', 'error');
+            const item = data.contacts.find(c => c.id === editing.contact);
+            if (item) { item.firstName = fn; item.lastName = ln; item.email = document.getElementById('contact_email').value; item.phone = document.getElementById('contact_phone').value; item.emergencyContact = document.getElementById('contact_emergencyContact').value; item.emergencyPhone = document.getElementById('contact_emergencyPhone').value; item.notes = document.getElementById('contact_notes').value; }
+            editing.contact = null;
+            await saveSheetData('contacts');
+            closeModal();
+            renderContent();
+        }
+
+        async function deleteContact(id) {
+            const inUse = data.people.some(p => p.contactId === id);
+            if (inUse) return showNotification('This contact is assigned to a production. Remove them from productions first.', 'error');
+            if (confirm('Delete this contact from your roster?')) {
+                data.contacts = data.contacts.filter(c => c.id !== id);
+                await saveSheetData('contacts');
+                closeModal();
+                renderContent();
+            }
+        }
+
+        // Helper to get contact info for a person
+        function getContact(contactId) {
+            return data.contacts.find(c => c.id === contactId) || { firstName: 'Unknown', lastName: '', email: '', phone: '' };
+        }
+
+        // ==================== PEOPLE (PRODUCTION CAST & CREW) ====================
         function renderPeople() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">Select a production first</div></div>';
             const people = getProductionData('people');
@@ -1851,79 +1957,111 @@
                 <div class="card">
                     <div class="card-header"><span class="card-title">Cast & Crew (${people.length})</span></div>
                     <div class="card-body no-padding">
-                        ${people.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">No people yet</div><p>Click the + button to add cast & crew.</p></div>' :
+                        ${people.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">No one assigned yet</div><p>Click + to add people from your company roster.</p></div>' :
                             `<div class="table-wrapper"><table>
                                 <thead><tr><th>Name</th><th>Role</th><th>Character</th><th>Contact</th><th>Actions</th></tr></thead>
-                                <tbody>${people.map(p => `
+                                <tbody>${people.map(p => {
+                                    const c = getContact(p.contactId);
+                                    return `
                                     <tr>
-                                        <td class="table-name">${p.firstName || ''} ${p.lastName || ''}</td>
+                                        <td class="table-name">${c.firstName} ${c.lastName}</td>
                                         <td>${p.role || '-'}</td>
                                         <td>${p.character || '-'}</td>
-                                        <td><div class="table-meta">${p.email ? `<a href="mailto:${p.email}" style="color:var(--primary)">${p.email}</a>` : ''}</div><div class="table-meta">${p.phone ? `<a href="tel:${p.phone}" style="color:var(--primary)">${p.phone}</a>` : ''}</div></td>
+                                        <td><div class="table-meta">${c.email ? `<a href="mailto:${c.email}" style="color:var(--primary)">${c.email}</a>` : ''}</div><div class="table-meta">${c.phone ? `<a href="tel:${c.phone}" style="color:var(--primary)">${c.phone}</a>` : ''}</div></td>
                                         <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openPersonModal('${p.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deletePerson('${p.id}')">🗑️</button></div></td>
                                     </tr>
-                                `).join('')}</tbody>
+                                `}).join('')}</tbody>
                             </table></div>`
                         }
                     </div>
                 </div>
-                <button class="fab" onclick="openPersonModal()" title="Add Person">+</button>
+                ${data.contacts.length === 0 ? `<div class="card" style="margin-top: 16px; border-color: var(--warning);"><div class="card-body" style="text-align: center;"><p>📇 Add people to your <strong>Company Roster</strong> first, then assign them to this production.</p><button class="btn btn-primary" onclick="activeTab='contacts'; renderContent();">Go to Company Roster</button></div></div>` : ''}
+                <button class="fab" onclick="openPersonModal()" title="Add to Production">+</button>
             `;
         }
 
         function openPersonModal(id = null) {
+            if (data.contacts.length === 0) {
+                showNotification('Add contacts to your Company Roster first', 'error');
+                return;
+            }
+            
             const isEditing = id !== null;
             const editItem = isEditing ? data.people.find(p => p.id === id) : null;
             editing.person = id;
+            
+            // Get contacts not already in this production (or the current one being edited)
+            const assignedContactIds = data.people.filter(p => p.productionId === activeProduction && p.id !== id).map(p => p.contactId);
+            const availableContacts = data.contacts.filter(c => !assignedContactIds.includes(c.id));
+            
+            const contactOptions = (isEditing ? data.contacts : availableContacts).sort((a, b) => (a.lastName || '').localeCompare(b.lastName || '')).map(c => 
+                `<option value="${c.id}" ${isEditing && editItem.contactId === c.id ? 'selected' : ''}>${c.firstName} ${c.lastName}${c.email ? ' (' + c.email + ')' : ''}</option>`
+            ).join('');
 
             const bodyHtml = `
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
-                    <div class="form-group"><label class="form-label">First Name *</label><input type="text" class="form-input" id="person_firstName" value="${isEditing ? editItem.firstName || '' : ''}"></div>
-                    <div class="form-group"><label class="form-label">Last Name *</label><input type="text" class="form-input" id="person_lastName" value="${isEditing ? editItem.lastName || '' : ''}"></div>
-                    <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="person_email" value="${isEditing ? editItem.email || '' : ''}"></div>
-                    <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" id="person_phone" value="${isEditing ? editItem.phone || '' : ''}"></div>
-                    <div class="form-group"><label class="form-label">Role</label>
+                    <div class="form-group full-width">
+                        <label class="form-label">Person from Roster *</label>
+                        <select class="form-select" id="person_contactId" ${isEditing ? 'disabled' : ''}>
+                            <option value="">Select a person...</option>
+                            ${contactOptions}
+                        </select>
+                        ${isEditing ? '<div style="font-size: 12px; color: var(--gray-500); margin-top: 4px;">To change the person, remove this entry and add a new one.</div>' : ''}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Role in Production *</label>
                         <select class="form-select" id="person_role">
-                            <option value="">Select...</option>
+                            <option value="">Select role...</option>
                             <option ${isEditing && editItem.role === 'Cast - Principal' ? 'selected' : ''}>Cast - Principal</option>
                             <option ${isEditing && editItem.role === 'Cast - Supporting' ? 'selected' : ''}>Cast - Supporting</option>
                             <option ${isEditing && editItem.role === 'Cast - Ensemble' ? 'selected' : ''}>Cast - Ensemble</option>
                             <option ${isEditing && editItem.role === 'Director' ? 'selected' : ''}>Director</option>
+                            <option ${isEditing && editItem.role === 'Music Director' ? 'selected' : ''}>Music Director</option>
+                            <option ${isEditing && editItem.role === 'Choreographer' ? 'selected' : ''}>Choreographer</option>
                             <option ${isEditing && editItem.role === 'Stage Manager' ? 'selected' : ''}>Stage Manager</option>
+                            <option ${isEditing && editItem.role === 'Assistant Stage Manager' ? 'selected' : ''}>Assistant Stage Manager</option>
                             <option ${isEditing && editItem.role === 'Crew' ? 'selected' : ''}>Crew</option>
+                            <option ${isEditing && editItem.role === 'Musician' ? 'selected' : ''}>Musician</option>
                         </select>
                     </div>
-                    <div class="form-group"><label class="form-label">Character</label><input type="text" class="form-input" id="person_character" value="${isEditing ? editItem.character || '' : ''}"></div>
-                    <div class="form-group"><label class="form-label">Emergency Contact</label><input type="text" class="form-input" id="person_emergencyContact" value="${isEditing ? editItem.emergencyContact || '' : ''}"></div>
-                    <div class="form-group"><label class="form-label">Emergency Phone</label><input type="tel" class="form-input" id="person_emergencyPhone" value="${isEditing ? editItem.emergencyPhone || '' : ''}"></div>
+                    <div class="form-group">
+                        <label class="form-label">Character Name</label>
+                        <input type="text" class="form-input" id="person_character" value="${isEditing ? editItem.character || '' : ''}" placeholder="e.g., Harold Hill">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-textarea" id="person_notes" placeholder="Any production-specific notes...">${isEditing ? editItem.notes || '' : ''}</textarea>
+                    </div>
                 </div>
             `;
 
             const footerHtml = isEditing ? `
-                <button class="btn btn-secondary" onclick="deletePerson('${id}')">🗑️ Delete</button>
+                <button class="btn btn-secondary" onclick="deletePerson('${id}')">🗑️ Remove</button>
                 <button class="btn btn-primary" onclick="savePersonFromModal()">💾 Save Changes</button>
             ` : `
                 <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="addPersonFromModal()">+ Add Person</button>
+                <button class="btn btn-primary" onclick="addPersonFromModal()">+ Add to Production</button>
             `;
 
-            openModal(isEditing ? '✏️ Edit Person' : '➕ Add Person', bodyHtml, footerHtml);
+            openModal(isEditing ? '✏️ Edit Assignment' : '➕ Add to Production', bodyHtml, footerHtml);
         }
 
         async function addPersonFromModal() {
-            const fn = document.getElementById('person_firstName').value.trim(), ln = document.getElementById('person_lastName').value.trim();
-            if (!fn || !ln) return showNotification('Enter first and last name', 'error');
-            data.people.push({ id: generateId(), productionId: activeProduction, firstName: fn, lastName: ln, email: document.getElementById('person_email').value, phone: document.getElementById('person_phone').value, emergencyContact: document.getElementById('person_emergencyContact').value, emergencyPhone: document.getElementById('person_emergencyPhone').value, role: document.getElementById('person_role').value, character: document.getElementById('person_character').value, notes: '' });
+            const contactId = document.getElementById('person_contactId').value;
+            const role = document.getElementById('person_role').value;
+            if (!contactId) return showNotification('Select a person from the roster', 'error');
+            if (!role) return showNotification('Select a role', 'error');
+            data.people.push({ id: generateId(), productionId: activeProduction, contactId, role, character: document.getElementById('person_character').value, notes: document.getElementById('person_notes').value });
             await saveSheetData('people');
             closeModal();
             renderContent();
         }
 
         async function savePersonFromModal() {
-            const fn = document.getElementById('person_firstName').value.trim(), ln = document.getElementById('person_lastName').value.trim();
-            if (!fn || !ln) return showNotification('Enter first and last name', 'error');
+            const role = document.getElementById('person_role').value;
+            if (!role) return showNotification('Select a role', 'error');
             const item = data.people.find(p => p.id === editing.person);
-            if (item) { item.firstName = fn; item.lastName = ln; item.email = document.getElementById('person_email').value; item.phone = document.getElementById('person_phone').value; item.emergencyContact = document.getElementById('person_emergencyContact').value; item.emergencyPhone = document.getElementById('person_emergencyPhone').value; item.role = document.getElementById('person_role').value; item.character = document.getElementById('person_character').value; }
+            if (item) { item.role = role; item.character = document.getElementById('person_character').value; item.notes = document.getElementById('person_notes').value; }
             editing.person = null;
             await saveSheetData('people');
             closeModal();
@@ -1933,7 +2071,7 @@
         async function addPerson() { await addPersonFromModal(); }
         function editPerson(id) { openPersonModal(id); }
         async function savePerson() { await savePersonFromModal(); }
-        async function deletePerson(id) { if (confirm('Delete this person?')) { data.people = data.people.filter(p => p.id !== id); await saveSheetData('people'); closeModal(); renderContent(); } }
+        async function deletePerson(id) { if (confirm('Remove this person from the production?')) { data.people = data.people.filter(p => p.id !== id); await saveSheetData('people'); closeModal(); renderContent(); } }
 
         // ==================== SCENES ====================
         function renderScenes() {
@@ -1949,7 +2087,7 @@
                             <tbody>${scenes.sort((a, b) => (a.sceneNumber || '').localeCompare(b.sceneNumber || '')).map(s => `
                                 <tr>
                                     <td class="table-name">${s.sceneNumber || ''}</td><td>${s.title || ''}</td><td>${s.act || '-'}</td>
-                                    <td class="table-meta">${(s.castIds || []).map(cid => { const p = people.find(x => x.id === cid); return p ? p.firstName : ''; }).filter(Boolean).join(', ') || '-'}</td>
+                                    <td class="table-meta">${(s.castIds || []).map(cid => { const p = people.find(x => x.id === cid); if (!p) return ''; const c = getContact(p.contactId); return c.firstName; }).filter(Boolean).join(', ') || '-'}</td>
                                     <td><span class="${getBadgeClass(s.status)}">${s.status || ''}</span></td>
                                     <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openSceneModal('${s.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteScene('${s.id}')">🗑️</button></div></td>
                                 </tr>
@@ -1966,7 +2104,7 @@
             const editItem = isEditing ? data.scenes.find(s => s.id === id) : null;
             editing.scene = id;
 
-            const castOptions = people.map(c => `<option value="${c.id}" ${isEditing && editItem.castIds && editItem.castIds.includes(c.id) ? 'selected' : ''}>${c.firstName} ${c.lastName} ${c.character ? '(' + c.character + ')' : ''}</option>`).join('');
+            const castOptions = people.map(p => { const c = getContact(p.contactId); return `<option value="${p.id}" ${isEditing && editItem.castIds && editItem.castIds.includes(p.id) ? 'selected' : ''}>${c.firstName} ${c.lastName} ${p.character ? '(' + p.character + ')' : ''}</option>`; }).join('');
 
             const bodyHtml = `
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
@@ -2203,13 +2341,14 @@
             } else {
                 attendanceHtml += `<div style="max-height: 300px; overflow-y: auto;">`;
                 calledPeople.forEach(person => {
+                    const contact = getContact(person.contactId);
                     const record = attendanceRecords.find(a => a.personId === person.id);
                     const currentStatus = record ? record.status : '';
                     
                     attendanceHtml += `
                         <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--gray-100);" id="attendance-row-${person.id}">
                             <div>
-                                <div style="font-weight: 500; color: var(--gray-900);">${person.firstName} ${person.lastName}</div>
+                                <div style="font-weight: 500; color: var(--gray-900);">${contact.firstName} ${contact.lastName}</div>
                                 <div style="font-size: 12px; color: var(--gray-500);">${person.character || person.role || ''}</div>
                             </div>
                             <div style="display: flex; gap: 6px;">
@@ -2342,7 +2481,7 @@
             const people = getProductionData('people');
             const called = people.filter(p => castIds.includes(p.id));
             const box = document.getElementById('calledCastBox');
-            if (box) box.textContent = called.length > 0 ? called.map(c => `${c.firstName} ${c.lastName}`).join(', ') : 'Select scenes to see who will be called';
+            if (box) box.textContent = called.length > 0 ? called.map(p => { const c = getContact(p.contactId); return `${c.firstName} ${c.lastName}`; }).join(', ') : 'Select scenes to see who will be called';
         }
 
         async function addRehearsalFromModal() {
@@ -2433,8 +2572,8 @@
             const rehearsal = data.rehearsals.find(r => r.id === rehId), people = getProductionData('people'), called = people.filter(p => (rehearsal.calledCastIds || []).includes(p.id));
             if (called.length === 0) { container.innerHTML = '<p style="color:var(--gray-500)">No one called for this rehearsal.</p>'; return; }
             container.innerHTML = `<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Character</th><th>Status</th><th>Mark</th></tr></thead>
-                <tbody>${called.map(p => { const rec = data.attendance.find(a => a.rehearsalId === rehId && a.personId === p.id), status = rec ? rec.status : 'Pending'; return `
-                    <tr><td class="table-name">${p.firstName} ${p.lastName}</td><td>${p.character || '-'}</td>
+                <tbody>${called.map(p => { const c = getContact(p.contactId); const rec = data.attendance.find(a => a.rehearsalId === rehId && a.personId === p.id), status = rec ? rec.status : 'Pending'; return `
+                    <tr><td class="table-name">${c.firstName} ${c.lastName}</td><td>${p.character || '-'}</td>
                     <td><span class="${getBadgeClass(status)}">${status}</span></td>
                     <td><div class="table-actions">
                         <button class="btn btn-sm ${status === 'Present' ? 'btn-success' : 'btn-secondary'}" onclick="setAttendance('${rehId}','${p.id}','Present')">✓</button>
@@ -2832,13 +2971,15 @@
             const rehGroup = document.getElementById('rehearsalSelectGroup');
             if (rehGroup) rehGroup.style.display = type === 'rehearsal' ? 'block' : 'none';
             const people = getProductionData('people');
-            let recipients = [];
-            if (type === 'all') recipients = people.filter(p => p.email);
-            else if (type === 'cast') recipients = people.filter(p => p.email && p.role && p.role.includes('Cast'));
-            else if (type === 'crew') recipients = people.filter(p => p.email && (!p.role || !p.role.includes('Cast')));
-            else if (type === 'rehearsal') { const rehId = document.getElementById('email_rehearsal')?.value; if (rehId) { const reh = data.rehearsals.find(r => r.id === rehId); if (reh) recipients = people.filter(p => p.email && (reh.calledCastIds || []).includes(p.id)); } }
+            let recipientPeople = [];
+            if (type === 'all') recipientPeople = people;
+            else if (type === 'cast') recipientPeople = people.filter(p => p.role && p.role.includes('Cast'));
+            else if (type === 'crew') recipientPeople = people.filter(p => !p.role || !p.role.includes('Cast'));
+            else if (type === 'rehearsal') { const rehId = document.getElementById('email_rehearsal')?.value; if (rehId) { const reh = data.rehearsals.find(r => r.id === rehId); if (reh) recipientPeople = people.filter(p => (reh.calledCastIds || []).includes(p.id)); } }
+            // Get emails from contacts
+            const emails = recipientPeople.map(p => { const c = getContact(p.contactId); return c.email; }).filter(Boolean);
             const box = document.getElementById('emailAddressBox');
-            if (box) box.textContent = recipients.map(p => p.email).join(', ') || 'No emails found';
+            if (box) box.textContent = emails.length > 0 ? emails.join(', ') : 'No emails found';
         }
 
         function copyEmailAddresses() { navigator.clipboard.writeText(document.getElementById('emailAddressBox').textContent); showNotification('Copied!'); }
