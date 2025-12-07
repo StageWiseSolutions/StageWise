@@ -27,6 +27,50 @@
             --gray-800: #1F2937;
             --gray-900: #111827;
             --sidebar-width: 240px;
+            
+            /* Semantic colors for theming */
+            --bg-primary: #F9FAFB;
+            --bg-secondary: #FFFFFF;
+            --bg-tertiary: #F3F4F6;
+            --bg-hover: #F3F4F6;
+            --border-color: #E5E7EB;
+            --border-light: #F3F4F6;
+            --text-primary: #111827;
+            --text-secondary: #4B5563;
+            --text-muted: #6B7280;
+            --text-light: #9CA3AF;
+            --card-bg: #FFFFFF;
+            --input-bg: #FFFFFF;
+            --modal-bg: #FFFFFF;
+        }
+        
+        /* Dark Mode */
+        .dark-mode {
+            --bg-primary: #111827;
+            --bg-secondary: #1F2937;
+            --bg-tertiary: #374151;
+            --bg-hover: #374151;
+            --border-color: #374151;
+            --border-light: #1F2937;
+            --text-primary: #F9FAFB;
+            --text-secondary: #D1D5DB;
+            --text-muted: #9CA3AF;
+            --text-light: #6B7280;
+            --card-bg: #1F2937;
+            --input-bg: #374151;
+            --modal-bg: #1F2937;
+            
+            /* Adjusted grays for dark mode */
+            --gray-50: #1F2937;
+            --gray-100: #374151;
+            --gray-200: #4B5563;
+            --gray-300: #6B7280;
+            --gray-400: #9CA3AF;
+            --gray-500: #D1D5DB;
+            --gray-600: #E5E7EB;
+            --gray-700: #F3F4F6;
+            --gray-800: #F9FAFB;
+            --gray-900: #FFFFFF;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -37,12 +81,14 @@
         
         body { 
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--gray-50);
-            color: var(--gray-800);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             line-height: 1.5;
             overflow-x: hidden;
             width: 100%;
             max-width: 100vw;
+            transition: background-color 0.3s, color 0.3s;
+        }
         }
 
         /* ==================== LOGIN SCREEN ==================== */
@@ -55,7 +101,7 @@
             padding: 20px;
         }
         .login-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 16px;
             padding: 48px;
             text-align: center;
@@ -77,11 +123,11 @@
         .login-title {
             font-size: 24px;
             font-weight: 700;
-            color: var(--gray-900);
+            color: var(--text-primary);
             margin-bottom: 8px;
         }
         .login-subtitle {
-            color: var(--gray-500);
+            color: var(--text-muted);
             margin-bottom: 32px;
         }
         .login-btn {
@@ -161,8 +207,8 @@
         /* Sidebar */
         .sidebar {
             width: var(--sidebar-width);
-            background: white;
-            border-right: 1px solid var(--gray-200);
+            background: var(--card-bg);
+            border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             position: fixed;
@@ -170,11 +216,11 @@
             left: 0;
             bottom: 0;
             z-index: 100;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, background-color 0.3s;
         }
         .sidebar-header {
             padding: 20px;
-            border-bottom: 1px solid var(--gray-100);
+            border-bottom: 1px solid var(--border-light);
         }
         .sidebar-logo {
             display: flex;
@@ -182,7 +228,7 @@
             gap: 12px;
             font-weight: 700;
             font-size: 18px;
-            color: var(--gray-900);
+            color: var(--text-primary);
         }
         .sidebar-logo-icon {
             width: 36px;
@@ -1166,6 +1212,244 @@
             }
         }
 
+        /* ==================== DARK MODE OVERRIDES ==================== */
+        .dark-mode .sidebar {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        .dark-mode .sidebar-header {
+            border-color: var(--border-light);
+        }
+        .dark-mode .sidebar-footer {
+            border-color: var(--border-color);
+            background: var(--bg-tertiary);
+        }
+        .dark-mode .nav-item:hover {
+            background: var(--bg-hover);
+        }
+        .dark-mode .nav-item.active {
+            background: rgba(79, 70, 229, 0.2);
+        }
+        .dark-mode .top-bar {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        .dark-mode .card {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        .dark-mode .card-header {
+            border-color: var(--border-light);
+        }
+        .dark-mode .stat-card {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        .dark-mode .modal {
+            background: var(--modal-bg);
+        }
+        .dark-mode .modal-header {
+            border-color: var(--border-light);
+        }
+        .dark-mode .modal-footer {
+            border-color: var(--border-light);
+            background: var(--bg-tertiary);
+        }
+        .dark-mode input,
+        .dark-mode select,
+        .dark-mode textarea {
+            background: var(--input-bg);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        .dark-mode input:focus,
+        .dark-mode select:focus,
+        .dark-mode textarea:focus {
+            border-color: var(--primary);
+            background: var(--input-bg);
+        }
+        .dark-mode input::placeholder,
+        .dark-mode textarea::placeholder {
+            color: var(--text-light);
+        }
+        .dark-mode th {
+            background: var(--bg-tertiary);
+            border-color: var(--border-color);
+            color: var(--text-muted);
+        }
+        .dark-mode td {
+            border-color: var(--border-light);
+        }
+        .dark-mode tr:hover {
+            background: var(--bg-hover);
+        }
+        .dark-mode .btn-secondary {
+            background: var(--bg-tertiary);
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+        .dark-mode .btn-secondary:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-light);
+        }
+        .dark-mode .btn-ghost:hover {
+            background: var(--bg-hover);
+        }
+        .dark-mode .mobile-nav {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        .dark-mode .mobile-nav-item.active {
+            background: rgba(79, 70, 229, 0.2);
+        }
+        .dark-mode .calendar-grid {
+            background: var(--border-color);
+            border-color: var(--border-color);
+        }
+        .dark-mode .calendar-day {
+            background: var(--card-bg);
+        }
+        .dark-mode .calendar-day.other-month {
+            background: var(--bg-tertiary);
+        }
+        .dark-mode .calendar-day.today {
+            background: rgba(79, 70, 229, 0.15);
+        }
+        .dark-mode .calendar-day-header {
+            background: var(--bg-tertiary);
+        }
+        .dark-mode .calendar-nav-btn {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+        .dark-mode .calendar-nav-btn:hover {
+            background: var(--bg-hover);
+        }
+        .dark-mode .calendar-today-btn {
+            background: var(--bg-tertiary);
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+        .dark-mode .calendar-list-date {
+            background: var(--bg-tertiary);
+            border-color: var(--border-color);
+        }
+        .dark-mode .calendar-list-item {
+            border-color: var(--border-light);
+        }
+        .dark-mode .calendar-list-item:active {
+            background: var(--bg-hover);
+        }
+        .dark-mode .empty-state {
+            color: var(--text-muted);
+        }
+        .dark-mode .production-menu {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        .dark-mode .production-menu-item:hover {
+            background: var(--bg-hover);
+        }
+        .dark-mode .production-menu-item.active {
+            background: rgba(79, 70, 229, 0.15);
+        }
+        .dark-mode .fab {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .dark-mode .loading-overlay {
+            background: rgba(17, 24, 39, 0.95);
+        }
+        .dark-mode .login-card {
+            background: var(--card-bg);
+        }
+        .dark-mode .called-box,
+        .dark-mode .email-box {
+            background: var(--bg-tertiary);
+            border-color: var(--border-color);
+        }
+        .dark-mode .mobile-card-item {
+            background: var(--bg-tertiary);
+            border-color: var(--border-color);
+        }
+        .dark-mode .mobile-card-item-detail {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        .dark-mode .mobile-card-item-actions {
+            border-color: var(--border-color);
+        }
+        
+        /* Dark mode toggle button */
+        .theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            transition: all 0.15s;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+        .theme-toggle:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-light);
+        }
+        .theme-toggle-icon {
+            font-size: 16px;
+        }
+        .theme-toggle-text {
+            flex: 1;
+            text-align: left;
+        }
+        .theme-icon-dark {
+            display: none;
+        }
+        .dark-mode .theme-icon-light {
+            display: none;
+        }
+        .dark-mode .theme-icon-dark {
+            display: inline;
+        }
+        .dark-mode .theme-toggle-text::after {
+            content: ' On';
+        }
+        
+        /* Mobile theme toggle */
+        .mobile-theme-toggle {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .mobile-theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .mobile-theme-toggle .theme-icon-light,
+        .mobile-theme-toggle .theme-icon-dark {
+            font-size: 18px;
+        }
+        .mobile-theme-toggle .theme-icon-dark {
+            display: none;
+        }
+        .dark-mode .mobile-theme-toggle .theme-icon-light {
+            display: none;
+        }
+        .dark-mode .mobile-theme-toggle .theme-icon-dark {
+            display: inline;
+        }
+
         .hidden { display: none !important; }
 
         /* ==================== MODAL ==================== */
@@ -1648,6 +1932,11 @@
             </nav>
 
             <div class="sidebar-footer">
+                <button class="theme-toggle" onclick="toggleDarkMode()">
+                    <span class="theme-toggle-icon theme-icon-light">☀️</span>
+                    <span class="theme-toggle-icon theme-icon-dark">🌙</span>
+                    <span class="theme-toggle-text">Dark Mode</span>
+                </button>
                 <div class="user-info">
                     <img id="userAvatar" class="user-avatar" src="" alt="">
                     <div class="user-details">
@@ -1667,6 +1956,10 @@
                     <div class="mobile-header-title">StageWise</div>
                     <div class="mobile-header-subtitle">Theater Production Manager</div>
                 </div>
+                <button class="mobile-theme-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">
+                    <span class="theme-icon-light">☀️</span>
+                    <span class="theme-icon-dark">🌙</span>
+                </button>
             </div>
             <header class="top-bar">
                 <div class="page-title" id="pageTitle" style="position: relative;">Dashboard</div>
@@ -1901,6 +2194,27 @@
         function getCalledCast(sceneIds) { const castIds = new Set(); data.scenes.filter(s => sceneIds.includes(s.id)).forEach(s => (s.castIds || []).forEach(id => castIds.add(id))); return Array.from(castIds); }
         function formatDate(dateStr) { if (!dateStr) return ''; try { return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); } catch { return dateStr; } }
         function isToday(dateStr) { const today = new Date().toISOString().split('T')[0]; return dateStr === today; }
+
+        // ==================== DARK MODE ====================
+        function toggleDarkMode() {
+            const isDark = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+        }
+        
+        function initDarkMode() {
+            const savedMode = localStorage.getItem('darkMode');
+            if (savedMode === 'true') {
+                document.body.classList.add('dark-mode');
+            } else if (savedMode === null) {
+                // Check system preference if no saved preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.body.classList.add('dark-mode');
+                }
+            }
+        }
+        
+        // Initialize dark mode on page load
+        initDarkMode();
 
         // ==================== MODAL FUNCTIONS ====================
         function openModal(title, bodyHtml, footerHtml) {
