@@ -320,6 +320,72 @@
             font-size: 20px;
             font-weight: 700;
             color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .production-dropdown {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 8px;
+            transition: background 0.15s;
+            color: var(--primary);
+        }
+        .production-dropdown:hover {
+            background: var(--gray-100);
+        }
+        .production-dropdown-arrow {
+            font-size: 10px;
+            color: var(--gray-400);
+        }
+        .production-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 4px;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            min-width: 280px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        .production-menu-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.15s;
+        }
+        .production-menu-item:hover {
+            background: var(--gray-50);
+        }
+        .production-menu-item.active {
+            background: var(--primary-light);
+        }
+        .production-menu-item:first-child {
+            border-radius: 12px 12px 0 0;
+        }
+        .production-menu-item:last-child {
+            border-radius: 0 0 12px 12px;
+        }
+        .production-menu-item-name {
+            font-weight: 500;
+            color: var(--gray-900);
+        }
+        .production-menu-item-meta {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+        .production-menu-divider {
+            border-top: 1px solid var(--gray-200);
+            margin: 4px 0;
         }
         .top-bar-actions {
             display: flex;
@@ -1136,12 +1202,6 @@
                     <div class="sidebar-logo-icon">🎭</div>
                     <span>StageWise</span>
                 </div>
-                <div class="production-select" id="productionSelectContainer">
-                    <label>Production</label>
-                    <select id="activeProductionSelect" onchange="setActiveProduction(this.value)">
-                        <option value="">Select production...</option>
-                    </select>
-                </div>
             </div>
 
             <nav class="sidebar-nav">
@@ -1207,7 +1267,7 @@
         <main class="main-content">
             <header class="top-bar">
                 <button class="btn btn-icon btn-ghost mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-                <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                <div class="page-title" id="pageTitle" style="position: relative;">Dashboard</div>
                 <div class="top-bar-actions">
                     <div class="sync-status">
                         <div class="sync-dot" id="syncDot"></div>
@@ -1459,13 +1519,27 @@
             });
         });
 
-        function setActiveProduction(id) { activeProduction = id || null; if (activeProduction) localStorage.setItem('activeProduction', activeProduction); else localStorage.removeItem('activeProduction'); Object.keys(editing).forEach(key => editing[key] = null); renderContent(); }
-        function updateProductionSelector() {
-            const select = document.getElementById('activeProductionSelect');
-            if (!select) return;
-            if (!activeProduction && localStorage.getItem('activeProduction')) { const saved = localStorage.getItem('activeProduction'); if (data.productions.find(p => p.id === saved)) activeProduction = saved; }
-            select.innerHTML = '<option value="">📊 All Productions</option>' + data.productions.map(p => `<option value="${p.id}" ${p.id === activeProduction ? 'selected' : ''}>${p.title || 'Untitled'}</option>`).join('');
+        function setActiveProduction(id) { activeProduction = id || null; if (activeProduction) localStorage.setItem('activeProduction', activeProduction); else localStorage.removeItem('activeProduction'); Object.keys(editing).forEach(key => editing[key] = null); closeProductionMenu(); renderContent(); }
+        
+        let productionMenuOpen = false;
+        function toggleProductionMenu() {
+            productionMenuOpen = !productionMenuOpen;
+            renderContent();
         }
+        function closeProductionMenu() {
+            if (productionMenuOpen) {
+                productionMenuOpen = false;
+                renderContent();
+            }
+        }
+        
+        // Close production menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (productionMenuOpen && !e.target.closest('.production-dropdown') && !e.target.closest('.production-menu')) {
+                closeProductionMenu();
+            }
+        });
+        
         function cancelEdit(type) { editing[type] = null; renderContent(); }
 
         // ==================== RENDER ====================
@@ -1473,24 +1547,57 @@
             const content = document.getElementById('contentArea');
             const titles = { dashboard: 'Dashboard', productions: 'Productions', people: 'Cast & Crew', scenes: 'Scenes', rehearsals: 'Rehearsals', inventory: 'Inventory & Budget', documents: 'Documents', cueSheets: 'Cue Sheets', emails: 'Emails', contacts: 'Company Roster' };
             
-            // Show production name in title when one is selected
-            const prod = data.productions.find(p => p.id === activeProduction);
-            if (activeTab === 'productions' || activeTab === 'contacts') {
-                document.getElementById('pageTitle').textContent = titles[activeTab];
-                document.title = `${titles[activeTab]} • StageWise`;
-            } else if (prod) {
-                document.getElementById('pageTitle').innerHTML = `<span style="color: var(--primary);">${prod.title}</span> <span style="color: var(--gray-400); font-weight: 400;">•</span> <span style="font-weight: 400; color: var(--gray-600);">${titles[activeTab] || 'Dashboard'}</span>`;
-                document.title = `${prod.title} • ${titles[activeTab] || 'Dashboard'} • StageWise`;
-            } else if (activeTab === 'dashboard') {
-                document.getElementById('pageTitle').innerHTML = `<span style="color: var(--primary);">All Productions</span> <span style="color: var(--gray-400); font-weight: 400;">•</span> <span style="font-weight: 400; color: var(--gray-600);">Overview</span>`;
-                document.title = 'All Productions • StageWise';
-            } else {
-                document.getElementById('pageTitle').textContent = titles[activeTab] || 'Dashboard';
-                document.title = `${titles[activeTab] || 'Dashboard'} • StageWise`;
+            // Restore activeProduction from localStorage if needed
+            if (!activeProduction && localStorage.getItem('activeProduction')) {
+                const saved = localStorage.getItem('activeProduction');
+                if (data.productions.find(p => p.id === saved)) activeProduction = saved;
             }
             
-            document.getElementById('productionSelectContainer').style.display = (activeTab === 'productions' || activeTab === 'contacts') ? 'none' : 'block';
-            updateProductionSelector();
+            // Build page title with production dropdown
+            const prod = data.productions.find(p => p.id === activeProduction);
+            const pageTitle = document.getElementById('pageTitle');
+            const currentPage = titles[activeTab] || 'Dashboard';
+            
+            // Pages that don't need production selector
+            const noProductionPages = ['productions', 'contacts'];
+            
+            if (noProductionPages.includes(activeTab)) {
+                pageTitle.innerHTML = currentPage;
+                document.title = `${currentPage} • StageWise`;
+            } else {
+                // Build dropdown for production selection
+                const productionName = prod ? prod.title : 'All Productions';
+                const dropdownHtml = `
+                    <span class="production-dropdown" onclick="toggleProductionMenu(); event.stopPropagation();">
+                        ${productionName}
+                        <span class="production-dropdown-arrow">▼</span>
+                    </span>
+                    <span style="color: var(--gray-400); font-weight: 400;">•</span>
+                    <span style="font-weight: 400; color: var(--gray-600);">${currentPage}</span>
+                    ${productionMenuOpen ? `
+                        <div class="production-menu" onclick="event.stopPropagation();">
+                            <div class="production-menu-item ${!activeProduction ? 'active' : ''}" onclick="setActiveProduction('')">
+                                <div>
+                                    <div class="production-menu-item-name">📊 All Productions</div>
+                                    <div class="production-menu-item-meta">View overview of all shows</div>
+                                </div>
+                            </div>
+                            ${data.productions.length > 0 ? '<div class="production-menu-divider"></div>' : ''}
+                            ${data.productions.map(p => `
+                                <div class="production-menu-item ${p.id === activeProduction ? 'active' : ''}" onclick="setActiveProduction('${p.id}')">
+                                    <div>
+                                        <div class="production-menu-item-name">${p.title || 'Untitled'}</div>
+                                        <div class="production-menu-item-meta">${p.venue || 'No venue'}</div>
+                                    </div>
+                                    ${p.id === activeProduction ? '<span style="color: var(--primary);">✓</span>' : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                `;
+                pageTitle.innerHTML = dropdownHtml;
+                document.title = `${productionName} • ${currentPage} • StageWise`;
+            }
 
             switch(activeTab) {
                 case 'dashboard': content.innerHTML = renderDashboard(); break;
