@@ -1052,28 +1052,6 @@
                 justify-content: center;
             }
             
-            /* Calendar adjustments */
-            .calendar {
-                font-size: 13px;
-            }
-            .calendar-header {
-                padding: 12px;
-            }
-            .calendar-grid {
-                gap: 2px;
-            }
-            .calendar-day {
-                min-height: 60px;
-                padding: 4px;
-            }
-            .calendar-day-num {
-                font-size: 12px;
-            }
-            .calendar-event {
-                font-size: 10px;
-                padding: 2px 4px;
-            }
-            
             /* Empty state adjustments */
             .empty-state {
                 padding: 32px 16px;
@@ -1381,28 +1359,155 @@
             color: var(--primary);
         }
 
-        /* Calendar responsive */
+        /* Mobile List View for Calendar */
+        .calendar-list {
+            display: none;
+        }
+        .calendar-list-empty {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--gray-500);
+        }
+        .calendar-list-section {
+            margin-bottom: 24px;
+        }
+        .calendar-list-date {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-500);
+            padding: 12px 16px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .calendar-list-date.today {
+            background: var(--primary);
+            color: white;
+        }
+        .calendar-list-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--gray-100);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .calendar-list-item:active {
+            background: var(--gray-50);
+        }
+        .calendar-list-time {
+            flex-shrink: 0;
+            width: 65px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+        .calendar-list-time span {
+            display: block;
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--gray-400);
+        }
+        .calendar-list-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .calendar-list-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+        .calendar-list-meta {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+        .calendar-list-type {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            background: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .calendar-list-type.music { background: #8B5CF6; }
+        .calendar-list-type.blocking { background: #F59E0B; }
+        .calendar-list-type.choreo { background: #EC4899; }
+        .calendar-list-type.run-through { background: #10B981; }
+        .calendar-list-type.tech { background: #6366F1; }
+        .calendar-list-type.dress { background: #EF4444; }
+        .calendar-list-arrow {
+            color: var(--gray-300);
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        
+        /* Toggle between grid and list */
+        .calendar-view-toggle {
+            display: none;
+            gap: 4px;
+            background: var(--gray-100);
+            padding: 4px;
+            border-radius: 8px;
+        }
+        .calendar-view-btn {
+            padding: 6px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .calendar-view-btn.active {
+            background: white;
+            color: var(--gray-900);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Calendar responsive - hide grid on mobile, show list */
         @media (max-width: 768px) {
-            .calendar-day {
-                min-height: 70px;
-                padding: 4px;
+            .calendar-grid {
+                display: none;
             }
-            .calendar-date {
-                width: 24px;
-                height: 24px;
-                font-size: 12px;
+            .calendar-list {
+                display: block;
             }
-            .calendar-event {
-                padding: 2px 4px;
-                font-size: 10px;
-            }
-            .calendar-day-header {
-                padding: 8px 4px;
-                font-size: 10px;
+            .calendar-header {
+                padding: 16px;
+                margin-bottom: 0;
+                border-bottom: 1px solid var(--gray-200);
             }
             .calendar-month {
                 font-size: 16px;
                 min-width: auto;
+            }
+            .calendar-nav {
+                gap: 8px;
+            }
+            .calendar-nav-btn {
+                width: 32px;
+                height: 32px;
+            }
+            .calendar-today-btn {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+        }
+        
+        /* Desktop - show toggle option */
+        @media (min-width: 769px) {
+            .calendar-view-toggle {
+                display: flex;
             }
         }
     </style>
@@ -2638,6 +2743,57 @@
             for (let i = 1; i <= remainingCells; i++) {
                 calendarCells += `<div class="calendar-day other-month"><div class="calendar-date">${i}</div></div>`;
             }
+            
+            // Build list view for mobile
+            const monthRehearsals = rehearsals.filter(r => {
+                if (!r.date) return false;
+                const d = new Date(r.date + 'T00:00:00');
+                return d.getFullYear() === year && d.getMonth() === month;
+            }).sort((a, b) => {
+                const dateCompare = (a.date || '').localeCompare(b.date || '');
+                if (dateCompare !== 0) return dateCompare;
+                return (a.startTime || '').localeCompare(b.startTime || '');
+            });
+            
+            let listHtml = '';
+            if (monthRehearsals.length === 0) {
+                listHtml = '<div class="calendar-list-empty"><div style="font-size: 40px; margin-bottom: 12px;">📅</div>No rehearsals scheduled for this month</div>';
+            } else {
+                let currentDate = '';
+                monthRehearsals.forEach(r => {
+                    if (r.date !== currentDate) {
+                        currentDate = r.date;
+                        const dateObj = new Date(r.date + 'T00:00:00');
+                        const isToday = r.date === todayStr;
+                        const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                        const dayNum = dateObj.getDate();
+                        const monthShort = dateObj.toLocaleDateString('en-US', { month: 'short' });
+                        listHtml += `<div class="calendar-list-date ${isToday ? 'today' : ''}">${isToday ? '📍 Today • ' : ''}${dayOfWeek}, ${monthShort} ${dayNum}</div>`;
+                    }
+                    const typeClass = (r.type || '').toLowerCase().replace(/[^a-z]/g, '-');
+                    const sceneNames = (r.sceneIds || []).map(id => {
+                        const scene = data.scenes.find(s => s.id === id);
+                        return scene ? scene.title : '';
+                    }).filter(Boolean).join(', ');
+                    
+                    listHtml += `
+                        <div class="calendar-list-item" onclick="viewRehearsalModal('${r.id}')">
+                            <div class="calendar-list-time">
+                                ${r.startTime || ''}
+                                <span>${r.endTime || ''}</span>
+                            </div>
+                            <div class="calendar-list-content">
+                                <div class="calendar-list-title">${r.type || 'Rehearsal'}</div>
+                                <div class="calendar-list-meta">
+                                    ${r.location ? '📍 ' + r.location : ''}
+                                    ${sceneNames ? ' • ' + sceneNames : ''}
+                                </div>
+                            </div>
+                            <div class="calendar-list-arrow">›</div>
+                        </div>
+                    `;
+                });
+            }
 
             return `
                 <div class="card">
@@ -2651,6 +2807,9 @@
                     </div>
                     <div class="calendar-grid">
                         ${calendarCells}
+                    </div>
+                    <div class="calendar-list">
+                        ${listHtml}
                     </div>
                 </div>
                 <button class="fab" onclick="openRehearsalModal()" title="Add Rehearsal">+</button>
