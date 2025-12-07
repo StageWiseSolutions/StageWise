@@ -1170,9 +1170,6 @@
                     <div class="nav-item" data-tab="rehearsals">
                         <span class="nav-item-icon">📅</span> Rehearsals
                     </div>
-                    <div class="nav-item" data-tab="attendance">
-                        <span class="nav-item-icon">✓</span> Attendance
-                    </div>
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Production</div>
@@ -1477,7 +1474,7 @@
         // ==================== RENDER ====================
         function renderContent() {
             const content = document.getElementById('contentArea');
-            const titles = { dashboard: 'Dashboard', productions: 'Productions', people: 'Cast & Crew', scenes: 'Scenes', rehearsals: 'Rehearsals', attendance: 'Attendance', inventory: 'Inventory', budget: 'Budget', documents: 'Documents', cueSheets: 'Cue Sheets', emails: 'Emails', contacts: 'Company Roster' };
+            const titles = { dashboard: 'Dashboard', productions: 'Productions', people: 'Cast & Crew', scenes: 'Scenes', rehearsals: 'Rehearsals', inventory: 'Inventory', budget: 'Budget', documents: 'Documents', cueSheets: 'Cue Sheets', emails: 'Emails', contacts: 'Company Roster' };
             
             // Show production name in title when one is selected
             const prod = data.productions.find(p => p.id === activeProduction);
@@ -1505,7 +1502,6 @@
                 case 'people': content.innerHTML = renderPeople(); break;
                 case 'scenes': content.innerHTML = renderScenes(); break;
                 case 'rehearsals': content.innerHTML = renderRehearsals(); break;
-                case 'attendance': content.innerHTML = renderAttendance(); break;
                 case 'inventory': content.innerHTML = renderInventory(); break;
                 case 'budget': content.innerHTML = renderBudget(); break;
                 case 'documents': content.innerHTML = renderDocuments(); break;
