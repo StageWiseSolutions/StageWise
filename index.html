@@ -1268,7 +1268,7 @@
 
         const HEADERS = {
             productions: ['ID', 'Title', 'Venue', 'StartDate', 'EndDate', 'Synopsis', 'Director', 'MusicDirector', 'Choreographer', 'StageManager', 'Status'],
-            people: ['ID', 'ProductionID', 'ContactID', 'Role', 'Character', 'Notes'],
+            people: ['ID', 'ProductionID', 'ContactID', 'FirstName', 'LastName', 'Email', 'Phone', 'EmergencyContact', 'EmergencyPhone', 'Role', 'Character', 'Notes'],
             contacts: ['ID', 'FirstName', 'LastName', 'Email', 'Phone', 'EmergencyContact', 'EmergencyPhone', 'Notes'],
             scenes: ['ID', 'ProductionID', 'SceneNumber', 'Title', 'Act', 'Description', 'Status', 'CastIDs', 'Notes'],
             rehearsals: ['ID', 'ProductionID', 'Date', 'StartTime', 'EndTime', 'Location', 'Type', 'SceneIDs', 'CalledCastIDs', 'Notes'],
@@ -1405,6 +1405,9 @@
                 return Array.isArray(value) ? value.join(',') : (value !== undefined ? String(value) : '');
             }));
             try {
+                // Update headers row to ensure they match current schema
+                await gapi.client.sheets.spreadsheets.values.update({ spreadsheetId: SPREADSHEET_ID, range: `${sheetName}!A1`, valueInputOption: 'RAW', resource: { values: [headers] } });
+                // Clear data rows and write new data
                 await gapi.client.sheets.spreadsheets.values.clear({ spreadsheetId: SPREADSHEET_ID, range: `${sheetName}!A2:Z10000` });
                 if (rows.length > 0) await gapi.client.sheets.spreadsheets.values.update({ spreadsheetId: SPREADSHEET_ID, range: `${sheetName}!A2`, valueInputOption: 'RAW', resource: { values: rows } });
                 setSyncStatus('synced');
@@ -1717,7 +1720,7 @@
                         <div class="card-body no-padding">
                             ${calledPeople.length === 0 ? '<div class="empty-state">No one called today</div>' :
                                 `<ul class="quick-list" style="padding: 0 16px;">${calledPeople.slice(0, 8).map(p => {
-                                    const c = getContact(p.contactId);
+                                    const c = getContact(p);
                                     return `
                                     <li class="quick-list-item">
                                         <div class="quick-list-name">${c.firstName} ${c.lastName}</div>
@@ -1940,9 +1943,45 @@
             }
         }
 
-        // Helper to get contact info for a person
-        function getContact(contactId) {
-            return data.contacts.find(c => c.id === contactId) || { firstName: 'Unknown', lastName: '', email: '', phone: '' };
+        // Helper to get contact info for a person - handles both old and new data formats
+        function getContact(contactIdOrPerson) {
+            // If passed a person object directly (for backwards compatibility)
+            if (typeof contactIdOrPerson === 'object' && contactIdOrPerson !== null) {
+                // Check if it's old format (has firstName directly)
+                if (contactIdOrPerson.firstName) {
+                    return { 
+                        firstName: contactIdOrPerson.firstName, 
+                        lastName: contactIdOrPerson.lastName || '', 
+                        email: contactIdOrPerson.email || '', 
+                        phone: contactIdOrPerson.phone || '',
+                        emergencyContact: contactIdOrPerson.emergencyContact || '',
+                        emergencyPhone: contactIdOrPerson.emergencyPhone || ''
+                    };
+                }
+                // New format - use contactId
+                if (contactIdOrPerson.contactId) {
+                    return data.contacts.find(c => c.id === contactIdOrPerson.contactId) || { firstName: 'Unknown', lastName: '', email: '', phone: '' };
+                }
+                return { firstName: 'Unknown', lastName: '', email: '', phone: '' };
+            }
+            // If passed a contactId string
+            if (typeof contactIdOrPerson === 'string') {
+                return data.contacts.find(c => c.id === contactIdOrPerson) || { firstName: 'Unknown', lastName: '', email: '', phone: '' };
+            }
+            return { firstName: 'Unknown', lastName: '', email: '', phone: '' };
+        }
+        
+        // Helper to get person's display name
+        function getPersonName(person) {
+            if (!person) return 'Unknown';
+            // Old format - has firstName directly
+            if (person.firstName) return `${person.firstName} ${person.lastName || ''}`.trim();
+            // New format - look up contact
+            if (person.contactId) {
+                const contact = data.contacts.find(c => c.id === person.contactId);
+                if (contact) return `${contact.firstName} ${contact.lastName || ''}`.trim();
+            }
+            return 'Unknown';
         }
 
         // ==================== PEOPLE (PRODUCTION CAST & CREW) ====================
@@ -1958,7 +1997,7 @@
                             `<div class="table-wrapper"><table>
                                 <thead><tr><th>Name</th><th>Role</th><th>Character</th><th>Contact</th><th>Actions</th></tr></thead>
                                 <tbody>${people.map(p => {
-                                    const c = getContact(p.contactId);
+                                    const c = getContact(p);
                                     return `
                                     <tr>
                                         <td class="table-name">${c.firstName} ${c.lastName}</td>
@@ -1978,56 +2017,71 @@
         }
 
         function openPersonModal(id = null) {
-            if (data.contacts.length === 0) {
-                showNotification('Add contacts to your Company Roster first', 'error');
-                return;
-            }
-            
             const isEditing = id !== null;
             const editItem = isEditing ? data.people.find(p => p.id === id) : null;
             editing.person = id;
             
+            // Check if editing an old-format person (has firstName directly)
+            const isOldFormat = isEditing && editItem && editItem.firstName && !editItem.contactId;
+            
+            // If adding new and no contacts exist, show error
+            if (!isEditing && data.contacts.length === 0) {
+                showNotification('Add contacts to your Company Roster first', 'error');
+                return;
+            }
+            
             // Get contacts not already in this production (or the current one being edited)
-            const assignedContactIds = data.people.filter(p => p.productionId === activeProduction && p.id !== id).map(p => p.contactId);
+            const assignedContactIds = data.people.filter(p => p.productionId === activeProduction && p.id !== id && p.contactId).map(p => p.contactId);
             const availableContacts = data.contacts.filter(c => !assignedContactIds.includes(c.id));
             
             const contactOptions = (isEditing ? data.contacts : availableContacts).sort((a, b) => (a.lastName || '').localeCompare(b.lastName || '')).map(c => 
-                `<option value="${c.id}" ${isEditing && editItem.contactId === c.id ? 'selected' : ''}>${c.firstName} ${c.lastName}${c.email ? ' (' + c.email + ')' : ''}</option>`
+                `<option value="${c.id}" ${isEditing && editItem && editItem.contactId === c.id ? 'selected' : ''}>${c.firstName} ${c.lastName}${c.email ? ' (' + c.email + ')' : ''}</option>`
             ).join('');
+
+            // For old-format people, show their name as read-only
+            const personDisplayHtml = isOldFormat ? `
+                <div class="form-group full-width">
+                    <label class="form-label">Person</label>
+                    <input type="text" class="form-input" value="${editItem.firstName} ${editItem.lastName || ''}" disabled style="background: var(--gray-100);">
+                    <div style="font-size: 12px; color: var(--warning); margin-top: 4px;">⚠️ Legacy record. Consider migrating to Company Roster.</div>
+                </div>
+            ` : `
+                <div class="form-group full-width">
+                    <label class="form-label">Person from Roster *</label>
+                    <select class="form-select" id="person_contactId" ${isEditing ? 'disabled' : ''}>
+                        <option value="">Select a person...</option>
+                        ${contactOptions}
+                    </select>
+                    ${isEditing && !isOldFormat ? '<div style="font-size: 12px; color: var(--gray-500); margin-top: 4px;">To change the person, remove this entry and add a new one.</div>' : ''}
+                </div>
+            `;
 
             const bodyHtml = `
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
-                    <div class="form-group full-width">
-                        <label class="form-label">Person from Roster *</label>
-                        <select class="form-select" id="person_contactId" ${isEditing ? 'disabled' : ''}>
-                            <option value="">Select a person...</option>
-                            ${contactOptions}
-                        </select>
-                        ${isEditing ? '<div style="font-size: 12px; color: var(--gray-500); margin-top: 4px;">To change the person, remove this entry and add a new one.</div>' : ''}
-                    </div>
+                    ${personDisplayHtml}
                     <div class="form-group">
                         <label class="form-label">Role in Production *</label>
                         <select class="form-select" id="person_role">
                             <option value="">Select role...</option>
-                            <option ${isEditing && editItem.role === 'Cast - Principal' ? 'selected' : ''}>Cast - Principal</option>
-                            <option ${isEditing && editItem.role === 'Cast - Supporting' ? 'selected' : ''}>Cast - Supporting</option>
-                            <option ${isEditing && editItem.role === 'Cast - Ensemble' ? 'selected' : ''}>Cast - Ensemble</option>
-                            <option ${isEditing && editItem.role === 'Director' ? 'selected' : ''}>Director</option>
-                            <option ${isEditing && editItem.role === 'Music Director' ? 'selected' : ''}>Music Director</option>
-                            <option ${isEditing && editItem.role === 'Choreographer' ? 'selected' : ''}>Choreographer</option>
-                            <option ${isEditing && editItem.role === 'Stage Manager' ? 'selected' : ''}>Stage Manager</option>
-                            <option ${isEditing && editItem.role === 'Assistant Stage Manager' ? 'selected' : ''}>Assistant Stage Manager</option>
-                            <option ${isEditing && editItem.role === 'Crew' ? 'selected' : ''}>Crew</option>
-                            <option ${isEditing && editItem.role === 'Musician' ? 'selected' : ''}>Musician</option>
+                            <option ${isEditing && editItem && editItem.role === 'Cast - Principal' ? 'selected' : ''}>Cast - Principal</option>
+                            <option ${isEditing && editItem && editItem.role === 'Cast - Supporting' ? 'selected' : ''}>Cast - Supporting</option>
+                            <option ${isEditing && editItem && editItem.role === 'Cast - Ensemble' ? 'selected' : ''}>Cast - Ensemble</option>
+                            <option ${isEditing && editItem && editItem.role === 'Director' ? 'selected' : ''}>Director</option>
+                            <option ${isEditing && editItem && editItem.role === 'Music Director' ? 'selected' : ''}>Music Director</option>
+                            <option ${isEditing && editItem && editItem.role === 'Choreographer' ? 'selected' : ''}>Choreographer</option>
+                            <option ${isEditing && editItem && editItem.role === 'Stage Manager' ? 'selected' : ''}>Stage Manager</option>
+                            <option ${isEditing && editItem && editItem.role === 'Assistant Stage Manager' ? 'selected' : ''}>Assistant Stage Manager</option>
+                            <option ${isEditing && editItem && editItem.role === 'Crew' ? 'selected' : ''}>Crew</option>
+                            <option ${isEditing && editItem && editItem.role === 'Musician' ? 'selected' : ''}>Musician</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Character Name</label>
-                        <input type="text" class="form-input" id="person_character" value="${isEditing ? editItem.character || '' : ''}" placeholder="e.g., Harold Hill">
+                        <input type="text" class="form-input" id="person_character" value="${isEditing && editItem ? editItem.character || '' : ''}" placeholder="e.g., Harold Hill">
                     </div>
                     <div class="form-group full-width">
                         <label class="form-label">Notes</label>
-                        <textarea class="form-textarea" id="person_notes" placeholder="Any production-specific notes...">${isEditing ? editItem.notes || '' : ''}</textarea>
+                        <textarea class="form-textarea" id="person_notes" placeholder="Any production-specific notes...">${isEditing && editItem ? editItem.notes || '' : ''}</textarea>
                     </div>
                 </div>
             `;
@@ -2084,7 +2138,7 @@
                             <tbody>${scenes.sort((a, b) => (a.sceneNumber || '').localeCompare(b.sceneNumber || '')).map(s => `
                                 <tr>
                                     <td class="table-name">${s.sceneNumber || ''}</td><td>${s.title || ''}</td><td>${s.act || '-'}</td>
-                                    <td class="table-meta">${(s.castIds || []).map(cid => { const p = people.find(x => x.id === cid); if (!p) return ''; const c = getContact(p.contactId); return c.firstName; }).filter(Boolean).join(', ') || '-'}</td>
+                                    <td class="table-meta">${(s.castIds || []).map(cid => { const p = people.find(x => x.id === cid); if (!p) return ''; const c = getContact(p); return c.firstName; }).filter(Boolean).join(', ') || '-'}</td>
                                     <td><span class="${getBadgeClass(s.status)}">${s.status || ''}</span></td>
                                     <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openSceneModal('${s.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteScene('${s.id}')">🗑️</button></div></td>
                                 </tr>
@@ -2101,7 +2155,7 @@
             const editItem = isEditing ? data.scenes.find(s => s.id === id) : null;
             editing.scene = id;
 
-            const castOptions = people.map(p => { const c = getContact(p.contactId); return `<option value="${p.id}" ${isEditing && editItem.castIds && editItem.castIds.includes(p.id) ? 'selected' : ''}>${c.firstName} ${c.lastName} ${p.character ? '(' + p.character + ')' : ''}</option>`; }).join('');
+            const castOptions = people.map(p => { const c = getContact(p); return `<option value="${p.id}" ${isEditing && editItem.castIds && editItem.castIds.includes(p.id) ? 'selected' : ''}>${c.firstName} ${c.lastName} ${p.character ? '(' + p.character + ')' : ''}</option>`; }).join('');
 
             const bodyHtml = `
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
@@ -2338,7 +2392,7 @@
             } else {
                 attendanceHtml += `<div style="max-height: 300px; overflow-y: auto;">`;
                 calledPeople.forEach(person => {
-                    const contact = getContact(person.contactId);
+                    const contact = getContact(person);
                     const record = attendanceRecords.find(a => a.personId === person.id);
                     const currentStatus = record ? record.status : '';
                     
@@ -2478,7 +2532,7 @@
             const people = getProductionData('people');
             const called = people.filter(p => castIds.includes(p.id));
             const box = document.getElementById('calledCastBox');
-            if (box) box.textContent = called.length > 0 ? called.map(p => { const c = getContact(p.contactId); return `${c.firstName} ${c.lastName}`; }).join(', ') : 'Select scenes to see who will be called';
+            if (box) box.textContent = called.length > 0 ? called.map(p => { const c = getContact(p); return `${c.firstName} ${c.lastName}`; }).join(', ') : 'Select scenes to see who will be called';
         }
 
         async function addRehearsalFromModal() {
@@ -2569,7 +2623,7 @@
             const rehearsal = data.rehearsals.find(r => r.id === rehId), people = getProductionData('people'), called = people.filter(p => (rehearsal.calledCastIds || []).includes(p.id));
             if (called.length === 0) { container.innerHTML = '<p style="color:var(--gray-500)">No one called for this rehearsal.</p>'; return; }
             container.innerHTML = `<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Character</th><th>Status</th><th>Mark</th></tr></thead>
-                <tbody>${called.map(p => { const c = getContact(p.contactId); const rec = data.attendance.find(a => a.rehearsalId === rehId && a.personId === p.id), status = rec ? rec.status : 'Pending'; return `
+                <tbody>${called.map(p => { const c = getContact(p); const rec = data.attendance.find(a => a.rehearsalId === rehId && a.personId === p.id), status = rec ? rec.status : 'Pending'; return `
                     <tr><td class="table-name">${c.firstName} ${c.lastName}</td><td>${p.character || '-'}</td>
                     <td><span class="${getBadgeClass(status)}">${status}</span></td>
                     <td><div class="table-actions">
@@ -2974,7 +3028,7 @@
             else if (type === 'crew') recipientPeople = people.filter(p => !p.role || !p.role.includes('Cast'));
             else if (type === 'rehearsal') { const rehId = document.getElementById('email_rehearsal')?.value; if (rehId) { const reh = data.rehearsals.find(r => r.id === rehId); if (reh) recipientPeople = people.filter(p => (reh.calledCastIds || []).includes(p.id)); } }
             // Get emails from contacts
-            const emails = recipientPeople.map(p => { const c = getContact(p.contactId); return c.email; }).filter(Boolean);
+            const emails = recipientPeople.map(p => { const c = getContact(p); return c.email; }).filter(Boolean);
             const box = document.getElementById('emailAddressBox');
             if (box) box.textContent = emails.length > 0 ? emails.join(', ') : 'No emails found';
         }
