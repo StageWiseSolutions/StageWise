@@ -1463,7 +1463,7 @@
             const select = document.getElementById('activeProductionSelect');
             if (!select) return;
             if (!activeProduction && localStorage.getItem('activeProduction')) { const saved = localStorage.getItem('activeProduction'); if (data.productions.find(p => p.id === saved)) activeProduction = saved; }
-            select.innerHTML = '<option value="">Select production...</option>' + data.productions.map(p => `<option value="${p.id}" ${p.id === activeProduction ? 'selected' : ''}>${p.title || 'Untitled'}</option>`).join('');
+            select.innerHTML = '<option value="">📊 All Productions</option>' + data.productions.map(p => `<option value="${p.id}" ${p.id === activeProduction ? 'selected' : ''}>${p.title || 'Untitled'}</option>`).join('');
         }
         function cancelEdit(type) { editing[type] = null; renderContent(); }
 
@@ -1480,6 +1480,9 @@
             } else if (prod) {
                 document.getElementById('pageTitle').innerHTML = `<span style="color: var(--primary);">${prod.title}</span> <span style="color: var(--gray-400); font-weight: 400;">•</span> <span style="font-weight: 400; color: var(--gray-600);">${titles[activeTab] || 'Dashboard'}</span>`;
                 document.title = `${prod.title} • ${titles[activeTab] || 'Dashboard'} • StageWise`;
+            } else if (activeTab === 'dashboard') {
+                document.getElementById('pageTitle').innerHTML = `<span style="color: var(--primary);">All Productions</span> <span style="color: var(--gray-400); font-weight: 400;">•</span> <span style="font-weight: 400; color: var(--gray-600);">Overview</span>`;
+                document.title = 'All Productions • StageWise';
             } else {
                 document.getElementById('pageTitle').textContent = titles[activeTab] || 'Dashboard';
                 document.title = `${titles[activeTab] || 'Dashboard'} • StageWise`;
@@ -1505,10 +1508,128 @@
 
         // ==================== DASHBOARD ====================
         function renderDashboard() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // If no production selected, show ALL PRODUCTIONS overview
             if (!activeProduction) {
-                return `<div class="empty-state"><div class="empty-state-icon">🎭</div><div class="empty-state-title">Welcome to StageWise!</div><p>Select or create a production to get started.</p><br><button class="btn btn-primary" onclick="document.querySelector('[data-tab=productions]').click()">Go to Productions</button></div>`;
+                if (data.productions.length === 0) {
+                    return `<div class="empty-state"><div class="empty-state-icon">🎭</div><div class="empty-state-title">Welcome to StageWise!</div><p>Create your first production to get started.</p><br><button class="btn btn-primary" onclick="document.querySelector('[data-tab=productions]').click()">Go to Productions</button></div>`;
+                }
+                
+                // Aggregate stats from ALL productions
+                const totalPeople = data.people.length;
+                const totalScenes = data.scenes.length;
+                const totalRehearsals = data.rehearsals.length;
+                const totalBudget = data.budget.reduce((sum, b) => sum + (b.plannedAmount || 0), 0);
+                const totalSpent = data.budget.reduce((sum, b) => sum + (b.actualAmount || 0), 0);
+                const totalInventory = data.inventory.length;
+                const readyItems = data.inventory.filter(i => i.status === 'Ready').length;
+                const neededItems = data.inventory.filter(i => i.status === 'Needed').length;
+                
+                // Today's rehearsals across ALL productions
+                const allTodayRehearsals = data.rehearsals.filter(r => r.date === today).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+                
+                // Upcoming rehearsals across ALL productions
+                const allUpcomingRehearsals = data.rehearsals.filter(r => r.date >= today).sort((a, b) => a.date.localeCompare(b.date) || (a.startTime || '').localeCompare(b.startTime || '')).slice(0, 8);
+                
+                // Get production name helper
+                const getProdName = (prodId) => { const p = data.productions.find(x => x.id === prodId); return p ? p.title : ''; };
+                
+                return `
+                    <div class="today-section" style="background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);">
+                        <div class="today-header">
+                            <div class="today-title">Today's Rehearsals</div>
+                            <div class="today-date">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</div>
+                        </div>
+                        ${allTodayRehearsals.length === 0 ? '<div class="no-rehearsals">No rehearsals scheduled for today</div>' :
+                            `<div class="today-rehearsals">${allTodayRehearsals.map(r => `
+                                <div class="today-rehearsal" onclick="activeProduction='${r.productionId}'; localStorage.setItem('activeProduction','${r.productionId}'); viewRehearsalModal('${r.id}'); renderContent();" style="cursor: pointer;">
+                                    <div class="rehearsal-time">${r.startTime || ''} - ${r.endTime || ''}</div>
+                                    <div class="rehearsal-info">
+                                        <div class="rehearsal-type">${r.type || 'Rehearsal'}</div>
+                                        <div class="rehearsal-location">${getProdName(r.productionId)} • ${r.location || 'TBD'}</div>
+                                    </div>
+                                    <div class="rehearsal-called">${(r.calledCastIds || []).length} called</div>
+                                </div>
+                            `).join('')}</div>`
+                        }
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <div class="stat-card">
+                            <div class="stat-card-header"><div class="stat-icon purple">🎭</div></div>
+                            <div class="stat-value">${data.productions.length}</div>
+                            <div class="stat-label">Productions</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-header"><div class="stat-icon blue">👥</div></div>
+                            <div class="stat-value">${totalPeople}</div>
+                            <div class="stat-label">Total People</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-header"><div class="stat-icon green">📅</div></div>
+                            <div class="stat-value">${totalRehearsals}</div>
+                            <div class="stat-label">Rehearsals</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-header"><div class="stat-icon orange">💰</div></div>
+                            <div class="stat-value">$${totalSpent.toFixed(0)}</div>
+                            <div class="stat-label">of $${totalBudget.toFixed(0)} spent</div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-row">
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">Your Productions</span></div>
+                            <div class="card-body no-padding">
+                                <ul class="quick-list" style="padding: 0 16px;">${data.productions.map(p => {
+                                    const prodRehearsals = data.rehearsals.filter(r => r.productionId === p.id && r.date >= today).length;
+                                    const prodPeople = data.people.filter(x => x.productionId === p.id).length;
+                                    return `
+                                    <li class="quick-list-item" onclick="selectProduction('${p.id}')" style="cursor: pointer;">
+                                        <div>
+                                            <div class="quick-list-name">${p.title}</div>
+                                            <div class="quick-list-meta">${p.venue || 'No venue'} • ${prodPeople} people • ${prodRehearsals} upcoming</div>
+                                        </div>
+                                        <span class="${getBadgeClass(p.status)}">${p.status || 'Planning'}</span>
+                                    </li>
+                                `}).join('')}</ul>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><span class="card-title">Upcoming Rehearsals</span></div>
+                            <div class="card-body no-padding">
+                                ${allUpcomingRehearsals.length === 0 ? '<div class="empty-state">No upcoming rehearsals</div>' :
+                                    `<ul class="quick-list" style="padding: 0 16px;">${allUpcomingRehearsals.map(r => `
+                                        <li class="quick-list-item" onclick="activeProduction='${r.productionId}'; localStorage.setItem('activeProduction','${r.productionId}'); viewRehearsalModal('${r.id}'); renderContent();" style="cursor: pointer;">
+                                            <div>
+                                                <div class="quick-list-name">${formatDate(r.date)} • ${r.startTime || ''}</div>
+                                                <div class="quick-list-meta">${getProdName(r.productionId)} • ${r.type || 'Rehearsal'}</div>
+                                            </div>
+                                            <span class="badge badge-in-progress">${(r.calledCastIds || []).length}</span>
+                                        </li>
+                                    `).join('')}</ul>`
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    ${neededItems > 0 ? `
+                    <div class="card" style="border-color: var(--warning);">
+                        <div class="card-header"><span class="card-title">⚠️ Items Still Needed Across All Productions (${neededItems})</span></div>
+                        <div class="card-body no-padding">
+                            <ul class="quick-list" style="padding: 0 16px;">${data.inventory.filter(i => i.status === 'Needed').slice(0, 5).map(i => `
+                                <li class="quick-list-item" onclick="selectProduction('${i.productionId}'); activeTab='inventory'; renderContent();" style="cursor: pointer;">
+                                    <div class="quick-list-name">${i.name}</div>
+                                    <div><span class="badge badge-needed">${i.category}</span> <span class="quick-list-meta">${getProdName(i.productionId)}</span></div>
+                                </li>
+                            `).join('')}</ul>
+                        </div>
+                    </div>` : ''}
+                `;
             }
 
+            // SINGLE PRODUCTION dashboard (existing code)
             const prod = data.productions.find(p => p.id === activeProduction);
             const people = getProductionData('people');
             const scenes = getProductionData('scenes');
@@ -1516,7 +1637,6 @@
             const inventory = getProductionData('inventory');
             const budget = getProductionData('budget');
 
-            const today = new Date().toISOString().split('T')[0];
             const todayRehearsals = rehearsals.filter(r => r.date === today).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
             const upcomingRehearsals = rehearsals.filter(r => r.date >= today).sort((a, b) => a.date.localeCompare(b.date) || (a.startTime || '').localeCompare(b.startTime || '')).slice(0, 5);
             
