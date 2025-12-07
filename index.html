@@ -380,6 +380,10 @@
             background: var(--danger);
             color: white;
         }
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
         .btn-ghost {
             background: transparent;
             color: var(--gray-600);
@@ -504,6 +508,11 @@
             display: flex;
             align-items: center;
             gap: 16px;
+            transition: all 0.15s;
+        }
+        .today-rehearsal:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateX(4px);
         }
         .rehearsal-time {
             font-size: 14px;
@@ -540,6 +549,12 @@
             justify-content: space-between;
             padding: 12px 0;
             border-bottom: 1px solid var(--gray-100);
+            transition: all 0.15s;
+        }
+        .quick-list-item:hover {
+            background: var(--gray-50);
+            margin: 0 -16px;
+            padding: 12px 16px;
         }
         .quick-list-item:last-child { border-bottom: none; }
         .quick-list-name {
@@ -1510,7 +1525,7 @@
                     </div>
                     ${todayRehearsals.length === 0 ? '<div class="no-rehearsals">No rehearsals scheduled for today</div>' :
                         `<div class="today-rehearsals">${todayRehearsals.map(r => `
-                            <div class="today-rehearsal">
+                            <div class="today-rehearsal" onclick="viewRehearsalModal('${r.id}')" style="cursor: pointer;">
                                 <div class="rehearsal-time">${r.startTime || ''} - ${r.endTime || ''}</div>
                                 <div class="rehearsal-info">
                                     <div class="rehearsal-type">${r.type || 'Rehearsal'}</div>
@@ -1551,7 +1566,7 @@
                         <div class="card-body no-padding">
                             ${upcomingRehearsals.length === 0 ? '<div class="empty-state">No upcoming rehearsals</div>' :
                                 `<ul class="quick-list" style="padding: 0 16px;">${upcomingRehearsals.map(r => `
-                                    <li class="quick-list-item">
+                                    <li class="quick-list-item" onclick="viewRehearsalModal('${r.id}')" style="cursor: pointer;">
                                         <div><div class="quick-list-name">${formatDate(r.date)} • ${r.startTime || ''}</div><div class="quick-list-meta">${r.type || 'Rehearsal'} • ${r.location || 'TBD'}</div></div>
                                         <span class="badge badge-in-progress">${(r.calledCastIds || []).length} called</span>
                                     </li>
@@ -1915,7 +1930,7 @@
                 const maxDisplay = 2;
                 dayRehearsals.slice(0, maxDisplay).forEach(r => {
                     const typeClass = (r.type || '').toLowerCase().replace(/[^a-z]/g, '-');
-                    eventsHtml += `<div class="calendar-event ${typeClass}" onclick="openRehearsalModal('${r.id}')" title="${r.startTime} - ${r.type || 'Rehearsal'}">${r.startTime || ''} ${r.type || ''}</div>`;
+                    eventsHtml += `<div class="calendar-event ${typeClass}" onclick="viewRehearsalModal('${r.id}')" title="${r.startTime} - ${r.type || 'Rehearsal'}">${r.startTime || ''} ${r.type || ''}</div>`;
                 });
                 if (dayRehearsals.length > maxDisplay) {
                     eventsHtml += `<div class="calendar-more" onclick="showDayRehearsals('${dateStr}')">+${dayRehearsals.length - maxDisplay} more</div>`;
@@ -1974,7 +1989,7 @@
                         <div style="font-weight: 600; color: var(--gray-900);">${r.startTime || ''} - ${r.endTime || ''}</div>
                         <div style="font-size: 14px; color: var(--gray-600);">${r.type || 'Rehearsal'} • ${r.location || 'TBD'}</div>
                     </div>
-                    <button class="btn btn-sm btn-secondary" onclick="closeModal(); openRehearsalModal('${r.id}')">Edit</button>
+                    <button class="btn btn-sm btn-secondary" onclick="closeModal(); viewRehearsalModal('${r.id}')">View</button>
                 </div>
             `).join('');
 
@@ -1983,6 +1998,137 @@
                 listHtml || '<p style="color: var(--gray-500);">No rehearsals scheduled.</p>',
                 `<button class="btn btn-primary" onclick="closeModal(); openRehearsalModal(null, '${dateStr}')">+ Add Rehearsal</button>`
             );
+        }
+
+        function viewRehearsalModal(id) {
+            const rehearsal = data.rehearsals.find(r => r.id === id);
+            if (!rehearsal) return;
+            
+            const people = getProductionData('people');
+            const scenes = getProductionData('scenes');
+            const calledPeople = people.filter(p => (rehearsal.calledCastIds || []).includes(p.id));
+            const rehearsalScenes = scenes.filter(s => (rehearsal.sceneIds || []).includes(s.id));
+            
+            // Get attendance records for this rehearsal
+            const attendanceRecords = data.attendance.filter(a => a.rehearsalId === id);
+            
+            const dateFormatted = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            
+            // Build details section
+            let detailsHtml = `
+                <div style="margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;">
+                        <div>
+                            <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">Date</div>
+                            <div style="font-weight: 500; color: var(--gray-900);">${dateFormatted}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">Time</div>
+                            <div style="font-weight: 500; color: var(--gray-900);">${rehearsal.startTime || ''} - ${rehearsal.endTime || ''}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">Type</div>
+                            <div style="font-weight: 500; color: var(--gray-900);">${rehearsal.type || '-'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">Location</div>
+                            <div style="font-weight: 500; color: var(--gray-900);">${rehearsal.location || '-'}</div>
+                        </div>
+                    </div>
+                    ${rehearsalScenes.length > 0 ? `
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">Scenes</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                ${rehearsalScenes.map(s => `<span class="badge badge-in-progress">${s.sceneNumber}: ${s.title}</span>`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${rehearsal.notes ? `
+                        <div>
+                            <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">Notes</div>
+                            <div style="color: var(--gray-700); font-size: 14px;">${rehearsal.notes}</div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            // Build attendance section
+            let attendanceHtml = `
+                <div style="border-top: 1px solid var(--gray-200); padding-top: 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div style="font-size: 14px; font-weight: 600; color: var(--gray-900);">📋 Attendance (${calledPeople.length} called)</div>
+                        <div style="font-size: 12px; color: var(--gray-500);">
+                            <span style="color: var(--success);">✓ ${attendanceRecords.filter(a => a.status === 'Present').length}</span> · 
+                            <span style="color: var(--warning);">⏱ ${attendanceRecords.filter(a => a.status === 'Late').length}</span> · 
+                            <span style="color: var(--danger);">✗ ${attendanceRecords.filter(a => a.status === 'Absent').length}</span>
+                        </div>
+                    </div>
+            `;
+            
+            if (calledPeople.length === 0) {
+                attendanceHtml += `<div style="color: var(--gray-500); font-size: 14px; text-align: center; padding: 20px;">No one called for this rehearsal</div>`;
+            } else {
+                attendanceHtml += `<div style="max-height: 300px; overflow-y: auto;">`;
+                calledPeople.forEach(person => {
+                    const record = attendanceRecords.find(a => a.personId === person.id);
+                    const currentStatus = record ? record.status : '';
+                    
+                    attendanceHtml += `
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--gray-100);" id="attendance-row-${person.id}">
+                            <div>
+                                <div style="font-weight: 500; color: var(--gray-900);">${person.firstName} ${person.lastName}</div>
+                                <div style="font-size: 12px; color: var(--gray-500);">${person.character || person.role || ''}</div>
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button class="btn btn-sm ${currentStatus === 'Present' ? 'btn-success' : 'btn-secondary'}" onclick="markAttendanceInModal('${id}', '${person.id}', 'Present')" title="Present">✓</button>
+                                <button class="btn btn-sm ${currentStatus === 'Late' ? 'btn-warning' : 'btn-secondary'}" onclick="markAttendanceInModal('${id}', '${person.id}', 'Late')" title="Late" style="${currentStatus === 'Late' ? 'background: var(--warning); color: white;' : ''}">⏱</button>
+                                <button class="btn btn-sm ${currentStatus === 'Absent' ? 'btn-danger' : 'btn-secondary'}" onclick="markAttendanceInModal('${id}', '${person.id}', 'Absent')" title="Absent">✗</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                attendanceHtml += `</div>`;
+            }
+            attendanceHtml += `</div>`;
+            
+            const bodyHtml = detailsHtml + attendanceHtml;
+            
+            const footerHtml = `
+                <button class="btn btn-danger" onclick="deleteRehearsalFromModal('${id}')">🗑️ Delete</button>
+                <div style="flex: 1;"></div>
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+                <button class="btn btn-primary" onclick="closeModal(); openRehearsalModal('${id}')">✏️ Edit</button>
+            `;
+            
+            openModal(`📅 ${rehearsal.type || 'Rehearsal'}`, bodyHtml, footerHtml);
+        }
+
+        async function markAttendanceInModal(rehearsalId, personId, status) {
+            // Find existing record or create new one
+            let record = data.attendance.find(a => a.rehearsalId === rehearsalId && a.personId === personId);
+            
+            if (record) {
+                // Toggle off if clicking same status
+                if (record.status === status) {
+                    data.attendance = data.attendance.filter(a => !(a.rehearsalId === rehearsalId && a.personId === personId));
+                } else {
+                    record.status = status;
+                }
+            } else {
+                data.attendance.push({
+                    id: generateId(),
+                    productionId: activeProduction,
+                    rehearsalId,
+                    personId,
+                    status,
+                    notes: ''
+                });
+            }
+            
+            await saveSheetData('attendance');
+            
+            // Refresh the modal
+            viewRehearsalModal(rehearsalId);
         }
 
         function openRehearsalModal(id = null, presetDate = null) {
