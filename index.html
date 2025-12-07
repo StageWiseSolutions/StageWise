@@ -810,31 +810,55 @@
             right: 0;
             background: white;
             border-top: 1px solid var(--gray-200);
-            padding: 8px 16px;
+            padding: 8px 0;
             padding-bottom: calc(8px + env(safe-area-inset-bottom));
             z-index: 100;
         }
         .mobile-nav-items {
             display: flex;
-            justify-content: space-around;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding: 0 12px;
+            gap: 4px;
+            scroll-snap-type: x proximity;
+        }
+        .mobile-nav-items::-webkit-scrollbar {
+            display: none;
         }
         .mobile-nav-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-            padding: 8px 12px;
-            border-radius: 8px;
+            justify-content: center;
+            gap: 2px;
+            padding: 6px 12px;
+            border-radius: 12px;
             color: var(--gray-500);
-            font-size: 10px;
-            font-weight: 500;
+            font-size: 9px;
+            font-weight: 600;
             cursor: pointer;
+            flex-shrink: 0;
+            scroll-snap-align: start;
+            min-width: 56px;
+            transition: all 0.15s;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .mobile-nav-item:active {
+            transform: scale(0.95);
+            background: var(--gray-100);
         }
         .mobile-nav-item.active {
             color: var(--primary);
+            background: var(--primary-light);
         }
         .mobile-nav-item-icon {
-            font-size: 22px;
+            font-size: 20px;
+        }
+        .mobile-nav-scroll-hint {
+            display: none;
         }
         .mobile-menu-btn {
             display: none;
@@ -1282,26 +1306,46 @@
 
         <!-- Mobile Bottom Nav -->
         <nav class="mobile-nav">
-            <div class="mobile-nav-items">
+            <div class="mobile-nav-items" id="mobileNavItems">
                 <div class="mobile-nav-item active" data-tab="dashboard">
                     <span class="mobile-nav-item-icon">📊</span>
                     Home
                 </div>
-                <div class="mobile-nav-item" data-tab="rehearsals">
-                    <span class="mobile-nav-item-icon">📅</span>
-                    Schedule
+                <div class="mobile-nav-item" data-tab="productions">
+                    <span class="mobile-nav-item-icon">🎭</span>
+                    Shows
+                </div>
+                <div class="mobile-nav-item" data-tab="contacts">
+                    <span class="mobile-nav-item-icon">📇</span>
+                    Roster
                 </div>
                 <div class="mobile-nav-item" data-tab="people">
                     <span class="mobile-nav-item-icon">👥</span>
-                    People
+                    Cast
+                </div>
+                <div class="mobile-nav-item" data-tab="scenes">
+                    <span class="mobile-nav-item-icon">🎬</span>
+                    Scenes
+                </div>
+                <div class="mobile-nav-item" data-tab="rehearsals">
+                    <span class="mobile-nav-item-icon">📅</span>
+                    Rehearsals
                 </div>
                 <div class="mobile-nav-item" data-tab="inventory">
-                    <span class="mobile-nav-item-icon">🎪</span>
-                    Inventory
+                    <span class="mobile-nav-item-icon">💰</span>
+                    Budget
                 </div>
-                <div class="mobile-nav-item" data-tab="more">
-                    <span class="mobile-nav-item-icon">☰</span>
-                    More
+                <div class="mobile-nav-item" data-tab="cueSheets">
+                    <span class="mobile-nav-item-icon">🎚️</span>
+                    Cues
+                </div>
+                <div class="mobile-nav-item" data-tab="documents">
+                    <span class="mobile-nav-item-icon">📄</span>
+                    Docs
+                </div>
+                <div class="mobile-nav-item" data-tab="emails">
+                    <span class="mobile-nav-item-icon">✉️</span>
+                    Emails
                 </div>
             </div>
         </nav>
@@ -1509,13 +1553,19 @@
         document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(item => {
             item.addEventListener('click', function() {
                 const tab = this.dataset.tab;
-                if (tab === 'more') { toggleSidebar(); return; }
                 Object.keys(editing).forEach(key => editing[key] = null);
                 document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(i => i.classList.remove('active'));
                 document.querySelectorAll(`[data-tab="${tab}"]`).forEach(i => i.classList.add('active'));
                 activeTab = tab;
                 renderContent();
                 document.getElementById('sidebar').classList.remove('open');
+                
+                // Scroll mobile nav to show active item
+                const mobileNav = document.getElementById('mobileNavItems');
+                const activeItem = mobileNav?.querySelector('.mobile-nav-item.active');
+                if (activeItem && mobileNav) {
+                    activeItem.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }
             });
         });
 
