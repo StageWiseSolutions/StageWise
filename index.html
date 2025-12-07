@@ -97,11 +97,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: linear-gradient(135deg, #4F46E5 0%, #3730A3 100%);
             padding: 20px;
         }
         .login-card {
-            background: var(--card-bg);
+            background: #FFFFFF;
             border-radius: 16px;
             padding: 48px;
             text-align: center;
@@ -112,7 +112,7 @@
         .login-logo {
             width: 72px;
             height: 72px;
-            background: var(--primary);
+            background: #4F46E5;
             border-radius: 16px;
             display: flex;
             align-items: center;
@@ -123,18 +123,18 @@
         .login-title {
             font-size: 24px;
             font-weight: 700;
-            color: var(--text-primary);
+            color: #111827;
             margin-bottom: 8px;
         }
         .login-subtitle {
-            color: var(--text-muted);
+            color: #6B7280;
             margin-bottom: 32px;
         }
         .login-btn {
             width: 100%;
             padding: 14px 24px;
-            background: var(--gray-900);
-            color: white;
+            background: #111827;
+            color: #FFFFFF;
             border: none;
             border-radius: 8px;
             font-size: 15px;
@@ -146,12 +146,12 @@
             gap: 12px;
             transition: background 0.2s;
         }
-        .login-btn:hover { background: var(--gray-700); }
+        .login-btn:hover { background: #374151; }
         .login-btn svg { width: 20px; height: 20px; }
         .login-info {
             margin-top: 24px;
             font-size: 13px;
-            color: var(--gray-400);
+            color: #9CA3AF;
         }
 
         /* ==================== LOADING ==================== */
@@ -1392,9 +1392,6 @@
         }
         .dark-mode .loading-overlay {
             background: rgba(17, 24, 39, 0.95);
-        }
-        .dark-mode .login-card {
-            background: var(--card-bg);
         }
         .dark-mode .called-box,
         .dark-mode .email-box {
