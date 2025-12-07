@@ -1471,7 +1471,20 @@
         function renderContent() {
             const content = document.getElementById('contentArea');
             const titles = { dashboard: 'Dashboard', productions: 'Productions', people: 'People', scenes: 'Scenes', rehearsals: 'Rehearsals', attendance: 'Attendance', inventory: 'Inventory', budget: 'Budget', documents: 'Documents', cueSheets: 'Cue Sheets', emails: 'Emails' };
-            document.getElementById('pageTitle').textContent = titles[activeTab] || 'Dashboard';
+            
+            // Show production name in title when one is selected
+            const prod = data.productions.find(p => p.id === activeProduction);
+            if (activeTab === 'productions') {
+                document.getElementById('pageTitle').textContent = 'Productions';
+                document.title = 'Productions • StageWise';
+            } else if (prod) {
+                document.getElementById('pageTitle').innerHTML = `<span style="color: var(--primary);">${prod.title}</span> <span style="color: var(--gray-400); font-weight: 400;">•</span> <span style="font-weight: 400; color: var(--gray-600);">${titles[activeTab] || 'Dashboard'}</span>`;
+                document.title = `${prod.title} • ${titles[activeTab] || 'Dashboard'} • StageWise`;
+            } else {
+                document.getElementById('pageTitle').textContent = titles[activeTab] || 'Dashboard';
+                document.title = `${titles[activeTab] || 'Dashboard'} • StageWise`;
+            }
+            
             document.getElementById('productionSelectContainer').style.display = activeTab === 'productions' ? 'none' : 'block';
             updateProductionSelector();
 
