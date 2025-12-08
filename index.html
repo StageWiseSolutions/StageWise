@@ -2704,78 +2704,85 @@
                                 ${data.contacts.sort((a, b) => (a.lastName || '').localeCompare(b.lastName || '')).map(c => {
                                     const assignments = data.people.filter(p => p.contactId === c.id);
                                     return `
-                                    <div style="border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px; background: var(--bg-primary);">
-                                        <!-- Header -->
-                                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                                            <div style="display: flex; align-items: center; gap: 12px;">
-                                                <div style="width: 48px; height: 48px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600;">
+                                    <div class="person-card" style="border: 1px solid var(--gray-200); border-radius: 12px; background: var(--bg-primary); overflow: hidden;">
+                                        <!-- Header (always visible) -->
+                                        <div class="person-card-header" onclick="togglePersonCard(this)" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer;">
+                                            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+                                                <div style="width: 44px; height: 44px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; flex-shrink: 0;">
                                                     ${(c.firstName || '?')[0]}${(c.lastName || '?')[0]}
                                                 </div>
-                                                <div>
-                                                    <div style="font-size: 16px; font-weight: 600; color: var(--gray-900);">${c.firstName || ''} ${c.lastName || ''}</div>
-                                                    ${c.voiceType ? `<span class="badge badge-in-progress" style="font-size: 11px;">${c.voiceType}</span>` : ''}
+                                                <div style="min-width: 0; flex: 1;">
+                                                    <div style="font-size: 15px; font-weight: 600; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.firstName || ''} ${c.lastName || ''}</div>
+                                                    <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px;">
+                                                        ${c.voiceType ? `<span class="badge badge-in-progress" style="font-size: 10px;">${c.voiceType}</span>` : ''}
+                                                        ${assignments.length > 0 ? `<span class="badge badge-not-started" style="font-size: 10px;">${assignments.length} production${assignments.length > 1 ? 's' : ''}</span>` : ''}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div style="display: flex; gap: 4px;">
-                                                <button class="btn btn-ghost btn-icon" onclick="openContactModal('${c.id}')" title="Edit" style="padding: 4px;">✏️</button>
-                                                <button class="btn btn-ghost btn-icon" onclick="deleteContact('${c.id}')" title="Delete" style="padding: 4px;">🗑️</button>
+                                            <div style="display: flex; align-items: center; gap: 4px;">
+                                                <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openContactModal('${c.id}')" title="Edit" style="padding: 6px;">✏️</button>
+                                                <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deleteContact('${c.id}')" title="Delete" style="padding: 6px;">🗑️</button>
+                                                <span class="card-chevron" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
                                             </div>
                                         </div>
                                         
-                                        <!-- Contact Info -->
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; margin-bottom: 12px;">
-                                            <div>
-                                                <div style="color: var(--gray-500); font-size: 11px;">📧 Email</div>
-                                                <div>${c.email ? `<a href="mailto:${c.email}" style="color: var(--primary);">${c.email}</a>` : '-'}</div>
-                                            </div>
-                                            <div>
-                                                <div style="color: var(--gray-500); font-size: 11px;">📱 Phone</div>
-                                                <div>${c.phone ? `<a href="tel:${c.phone}" style="color: var(--primary);">${c.phone}</a>` : '-'}</div>
-                                            </div>
-                                            <div>
-                                                <div style="color: var(--gray-500); font-size: 11px;">🆘 Emergency</div>
-                                                <div>${c.emergencyContact || '-'}</div>
-                                            </div>
-                                            <div>
-                                                <div style="color: var(--gray-500); font-size: 11px;">📞 Emerg. Phone</div>
-                                                <div>${c.emergencyPhone ? `<a href="tel:${c.emergencyPhone}" style="color: var(--primary);">${c.emergencyPhone}</a>` : '-'}</div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Costume Info -->
-                                        <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
-                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                                        <!-- Details (collapsible) -->
+                                        <div class="person-card-details" style="display: none; padding: 0 16px 16px 16px; border-top: 1px solid var(--gray-200);">
+                                            <!-- Contact Info -->
+                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; padding-top: 12px; margin-bottom: 12px;">
                                                 <div>
-                                                    <div style="color: var(--gray-500); font-size: 11px;">👟 Shoe Size</div>
-                                                    <div style="color: var(--gray-900);">${c.shoeSize || '-'}</div>
+                                                    <div style="color: var(--gray-500); font-size: 11px;">📧 Email</div>
+                                                    <div>${c.email ? `<a href="mailto:${c.email}" style="color: var(--primary);">${c.email}</a>` : '-'}</div>
                                                 </div>
                                                 <div>
-                                                    <div style="color: var(--gray-500); font-size: 11px;">📏 Measurements</div>
-                                                    <div style="color: var(--gray-900); white-space: pre-wrap; word-break: break-word;">${c.measurements || '-'}</div>
+                                                    <div style="color: var(--gray-500); font-size: 11px;">📱 Phone</div>
+                                                    <div>${c.phone ? `<a href="tel:${c.phone}" style="color: var(--primary);">${c.phone}</a>` : '-'}</div>
+                                                </div>
+                                                <div>
+                                                    <div style="color: var(--gray-500); font-size: 11px;">🆘 Emergency</div>
+                                                    <div>${c.emergencyContact || '-'}</div>
+                                                </div>
+                                                <div>
+                                                    <div style="color: var(--gray-500); font-size: 11px;">📞 Emerg. Phone</div>
+                                                    <div>${c.emergencyPhone ? `<a href="tel:${c.emergencyPhone}" style="color: var(--primary);">${c.emergencyPhone}</a>` : '-'}</div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        
-                                        <!-- Productions -->
-                                        ${assignments.length > 0 ? `
-                                        <div style="border-top: 1px solid var(--gray-200); padding-top: 10px;">
-                                            <div style="font-size: 11px; color: var(--gray-500); margin-bottom: 6px;">🎭 Productions (${assignments.length})</div>
-                                            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                                ${assignments.map(a => {
-                                                    const prod = data.productions.find(p => p.id === a.productionId);
-                                                    return prod ? `<span class="badge badge-not-started" style="font-size: 11px;">${prod.title}${a.character ? ' - ' + a.character : ''}</span>` : '';
-                                                }).join('')}
+                                            
+                                            <!-- Costume Info -->
+                                            <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+                                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                                                    <div>
+                                                        <div style="color: var(--gray-500); font-size: 11px;">👟 Shoe Size</div>
+                                                        <div style="color: var(--gray-900);">${c.shoeSize || '-'}</div>
+                                                    </div>
+                                                    <div>
+                                                        <div style="color: var(--gray-500); font-size: 11px;">📏 Measurements</div>
+                                                        <div style="color: var(--gray-900); white-space: pre-wrap; word-break: break-word;">${c.measurements || '-'}</div>
+                                                    </div>
+                                                </div>
                                             </div>
+                                            
+                                            <!-- Productions -->
+                                            ${assignments.length > 0 ? `
+                                            <div style="border-top: 1px solid var(--gray-200); padding-top: 10px;">
+                                                <div style="font-size: 11px; color: var(--gray-500); margin-bottom: 6px;">🎭 Productions (${assignments.length})</div>
+                                                <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                                    ${assignments.map(a => {
+                                                        const prod = data.productions.find(p => p.id === a.productionId);
+                                                        return prod ? `<span class="badge badge-not-started" style="font-size: 11px;">${prod.title}${a.character ? ' - ' + a.character : ''}</span>` : '';
+                                                    }).join('')}
+                                                </div>
+                                            </div>
+                                            ` : ''}
+                                            
+                                            <!-- Notes -->
+                                            ${c.notes ? `
+                                            <div style="border-top: 1px solid var(--gray-200); padding-top: 10px; margin-top: 10px;">
+                                                <div style="font-size: 11px; color: var(--gray-500);">📝 Notes</div>
+                                                <div style="font-size: 13px; color: var(--gray-700);">${c.notes}</div>
+                                            </div>
+                                            ` : ''}
                                         </div>
-                                        ` : ''}
-                                        
-                                        <!-- Notes -->
-                                        ${c.notes ? `
-                                        <div style="border-top: 1px solid var(--gray-200); padding-top: 10px; margin-top: 10px;">
-                                            <div style="font-size: 11px; color: var(--gray-500);">📝 Notes</div>
-                                            <div style="font-size: 13px; color: var(--gray-700);">${c.notes}</div>
-                                        </div>
-                                        ` : ''}
                                     </div>
                                 `}).join('')}
                             </div>`
@@ -2786,8 +2793,23 @@
             `;
         }
         
+        function togglePersonCard(header) {
+            const card = header.closest('.person-card');
+            const details = card.querySelector('.person-card-details');
+            const chevron = card.querySelector('.card-chevron');
+            
+            if (details.style.display === 'none') {
+                details.style.display = 'block';
+                chevron.textContent = '▲';
+                card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+            } else {
+                details.style.display = 'none';
+                chevron.textContent = '▼';
+                card.style.boxShadow = 'none';
+            }
+        }
+        
         function viewContactModal(id) {
-            // Redirect to edit since all info is now visible
             openContactModal(id);
         }
 
@@ -2945,84 +2967,81 @@
                                     const c = getContact(p);
                                     const personScenes = scenes.filter(s => (s.castIds || []).includes(p.id));
                                     return `
-                                    <div style="border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px; background: var(--bg-primary);">
-                                        <!-- Header -->
-                                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                                            <div style="display: flex; align-items: center; gap: 12px;">
-                                                <div style="width: 48px; height: 48px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600;">
+                                    <div class="person-card" style="border: 1px solid var(--gray-200); border-radius: 12px; background: var(--bg-primary); overflow: hidden;">
+                                        <!-- Header (always visible) -->
+                                        <div class="person-card-header" onclick="togglePersonCard(this)" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer;">
+                                            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+                                                <div style="width: 44px; height: 44px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; flex-shrink: 0;">
                                                     ${(c.firstName || '?')[0]}${(c.lastName || '?')[0]}
                                                 </div>
-                                                <div>
-                                                    <div style="font-size: 16px; font-weight: 600; color: var(--gray-900);">${c.firstName || ''} ${c.lastName || ''}</div>
-                                                    <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px;">
-                                                        <span class="badge badge-not-started" style="font-size: 11px;">${p.role || 'No role'}</span>
-                                                        ${c.voiceType ? `<span class="badge badge-in-progress" style="font-size: 11px;">${c.voiceType}</span>` : ''}
+                                                <div style="min-width: 0; flex: 1;">
+                                                    <div style="font-size: 15px; font-weight: 600; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.firstName || ''} ${c.lastName || ''}</div>
+                                                    <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px;">
+                                                        <span class="badge badge-not-started" style="font-size: 10px;">${p.role || 'No role'}</span>
+                                                        ${c.voiceType ? `<span class="badge badge-in-progress" style="font-size: 10px;">${c.voiceType}</span>` : ''}
                                                     </div>
+                                                    ${p.character ? `<div style="font-size: 13px; color: var(--gray-600); margin-top: 2px;">as <strong>${p.character}</strong></div>` : ''}
                                                 </div>
                                             </div>
-                                            <div style="display: flex; gap: 4px;">
-                                                <button class="btn btn-ghost btn-icon" onclick="openPersonModal('${p.id}')" title="Edit" style="padding: 4px;">✏️</button>
-                                                <button class="btn btn-ghost btn-icon" onclick="deletePerson('${p.id}')" title="Remove" style="padding: 4px;">🗑️</button>
+                                            <div style="display: flex; align-items: center; gap: 4px;">
+                                                <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openPersonModal('${p.id}')" title="Edit" style="padding: 6px;">✏️</button>
+                                                <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deletePerson('${p.id}')" title="Remove" style="padding: 6px;">🗑️</button>
+                                                <span class="card-chevron" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
                                             </div>
                                         </div>
                                         
-                                        <!-- Character -->
-                                        ${p.character ? `
-                                        <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
-                                            <div style="font-size: 11px; color: var(--gray-500);">🎭 Character</div>
-                                            <div style="font-size: 15px; font-weight: 600; color: var(--gray-900);">${p.character}</div>
+                                        <!-- Details (collapsible) -->
+                                        <div class="person-card-details" style="display: none; padding: 0 16px 16px 16px; border-top: 1px solid var(--gray-200);">
+                                            <!-- Contact Info -->
+                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; padding-top: 12px; margin-bottom: 12px;">
+                                                <div>
+                                                    <div style="color: var(--gray-500); font-size: 11px;">📧 Email</div>
+                                                    <div>${c.email ? `<a href="mailto:${c.email}" style="color: var(--primary);">${c.email}</a>` : '-'}</div>
+                                                </div>
+                                                <div>
+                                                    <div style="color: var(--gray-500); font-size: 11px;">📱 Phone</div>
+                                                    <div>${c.phone ? `<a href="tel:${c.phone}" style="color: var(--primary);">${c.phone}</a>` : '-'}</div>
+                                                </div>
+                                                <div>
+                                                    <div style="color: var(--gray-500); font-size: 11px;">🆘 Emergency</div>
+                                                    <div>${c.emergencyContact || '-'}</div>
+                                                </div>
+                                                <div>
+                                                    <div style="color: var(--gray-500); font-size: 11px;">📞 Emerg. Phone</div>
+                                                    <div>${c.emergencyPhone || '-'}</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Costume Info -->
+                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; background: var(--bg-tertiary); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+                                                <div>
+                                                    <div style="color: var(--gray-500); font-size: 11px;">👟 Shoe Size</div>
+                                                    <div style="color: var(--gray-900);">${c.shoeSize || '-'}</div>
+                                                </div>
+                                                <div>
+                                                    <div style="color: var(--gray-500); font-size: 11px;">📏 Measurements</div>
+                                                    <div style="color: var(--gray-900); white-space: pre-wrap; word-break: break-word;">${c.measurements || '-'}</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Scenes -->
+                                            ${personScenes.length > 0 ? `
+                                            <div style="border-top: 1px solid var(--gray-200); padding-top: 10px;">
+                                                <div style="font-size: 11px; color: var(--gray-500); margin-bottom: 6px;">🎬 Scenes (${personScenes.length})</div>
+                                                <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                                    ${personScenes.map(s => `<span class="badge badge-in-progress" style="font-size: 11px;">${s.sceneNumber}: ${s.title}</span>`).join('')}
+                                                </div>
+                                            </div>
+                                            ` : ''}
+                                            
+                                            <!-- Notes -->
+                                            ${p.notes ? `
+                                            <div style="border-top: 1px solid var(--gray-200); padding-top: 10px; margin-top: 10px;">
+                                                <div style="font-size: 11px; color: var(--gray-500);">📝 Notes</div>
+                                                <div style="font-size: 13px; color: var(--gray-700);">${p.notes}</div>
+                                            </div>
+                                            ` : ''}
                                         </div>
-                                        ` : ''}
-                                        
-                                        <!-- Contact Info -->
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; margin-bottom: 12px;">
-                                            <div>
-                                                <div style="color: var(--gray-500); font-size: 11px;">📧 Email</div>
-                                                <div>${c.email ? `<a href="mailto:${c.email}" style="color: var(--primary);">${c.email}</a>` : '-'}</div>
-                                            </div>
-                                            <div>
-                                                <div style="color: var(--gray-500); font-size: 11px;">📱 Phone</div>
-                                                <div>${c.phone ? `<a href="tel:${c.phone}" style="color: var(--primary);">${c.phone}</a>` : '-'}</div>
-                                            </div>
-                                            <div>
-                                                <div style="color: var(--gray-500); font-size: 11px;">🆘 Emergency</div>
-                                                <div>${c.emergencyContact || '-'}</div>
-                                            </div>
-                                            <div>
-                                                <div style="color: var(--gray-500); font-size: 11px;">📞 Emerg. Phone</div>
-                                                <div>${c.emergencyPhone || '-'}</div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Costume Info -->
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; background: var(--bg-tertiary); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
-                                            <div>
-                                                <div style="color: var(--gray-500); font-size: 11px;">👟 Shoe Size</div>
-                                                <div style="color: var(--gray-900);">${c.shoeSize || '-'}</div>
-                                            </div>
-                                            <div>
-                                                <div style="color: var(--gray-500); font-size: 11px;">📏 Measurements</div>
-                                                <div style="color: var(--gray-900); white-space: pre-wrap; word-break: break-word;">${c.measurements || '-'}</div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Scenes -->
-                                        ${personScenes.length > 0 ? `
-                                        <div style="border-top: 1px solid var(--gray-200); padding-top: 10px;">
-                                            <div style="font-size: 11px; color: var(--gray-500); margin-bottom: 6px;">🎬 Scenes (${personScenes.length})</div>
-                                            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                                ${personScenes.map(s => `<span class="badge badge-in-progress" style="font-size: 11px;">${s.sceneNumber}</span>`).join('')}
-                                            </div>
-                                        </div>
-                                        ` : ''}
-                                        
-                                        <!-- Notes -->
-                                        ${p.notes ? `
-                                        <div style="border-top: 1px solid var(--gray-200); padding-top: 10px; margin-top: 10px;">
-                                            <div style="font-size: 11px; color: var(--gray-500);">📝 Notes</div>
-                                            <div style="font-size: 13px; color: var(--gray-700);">${p.notes}</div>
-                                        </div>
-                                        ` : ''}
                                     </div>
                                 `}).join('')}
                             </div>`
@@ -3035,7 +3054,6 @@
         }
         
         function viewPersonModal(id) {
-            // Redirect to edit since all info is now visible
             openPersonModal(id);
         }
 
