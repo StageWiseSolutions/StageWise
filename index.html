@@ -3352,8 +3352,7 @@
             // Email buttons
             notesHtml += `
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--gray-200);">
-                        <button class="btn btn-sm btn-primary" onclick="emailStructuredNotes('${id}', 'all')">✉️ Email All Notes</button>
-                        <button class="btn btn-sm btn-secondary" onclick="emailStructuredNotes('${id}', 'general')">📢 Email General Only</button>
+                        <button class="btn btn-sm btn-primary" onclick="emailAllNotes('${id}')">✉️ Email Notes to Cast</button>
                         <button class="btn btn-sm btn-secondary" onclick="copyStructuredNotes('${id}')">📋 Copy All Notes</button>
                     </div>
                 </div>
@@ -3494,7 +3493,7 @@
             });
         }
         
-        async function emailStructuredNotes(id, mode = 'all') {
+        async function emailAllNotes(id) {
             const rehearsal = data.rehearsals.find(r => r.id === id);
             if (!rehearsal) return;
             
@@ -3507,118 +3506,60 @@
             const calledPeople = people.filter(p => (rehearsal.calledCastIds || []).includes(p.id));
             const rehearsalScenes = scenes.filter(s => (rehearsal.sceneIds || []).includes(s.id));
             
+            // Get all email addresses
+            const emails = calledPeople.map(p => getContact(p).email).filter(e => e);
+            if (emails.length === 0) {
+                showNotification('No email addresses found', 'error');
+                return;
+            }
+            
             // Get current values from form
             const general = document.getElementById('notes-general')?.value || '';
             const ensembleNotes = document.getElementById('notes-ensemble')?.value || '';
             const crewNotes = document.getElementById('notes-crew')?.value || '';
             
+            // Get character notes
+            const principals = calledPeople.filter(p => p.role === 'Cast - Principal' || p.role === 'Cast - Supporting' || p.role === 'Cast');
+            
             const dateFormatted = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
             const dateShort = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             
-            if (mode === 'general') {
-                // Send general notes to everyone
-                const emails = calledPeople.map(p => getContact(p).email).filter(e => e);
-                if (emails.length === 0) {
-                    showNotification('No email addresses found', 'error');
-                    return;
-                }
-                
-                const subject = `${production?.title || 'Production'} - ${rehearsal.type || 'Rehearsal'} Notes (${dateShort})`;
-                let body = buildEmailHeader(production, rehearsal, dateFormatted, rehearsalScenes);
-                body += `📢 NOTES:\n\n${general || 'No notes.'}\n\n`;
-                body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-                body += `Sent to ${calledPeople.length} cast/crew member(s).`;
-                
-                window.open(`mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
-                showNotification(`Opening email to ${emails.length} recipient(s)`, 'success');
-                
-            } else {
-                // Send personalized notes - open email compose for each unique combination
-                // Group by note content to minimize emails
-                const principals = calledPeople.filter(p => p.role === 'Cast - Principal' || p.role === 'Cast - Supporting' || p.role === 'Cast');
-                const ensemble = calledPeople.filter(p => p.role === 'Cast - Ensemble');
-                const crew = calledPeople.filter(p => p.role === 'Crew' || p.role === 'Stage Manager' || p.role === 'Assistant Stage Manager');
-                
-                let emailCount = 0;
-                const subject = `${production?.title || 'Production'} - ${rehearsal.type || 'Rehearsal'} Notes (${dateShort})`;
-                
-                // Email principals individually (they get personalized notes)
-                for (const person of principals) {
-                    const contact = getContact(person);
-                    if (!contact.email) continue;
-                    
-                    const charNote = document.getElementById(`notes-char-${person.id}`)?.value || '';
-                    
-                    let body = buildEmailHeader(production, rehearsal, dateFormatted, rehearsalScenes);
-                    
-                    if (general) {
-                        body += `📢 GENERAL NOTES:\n\n${general}\n\n`;
-                    }
-                    
-                    if (charNote) {
-                        body += `🎭 NOTES FOR ${(person.character || contact.firstName).toUpperCase()}:\n\n${charNote}\n\n`;
-                    }
-                    
-                    body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-                    body += `This is your personalized rehearsal notes.`;
-                    
-                    // Only send if there are actual notes
-                    if (general || charNote) {
-                        window.open(`mailto:${contact.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
-                        emailCount++;
-                    }
-                }
-                
-                // Email ensemble as a group
-                if (ensemble.length > 0 && (general || ensembleNotes)) {
-                    const emails = ensemble.map(p => getContact(p).email).filter(e => e);
-                    if (emails.length > 0) {
-                        let body = buildEmailHeader(production, rehearsal, dateFormatted, rehearsalScenes);
-                        
-                        if (general) {
-                            body += `📢 GENERAL NOTES:\n\n${general}\n\n`;
-                        }
-                        
-                        if (ensembleNotes) {
-                            body += `👥 ENSEMBLE NOTES:\n\n${ensembleNotes}\n\n`;
-                        }
-                        
-                        body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-                        body += `Sent to ${ensemble.length} ensemble member(s).`;
-                        
-                        window.open(`mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
-                        emailCount++;
-                    }
-                }
-                
-                // Email crew as a group
-                if (crew.length > 0 && (general || crewNotes)) {
-                    const emails = crew.map(p => getContact(p).email).filter(e => e);
-                    if (emails.length > 0) {
-                        let body = buildEmailHeader(production, rehearsal, dateFormatted, rehearsalScenes);
-                        
-                        if (general) {
-                            body += `📢 GENERAL NOTES:\n\n${general}\n\n`;
-                        }
-                        
-                        if (crewNotes) {
-                            body += `🔧 CREW NOTES:\n\n${crewNotes}\n\n`;
-                        }
-                        
-                        body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-                        body += `Sent to ${crew.length} crew member(s).`;
-                        
-                        window.open(`mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
-                        emailCount++;
-                    }
-                }
-                
-                if (emailCount === 0) {
-                    showNotification('No notes to send or no email addresses found', 'error');
-                } else {
-                    showNotification(`Opening ${emailCount} email(s) with personalized notes`, 'success');
-                }
+            const subject = `${production?.title || 'Production'} - ${rehearsal.type || 'Rehearsal'} Notes (${dateShort})`;
+            
+            // Build email body with all notes
+            let body = buildEmailHeader(production, rehearsal, dateFormatted, rehearsalScenes);
+            
+            if (general) {
+                body += `📢 GENERAL NOTES:\n\n${general}\n\n`;
             }
+            
+            // Character notes
+            let hasCharNotes = false;
+            principals.forEach(person => {
+                const contact = getContact(person);
+                const noteEl = document.getElementById(`notes-char-${person.id}`);
+                if (noteEl && noteEl.value.trim()) {
+                    if (!hasCharNotes) {
+                        body += `🎭 CHARACTER NOTES:\n\n`;
+                        hasCharNotes = true;
+                    }
+                    body += `${person.character || contact.firstName + ' ' + contact.lastName}:\n${noteEl.value}\n\n`;
+                }
+            });
+            
+            if (ensembleNotes) {
+                body += `👥 ENSEMBLE NOTES:\n\n${ensembleNotes}\n\n`;
+            }
+            
+            if (crewNotes) {
+                body += `🔧 CREW NOTES:\n\n${crewNotes}\n\n`;
+            }
+            
+            body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            body += `Sent to ${calledPeople.length} cast/crew member(s).`;
+            
+            window.open(`mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+            showNotification(`Opening email to ${emails.length} recipient(s)`, 'success');
         }
         
         function buildEmailHeader(production, rehearsal, dateFormatted, scenes) {
