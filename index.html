@@ -2698,30 +2698,87 @@
                     <div class="card-header">
                         <span class="card-title">Company Roster (${data.contacts.length})</span>
                     </div>
-                    <div class="card-body no-padding">
+                    <div class="card-body">
                         ${data.contacts.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">📇</div><div class="empty-state-title">No contacts yet</div><p>Add people to your company roster. They can then be assigned to productions.</p></div>' :
-                            `<div class="table-wrapper"><table>
-                                <thead><tr><th>Name</th><th>Contact</th><th>Voice</th><th>Sizes</th><th>Actions</th></tr></thead>
-                                <tbody>${data.contacts.sort((a, b) => (a.lastName || '').localeCompare(b.lastName || '')).map(c => `
-                                    <tr onclick="viewContactModal('${c.id}')" style="cursor: pointer;">
-                                        <td class="table-name">${c.firstName || ''} ${c.lastName || ''}</td>
-                                        <td>
-                                            <div class="table-meta">${c.email ? `<a href="mailto:${c.email}" style="color:var(--primary)" onclick="event.stopPropagation()">${c.email}</a>` : '-'}</div>
-                                            <div class="table-meta">${c.phone ? `<a href="tel:${c.phone}" style="color:var(--primary)" onclick="event.stopPropagation()">${c.phone}</a>` : ''}</div>
-                                        </td>
-                                        <td>${c.voiceType ? `<span class="badge badge-in-progress">${c.voiceType}</span>` : '-'}</td>
-                                        <td>
-                                            <div class="table-meta">${c.shoeSize ? `👟 ${c.shoeSize}` : ''}</div>
-                                            <div class="table-meta" style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.measurements ? `📏 ${c.measurements}` : ''}</div>
-                                        </td>
-                                        <td><div class="table-actions">
-                                            <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); viewContactModal('${c.id}')" title="View">👁️</button>
-                                            <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openContactModal('${c.id}')" title="Edit">✏️</button>
-                                            <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deleteContact('${c.id}')" title="Delete">🗑️</button>
-                                        </div></td>
-                                    </tr>
-                                `).join('')}</tbody>
-                            </table></div>`
+                            `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+                                ${data.contacts.sort((a, b) => (a.lastName || '').localeCompare(b.lastName || '')).map(c => {
+                                    const assignments = data.people.filter(p => p.contactId === c.id);
+                                    return `
+                                    <div style="border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px; background: var(--bg-primary);">
+                                        <!-- Header -->
+                                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                                            <div style="display: flex; align-items: center; gap: 12px;">
+                                                <div style="width: 48px; height: 48px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600;">
+                                                    ${(c.firstName || '?')[0]}${(c.lastName || '?')[0]}
+                                                </div>
+                                                <div>
+                                                    <div style="font-size: 16px; font-weight: 600; color: var(--gray-900);">${c.firstName || ''} ${c.lastName || ''}</div>
+                                                    ${c.voiceType ? `<span class="badge badge-in-progress" style="font-size: 11px;">${c.voiceType}</span>` : ''}
+                                                </div>
+                                            </div>
+                                            <div style="display: flex; gap: 4px;">
+                                                <button class="btn btn-ghost btn-icon" onclick="openContactModal('${c.id}')" title="Edit" style="padding: 4px;">✏️</button>
+                                                <button class="btn btn-ghost btn-icon" onclick="deleteContact('${c.id}')" title="Delete" style="padding: 4px;">🗑️</button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Contact Info -->
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; margin-bottom: 12px;">
+                                            <div>
+                                                <div style="color: var(--gray-500); font-size: 11px;">📧 Email</div>
+                                                <div>${c.email ? `<a href="mailto:${c.email}" style="color: var(--primary);">${c.email}</a>` : '-'}</div>
+                                            </div>
+                                            <div>
+                                                <div style="color: var(--gray-500); font-size: 11px;">📱 Phone</div>
+                                                <div>${c.phone ? `<a href="tel:${c.phone}" style="color: var(--primary);">${c.phone}</a>` : '-'}</div>
+                                            </div>
+                                            <div>
+                                                <div style="color: var(--gray-500); font-size: 11px;">🆘 Emergency</div>
+                                                <div>${c.emergencyContact || '-'}</div>
+                                            </div>
+                                            <div>
+                                                <div style="color: var(--gray-500); font-size: 11px;">📞 Emerg. Phone</div>
+                                                <div>${c.emergencyPhone ? `<a href="tel:${c.emergencyPhone}" style="color: var(--primary);">${c.emergencyPhone}</a>` : '-'}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Costume Info -->
+                                        <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                                                <div>
+                                                    <div style="color: var(--gray-500); font-size: 11px;">👟 Shoe Size</div>
+                                                    <div style="color: var(--gray-900);">${c.shoeSize || '-'}</div>
+                                                </div>
+                                                <div>
+                                                    <div style="color: var(--gray-500); font-size: 11px;">📏 Measurements</div>
+                                                    <div style="color: var(--gray-900); white-space: pre-wrap; word-break: break-word;">${c.measurements || '-'}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Productions -->
+                                        ${assignments.length > 0 ? `
+                                        <div style="border-top: 1px solid var(--gray-200); padding-top: 10px;">
+                                            <div style="font-size: 11px; color: var(--gray-500); margin-bottom: 6px;">🎭 Productions (${assignments.length})</div>
+                                            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                                ${assignments.map(a => {
+                                                    const prod = data.productions.find(p => p.id === a.productionId);
+                                                    return prod ? `<span class="badge badge-not-started" style="font-size: 11px;">${prod.title}${a.character ? ' - ' + a.character : ''}</span>` : '';
+                                                }).join('')}
+                                            </div>
+                                        </div>
+                                        ` : ''}
+                                        
+                                        <!-- Notes -->
+                                        ${c.notes ? `
+                                        <div style="border-top: 1px solid var(--gray-200); padding-top: 10px; margin-top: 10px;">
+                                            <div style="font-size: 11px; color: var(--gray-500);">📝 Notes</div>
+                                            <div style="font-size: 13px; color: var(--gray-700);">${c.notes}</div>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                `}).join('')}
+                            </div>`
                         }
                     </div>
                 </div>
@@ -2730,90 +2787,8 @@
         }
         
         function viewContactModal(id) {
-            const c = data.contacts.find(contact => contact.id === id);
-            if (!c) return;
-            
-            // Find which productions this person is in
-            const assignments = data.people.filter(p => p.contactId === id);
-            const productionsList = assignments.map(a => {
-                const prod = data.productions.find(p => p.id === a.productionId);
-                return prod ? `<div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--gray-100);"><span>${prod.title}</span><span class="badge badge-not-started">${a.role}${a.character ? ' - ' + a.character : ''}</span></div>` : '';
-            }).join('');
-            
-            const bodyHtml = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <!-- Contact Info -->
-                    <div style="grid-column: span 2; display: flex; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--gray-200);">
-                        <div style="width: 60px; height: 60px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600;">
-                            ${(c.firstName || '?')[0]}${(c.lastName || '?')[0]}
-                        </div>
-                        <div>
-                            <div style="font-size: 20px; font-weight: 600; color: var(--gray-900);">${c.firstName || ''} ${c.lastName || ''}</div>
-                            ${c.voiceType ? `<span class="badge badge-in-progress">${c.voiceType}</span>` : ''}
-                        </div>
-                    </div>
-                    
-                    <!-- Contact Details -->
-                    <div>
-                        <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">📧 Email</div>
-                        <div style="color: var(--gray-900);">${c.email ? `<a href="mailto:${c.email}" style="color: var(--primary);">${c.email}</a>` : '-'}</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">📱 Phone</div>
-                        <div style="color: var(--gray-900);">${c.phone ? `<a href="tel:${c.phone}" style="color: var(--primary);">${c.phone}</a>` : '-'}</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">🆘 Emergency Contact</div>
-                        <div style="color: var(--gray-900);">${c.emergencyContact || '-'}</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">📞 Emergency Phone</div>
-                        <div style="color: var(--gray-900);">${c.emergencyPhone ? `<a href="tel:${c.emergencyPhone}" style="color: var(--primary);">${c.emergencyPhone}</a>` : '-'}</div>
-                    </div>
-                    
-                    <!-- Costume Info -->
-                    <div style="grid-column: span 2; border-top: 1px solid var(--gray-200); padding-top: 16px; margin-top: 8px;">
-                        <div style="font-size: 14px; font-weight: 600; color: var(--gray-900); margin-bottom: 12px;">👗 Costume Information</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <div>
-                                <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">🎤 Voice Type</div>
-                                <div style="color: var(--gray-900);">${c.voiceType || '-'}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">👟 Shoe Size</div>
-                                <div style="color: var(--gray-900);">${c.shoeSize || '-'}</div>
-                            </div>
-                            <div style="grid-column: span 2;">
-                                <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">📏 Measurements</div>
-                                <div style="color: var(--gray-900); white-space: pre-wrap;">${c.measurements || '-'}</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Notes -->
-                    ${c.notes ? `
-                    <div style="grid-column: span 2; border-top: 1px solid var(--gray-200); padding-top: 16px; margin-top: 8px;">
-                        <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">📝 Notes</div>
-                        <div style="color: var(--gray-900); white-space: pre-wrap;">${c.notes}</div>
-                    </div>
-                    ` : ''}
-                    
-                    <!-- Productions -->
-                    ${assignments.length > 0 ? `
-                    <div style="grid-column: span 2; border-top: 1px solid var(--gray-200); padding-top: 16px; margin-top: 8px;">
-                        <div style="font-size: 14px; font-weight: 600; color: var(--gray-900); margin-bottom: 8px;">🎭 Productions (${assignments.length})</div>
-                        ${productionsList}
-                    </div>
-                    ` : ''}
-                </div>
-            `;
-            
-            const footerHtml = `
-                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
-                <button class="btn btn-primary" onclick="closeModal(); openContactModal('${id}')">✏️ Edit</button>
-            `;
-            
-            openModal(`👤 ${c.firstName} ${c.lastName}`, bodyHtml, footerHtml);
+            // Redirect to edit since all info is now visible
+            openContactModal(id);
         }
 
         function openContactModal(id = null) {
@@ -2958,39 +2933,99 @@
         function renderPeople() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">Select a production first</div></div>';
             const people = getProductionData('people');
+            const scenes = getProductionData('scenes');
 
             return `
                 <div class="card">
                     <div class="card-header"><span class="card-title">Cast & Crew (${people.length})</span></div>
-                    <div class="card-body no-padding">
+                    <div class="card-body">
                         ${people.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">No one assigned yet</div><p>Click + to add people from your company roster.</p></div>' :
-                            `<div class="table-wrapper"><table>
-                                <thead><tr><th>Name</th><th>Role / Character</th><th>Voice</th><th>Sizes</th><th>Actions</th></tr></thead>
-                                <tbody>${people.map(p => {
+                            `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+                                ${people.map(p => {
                                     const c = getContact(p);
+                                    const personScenes = scenes.filter(s => (s.castIds || []).includes(p.id));
                                     return `
-                                    <tr onclick="viewPersonModal('${p.id}')" style="cursor: pointer;">
-                                        <td class="table-name">
-                                            ${c.firstName} ${c.lastName}
-                                            <div class="table-meta">${c.email ? `<a href="mailto:${c.email}" style="color:var(--primary)" onclick="event.stopPropagation()">${c.email}</a>` : ''}</div>
-                                        </td>
-                                        <td>
-                                            <span class="badge badge-not-started">${p.role || '-'}</span>
-                                            ${p.character ? `<div style="margin-top: 4px; font-weight: 500;">${p.character}</div>` : ''}
-                                        </td>
-                                        <td>${c.voiceType ? `<span class="badge badge-in-progress">${c.voiceType}</span>` : '-'}</td>
-                                        <td>
-                                            <div class="table-meta">${c.shoeSize ? `👟 ${c.shoeSize}` : ''}</div>
-                                            <div class="table-meta" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.measurements ? `📏 ${c.measurements}` : ''}</div>
-                                        </td>
-                                        <td><div class="table-actions">
-                                            <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); viewPersonModal('${p.id}')" title="View">👁️</button>
-                                            <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openPersonModal('${p.id}')" title="Edit">✏️</button>
-                                            <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deletePerson('${p.id}')" title="Remove">🗑️</button>
-                                        </div></td>
-                                    </tr>
-                                `}).join('')}</tbody>
-                            </table></div>`
+                                    <div style="border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px; background: var(--bg-primary);">
+                                        <!-- Header -->
+                                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                                            <div style="display: flex; align-items: center; gap: 12px;">
+                                                <div style="width: 48px; height: 48px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600;">
+                                                    ${(c.firstName || '?')[0]}${(c.lastName || '?')[0]}
+                                                </div>
+                                                <div>
+                                                    <div style="font-size: 16px; font-weight: 600; color: var(--gray-900);">${c.firstName || ''} ${c.lastName || ''}</div>
+                                                    <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px;">
+                                                        <span class="badge badge-not-started" style="font-size: 11px;">${p.role || 'No role'}</span>
+                                                        ${c.voiceType ? `<span class="badge badge-in-progress" style="font-size: 11px;">${c.voiceType}</span>` : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div style="display: flex; gap: 4px;">
+                                                <button class="btn btn-ghost btn-icon" onclick="openPersonModal('${p.id}')" title="Edit" style="padding: 4px;">✏️</button>
+                                                <button class="btn btn-ghost btn-icon" onclick="deletePerson('${p.id}')" title="Remove" style="padding: 4px;">🗑️</button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Character -->
+                                        ${p.character ? `
+                                        <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+                                            <div style="font-size: 11px; color: var(--gray-500);">🎭 Character</div>
+                                            <div style="font-size: 15px; font-weight: 600; color: var(--gray-900);">${p.character}</div>
+                                        </div>
+                                        ` : ''}
+                                        
+                                        <!-- Contact Info -->
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; margin-bottom: 12px;">
+                                            <div>
+                                                <div style="color: var(--gray-500); font-size: 11px;">📧 Email</div>
+                                                <div>${c.email ? `<a href="mailto:${c.email}" style="color: var(--primary);">${c.email}</a>` : '-'}</div>
+                                            </div>
+                                            <div>
+                                                <div style="color: var(--gray-500); font-size: 11px;">📱 Phone</div>
+                                                <div>${c.phone ? `<a href="tel:${c.phone}" style="color: var(--primary);">${c.phone}</a>` : '-'}</div>
+                                            </div>
+                                            <div>
+                                                <div style="color: var(--gray-500); font-size: 11px;">🆘 Emergency</div>
+                                                <div>${c.emergencyContact || '-'}</div>
+                                            </div>
+                                            <div>
+                                                <div style="color: var(--gray-500); font-size: 11px;">📞 Emerg. Phone</div>
+                                                <div>${c.emergencyPhone || '-'}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Costume Info -->
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; background: var(--bg-tertiary); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+                                            <div>
+                                                <div style="color: var(--gray-500); font-size: 11px;">👟 Shoe Size</div>
+                                                <div style="color: var(--gray-900);">${c.shoeSize || '-'}</div>
+                                            </div>
+                                            <div>
+                                                <div style="color: var(--gray-500); font-size: 11px;">📏 Measurements</div>
+                                                <div style="color: var(--gray-900); white-space: pre-wrap; word-break: break-word;">${c.measurements || '-'}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Scenes -->
+                                        ${personScenes.length > 0 ? `
+                                        <div style="border-top: 1px solid var(--gray-200); padding-top: 10px;">
+                                            <div style="font-size: 11px; color: var(--gray-500); margin-bottom: 6px;">🎬 Scenes (${personScenes.length})</div>
+                                            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                                ${personScenes.map(s => `<span class="badge badge-in-progress" style="font-size: 11px;">${s.sceneNumber}</span>`).join('')}
+                                            </div>
+                                        </div>
+                                        ` : ''}
+                                        
+                                        <!-- Notes -->
+                                        ${p.notes ? `
+                                        <div style="border-top: 1px solid var(--gray-200); padding-top: 10px; margin-top: 10px;">
+                                            <div style="font-size: 11px; color: var(--gray-500);">📝 Notes</div>
+                                            <div style="font-size: 13px; color: var(--gray-700);">${p.notes}</div>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                `}).join('')}
+                            </div>`
                         }
                     </div>
                 </div>
@@ -3000,103 +3035,8 @@
         }
         
         function viewPersonModal(id) {
-            const person = data.people.find(p => p.id === id);
-            if (!person) return;
-            
-            const c = getContact(person);
-            const production = data.productions.find(p => p.id === person.productionId);
-            
-            // Find which scenes this person is in
-            const scenes = getProductionData('scenes').filter(s => (s.castIds || []).includes(id));
-            
-            const bodyHtml = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <!-- Header with avatar -->
-                    <div style="grid-column: span 2; display: flex; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--gray-200);">
-                        <div style="width: 60px; height: 60px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600;">
-                            ${(c.firstName || '?')[0]}${(c.lastName || '?')[0]}
-                        </div>
-                        <div>
-                            <div style="font-size: 20px; font-weight: 600; color: var(--gray-900);">${c.firstName || ''} ${c.lastName || ''}</div>
-                            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
-                                <span class="badge badge-not-started">${person.role || 'No role'}</span>
-                                ${c.voiceType ? `<span class="badge badge-in-progress">${c.voiceType}</span>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Production Info -->
-                    <div style="grid-column: span 2; background: var(--bg-tertiary); border-radius: 8px; padding: 12px;">
-                        <div style="font-size: 14px; font-weight: 600; color: var(--gray-900); margin-bottom: 8px;">🎭 Production Role</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <div>
-                                <div style="font-size: 12px; color: var(--gray-500);">Role</div>
-                                <div style="font-weight: 500;">${person.role || '-'}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 12px; color: var(--gray-500);">Character</div>
-                                <div style="font-weight: 500;">${person.character || '-'}</div>
-                            </div>
-                        </div>
-                        ${person.notes ? `<div style="margin-top: 8px;"><div style="font-size: 12px; color: var(--gray-500);">Notes</div><div>${person.notes}</div></div>` : ''}
-                    </div>
-                    
-                    <!-- Contact Info -->
-                    <div>
-                        <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">📧 Email</div>
-                        <div style="color: var(--gray-900);">${c.email ? `<a href="mailto:${c.email}" style="color: var(--primary);">${c.email}</a>` : '-'}</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">📱 Phone</div>
-                        <div style="color: var(--gray-900);">${c.phone ? `<a href="tel:${c.phone}" style="color: var(--primary);">${c.phone}</a>` : '-'}</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">🆘 Emergency Contact</div>
-                        <div style="color: var(--gray-900);">${c.emergencyContact || '-'}</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">📞 Emergency Phone</div>
-                        <div style="color: var(--gray-900);">${c.emergencyPhone ? `<a href="tel:${c.emergencyPhone}" style="color: var(--primary);">${c.emergencyPhone}</a>` : '-'}</div>
-                    </div>
-                    
-                    <!-- Costume Info -->
-                    <div style="grid-column: span 2; border-top: 1px solid var(--gray-200); padding-top: 16px; margin-top: 8px;">
-                        <div style="font-size: 14px; font-weight: 600; color: var(--gray-900); margin-bottom: 12px;">👗 Costume Information</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
-                            <div>
-                                <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">🎤 Voice Type</div>
-                                <div style="color: var(--gray-900);">${c.voiceType || '-'}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">👟 Shoe Size</div>
-                                <div style="color: var(--gray-900);">${c.shoeSize || '-'}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">📏 Measurements</div>
-                                <div style="color: var(--gray-900); white-space: pre-wrap;">${c.measurements || '-'}</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Scenes -->
-                    ${scenes.length > 0 ? `
-                    <div style="grid-column: span 2; border-top: 1px solid var(--gray-200); padding-top: 16px; margin-top: 8px;">
-                        <div style="font-size: 14px; font-weight: 600; color: var(--gray-900); margin-bottom: 8px;">🎬 Scenes (${scenes.length})</div>
-                        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                            ${scenes.map(s => `<span class="badge badge-in-progress">${s.sceneNumber}: ${s.title}</span>`).join('')}
-                        </div>
-                    </div>
-                    ` : ''}
-                </div>
-            `;
-            
-            const footerHtml = `
-                <button class="btn btn-danger" onclick="deletePerson('${id}')">🗑️ Remove</button>
-                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
-                <button class="btn btn-primary" onclick="closeModal(); openPersonModal('${id}')">✏️ Edit</button>
-            `;
-            
-            openModal(`👤 ${c.firstName} ${c.lastName}`, bodyHtml, footerHtml);
+            // Redirect to edit since all info is now visible
+            openPersonModal(id);
         }
 
         function openPersonModal(id = null) {
