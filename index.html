@@ -3352,8 +3352,8 @@
             // Email buttons
             notesHtml += `
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--gray-200);">
-                        <button class="btn btn-sm btn-primary" onclick="emailAllNotes('${id}')">✉️ Email Notes to Cast</button>
-                        <button class="btn btn-sm btn-secondary" onclick="saveNotesToDocuments('${id}')">📄 Save to Documents</button>
+                        <button class="btn btn-sm btn-primary" onclick="saveStructuredNotes('${id}')">💾 Save Notes</button>
+                        <button class="btn btn-sm btn-secondary" onclick="emailAllNotes('${id}')">✉️ Email to Cast</button>
                         <button class="btn btn-sm btn-secondary" onclick="copyStructuredNotes('${id}')">📋 Copy</button>
                     </div>
                 </div>
@@ -3433,10 +3433,100 @@
                 }
             });
             
-            // Save as JSON string
+            // Save as JSON string to rehearsal
             rehearsal.notes = JSON.stringify(structuredNotes);
             await saveSheetData('rehearsals');
-            showNotification('All notes saved!', 'success');
+            
+            // Check if there are any notes to archive
+            const hasNotes = structuredNotes.general || structuredNotes.ensemble || structuredNotes.crew || Object.keys(structuredNotes.characters).length > 0;
+            
+            if (hasNotes) {
+                // Auto-archive to Documents
+                await archiveNotesToDocuments(id, structuredNotes);
+            }
+            
+            showNotification('Notes saved!', 'success');
+        }
+        
+        async function archiveNotesToDocuments(id, structuredNotes) {
+            const rehearsal = data.rehearsals.find(r => r.id === id);
+            if (!rehearsal) return;
+            
+            const production = data.productions.find(p => p.id === rehearsal.productionId);
+            const people = getProductionData('people');
+            const scenes = getProductionData('scenes');
+            const calledPeople = people.filter(p => (rehearsal.calledCastIds || []).includes(p.id));
+            const rehearsalScenes = scenes.filter(s => (rehearsal.sceneIds || []).includes(s.id));
+            const principals = calledPeople.filter(p => p.role === 'Cast - Principal' || p.role === 'Cast - Supporting' || p.role === 'Cast');
+            
+            const dateFormatted = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            const dateShort = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            
+            // Build document content
+            let content = `${rehearsal.type || 'Rehearsal'} Notes - ${dateShort}\n`;
+            content += `${'═'.repeat(40)}\n\n`;
+            content += `Date: ${dateFormatted}\n`;
+            content += `Time: ${formatTime12(rehearsal.startTime)} - ${formatTime12(rehearsal.endTime)}\n`;
+            content += `Location: ${rehearsal.location || 'TBD'}\n`;
+            if (rehearsalScenes.length > 0) {
+                content += `Scenes: ${rehearsalScenes.map(s => s.sceneNumber + ': ' + s.title).join(', ')}\n`;
+            }
+            content += `\n${'─'.repeat(40)}\n\n`;
+            
+            if (structuredNotes.general) {
+                content += `GENERAL NOTES:\n${structuredNotes.general}\n\n`;
+            }
+            
+            // Character notes
+            let hasCharNotes = false;
+            principals.forEach(person => {
+                const contact = getContact(person);
+                const charNote = structuredNotes.characters[person.id];
+                if (charNote) {
+                    if (!hasCharNotes) {
+                        content += `CHARACTER NOTES:\n\n`;
+                        hasCharNotes = true;
+                    }
+                    content += `${person.character || contact.firstName + ' ' + contact.lastName}:\n${charNote}\n\n`;
+                }
+            });
+            
+            if (structuredNotes.ensemble) {
+                content += `ENSEMBLE NOTES:\n${structuredNotes.ensemble}\n\n`;
+            }
+            
+            if (structuredNotes.crew) {
+                content += `CREW NOTES:\n${structuredNotes.crew}\n\n`;
+            }
+            
+            const docTitle = `${rehearsal.type || 'Rehearsal'} Notes - ${dateShort}`;
+            
+            // Check if a document for this rehearsal already exists
+            const existingDoc = data.documents.find(d => 
+                d.productionId === rehearsal.productionId && 
+                d.category === 'Rehearsal Notes' && 
+                d.title === docTitle
+            );
+            
+            if (existingDoc) {
+                // Update existing document
+                existingDoc.notes = content;
+                existingDoc.dateAdded = new Date().toISOString().split('T')[0];
+            } else {
+                // Create new document
+                data.documents.push({
+                    id: generateId(),
+                    productionId: rehearsal.productionId,
+                    title: docTitle,
+                    category: 'Rehearsal Notes',
+                    url: '',
+                    version: '1',
+                    notes: content,
+                    dateAdded: new Date().toISOString().split('T')[0]
+                });
+            }
+            
+            await saveSheetData('documents');
         }
         
         function copyStructuredNotes(id) {
@@ -3575,95 +3665,6 @@
             return header;
         }
         
-        async function saveNotesToDocuments(id) {
-            const rehearsal = data.rehearsals.find(r => r.id === id);
-            if (!rehearsal) return;
-            
-            // Save notes first
-            await saveStructuredNotes(id);
-            
-            const production = data.productions.find(p => p.id === rehearsal.productionId);
-            const people = getProductionData('people');
-            const scenes = getProductionData('scenes');
-            const calledPeople = people.filter(p => (rehearsal.calledCastIds || []).includes(p.id));
-            const rehearsalScenes = scenes.filter(s => (rehearsal.sceneIds || []).includes(s.id));
-            const principals = calledPeople.filter(p => p.role === 'Cast - Principal' || p.role === 'Cast - Supporting' || p.role === 'Cast');
-            
-            const dateFormatted = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-            const dateShort = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            
-            // Get current values from form
-            const general = document.getElementById('notes-general')?.value || '';
-            const ensembleNotes = document.getElementById('notes-ensemble')?.value || '';
-            const crewNotes = document.getElementById('notes-crew')?.value || '';
-            
-            // Build document content
-            let content = `${rehearsal.type || 'Rehearsal'} Notes - ${dateShort}\n`;
-            content += `${'═'.repeat(40)}\n\n`;
-            content += `Date: ${dateFormatted}\n`;
-            content += `Time: ${formatTime12(rehearsal.startTime)} - ${formatTime12(rehearsal.endTime)}\n`;
-            content += `Location: ${rehearsal.location || 'TBD'}\n`;
-            if (rehearsalScenes.length > 0) {
-                content += `Scenes: ${rehearsalScenes.map(s => s.sceneNumber + ': ' + s.title).join(', ')}\n`;
-            }
-            content += `\n${'─'.repeat(40)}\n\n`;
-            
-            if (general) {
-                content += `GENERAL NOTES:\n${general}\n\n`;
-            }
-            
-            // Character notes
-            let hasCharNotes = false;
-            principals.forEach(person => {
-                const contact = getContact(person);
-                const noteEl = document.getElementById(`notes-char-${person.id}`);
-                if (noteEl && noteEl.value.trim()) {
-                    if (!hasCharNotes) {
-                        content += `CHARACTER NOTES:\n\n`;
-                        hasCharNotes = true;
-                    }
-                    content += `${person.character || contact.firstName + ' ' + contact.lastName}:\n${noteEl.value}\n\n`;
-                }
-            });
-            
-            if (ensembleNotes) {
-                content += `ENSEMBLE NOTES:\n${ensembleNotes}\n\n`;
-            }
-            
-            if (crewNotes) {
-                content += `CREW NOTES:\n${crewNotes}\n\n`;
-            }
-            
-            // Check if a document for this rehearsal already exists
-            const existingDoc = data.documents.find(d => 
-                d.productionId === rehearsal.productionId && 
-                d.category === 'Rehearsal Notes' && 
-                d.title === `${rehearsal.type || 'Rehearsal'} Notes - ${dateShort}`
-            );
-            
-            if (existingDoc) {
-                // Update existing document
-                existingDoc.notes = content;
-                existingDoc.dateAdded = new Date().toISOString().split('T')[0];
-                showNotification('Document updated!', 'success');
-            } else {
-                // Create new document
-                data.documents.push({
-                    id: generateId(),
-                    productionId: rehearsal.productionId,
-                    title: `${rehearsal.type || 'Rehearsal'} Notes - ${dateShort}`,
-                    category: 'Rehearsal Notes',
-                    url: '',
-                    version: '1',
-                    notes: content,
-                    dateAdded: new Date().toISOString().split('T')[0]
-                });
-                showNotification('Notes saved to Documents!', 'success');
-            }
-            
-            await saveSheetData('documents');
-        }
-
         async function markAttendanceInModal(rehearsalId, personId, status) {
             // Find existing record or create new one
             let record = data.attendance.find(a => a.rehearsalId === rehearsalId && a.personId === personId);
