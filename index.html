@@ -3229,6 +3229,26 @@
             
             const dateFormatted = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
             
+            // Parse structured notes (or convert from old format)
+            let structuredNotes = { general: '', ensemble: '', crew: '', characters: {} };
+            if (rehearsal.notes) {
+                try {
+                    const parsed = JSON.parse(rehearsal.notes);
+                    if (parsed.general !== undefined) {
+                        structuredNotes = parsed;
+                    } else {
+                        structuredNotes.general = rehearsal.notes;
+                    }
+                } catch (e) {
+                    structuredNotes.general = rehearsal.notes;
+                }
+            }
+            
+            // Group called people by type
+            const principals = calledPeople.filter(p => p.role === 'Cast - Principal' || p.role === 'Cast - Supporting' || p.role === 'Cast');
+            const ensemble = calledPeople.filter(p => p.role === 'Cast - Ensemble');
+            const crew = calledPeople.filter(p => p.role === 'Crew' || p.role === 'Stage Manager' || p.role === 'Assistant Stage Manager');
+            
             // Build details section
             let detailsHtml = `
                 <div style="margin-bottom: 20px;">
@@ -3261,17 +3281,80 @@
                 </div>
             `;
             
-            // Build rehearsal notes section (editable)
+            // Build structured notes section
             let notesHtml = `
                 <div style="border-top: 1px solid var(--gray-200); padding-top: 16px; margin-bottom: 16px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                         <div style="font-size: 14px; font-weight: 600; color: var(--gray-900);">📝 Rehearsal Notes</div>
-                        <button class="btn btn-sm btn-secondary" onclick="saveRehearsalNotes('${id}')" id="saveNotesBtn">💾 Save Notes</button>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-sm btn-primary" onclick="saveStructuredNotes('${id}')">💾 Save All Notes</button>
+                        </div>
                     </div>
-                    <textarea class="form-textarea" id="rehearsalNotesInput" placeholder="Add notes about this rehearsal..." style="min-height: 100px; width: 100%; resize: vertical;">${rehearsal.notes || ''}</textarea>
-                    <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
-                        <button class="btn btn-sm btn-primary" onclick="emailRehearsalNotes('${id}')">✉️ Email Notes to Cast</button>
-                        <button class="btn btn-sm btn-secondary" onclick="copyRehearsalNotes('${id}')">📋 Copy Notes</button>
+                    
+                    <!-- General Notes -->
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            📢 General Notes <span style="font-weight: 400; color: var(--gray-500);">(sent to everyone)</span>
+                        </div>
+                        <textarea class="form-textarea" id="notes-general" placeholder="Notes for the entire cast & crew..." style="min-height: 70px; width: 100%;">${structuredNotes.general || ''}</textarea>
+                    </div>
+            `;
+            
+            // Character-specific notes (principals/supporting)
+            if (principals.length > 0) {
+                notesHtml += `
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--gray-700); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                            🎭 Character Notes <span style="font-weight: 400; color: var(--gray-500);">(sent to individual)</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                `;
+                principals.forEach(person => {
+                    const contact = getContact(person);
+                    const characterNote = structuredNotes.characters[person.id] || '';
+                    notesHtml += `
+                        <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 10px;">
+                            <div style="font-size: 12px; font-weight: 600; color: var(--gray-800); margin-bottom: 4px;">
+                                ${person.character || contact.firstName + ' ' + contact.lastName}
+                                <span style="font-weight: 400; color: var(--gray-500);">${person.character ? '(' + contact.firstName + ')' : ''}</span>
+                            </div>
+                            <textarea class="form-textarea" id="notes-char-${person.id}" placeholder="Notes for ${person.character || contact.firstName}..." style="min-height: 50px; width: 100%; font-size: 13px;">${characterNote}</textarea>
+                        </div>
+                    `;
+                });
+                notesHtml += `</div></div>`;
+            }
+            
+            // Ensemble notes
+            if (ensemble.length > 0) {
+                notesHtml += `
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            👥 Ensemble Notes <span style="font-weight: 400; color: var(--gray-500);">(sent to ${ensemble.length} ensemble members)</span>
+                        </div>
+                        <textarea class="form-textarea" id="notes-ensemble" placeholder="Notes for the ensemble..." style="min-height: 60px; width: 100%;">${structuredNotes.ensemble || ''}</textarea>
+                    </div>
+                `;
+            }
+            
+            // Crew notes
+            if (crew.length > 0) {
+                notesHtml += `
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            🔧 Crew Notes <span style="font-weight: 400; color: var(--gray-500);">(sent to ${crew.length} crew members)</span>
+                        </div>
+                        <textarea class="form-textarea" id="notes-crew" placeholder="Notes for the crew..." style="min-height: 60px; width: 100%;">${structuredNotes.crew || ''}</textarea>
+                    </div>
+                `;
+            }
+            
+            // Email buttons
+            notesHtml += `
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--gray-200);">
+                        <button class="btn btn-sm btn-primary" onclick="emailStructuredNotes('${id}', 'all')">✉️ Email All Notes</button>
+                        <button class="btn btn-sm btn-secondary" onclick="emailStructuredNotes('${id}', 'general')">📢 Email General Only</button>
+                        <button class="btn btn-sm btn-secondary" onclick="copyStructuredNotes('${id}')">📋 Copy All Notes</button>
                     </div>
                 </div>
             `;
@@ -3292,22 +3375,22 @@
             if (calledPeople.length === 0) {
                 attendanceHtml += `<div style="color: var(--gray-500); font-size: 14px; text-align: center; padding: 20px;">No one called for this rehearsal</div>`;
             } else {
-                attendanceHtml += `<div style="max-height: 300px; overflow-y: auto;">`;
+                attendanceHtml += `<div style="max-height: 200px; overflow-y: auto;">`;
                 calledPeople.forEach(person => {
                     const contact = getContact(person);
                     const record = attendanceRecords.find(a => a.personId === person.id);
                     const currentStatus = record ? record.status : '';
                     
                     attendanceHtml += `
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--gray-100);" id="attendance-row-${person.id}">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--gray-100);" id="attendance-row-${person.id}">
                             <div>
-                                <div style="font-weight: 500; color: var(--gray-900);">${contact.firstName} ${contact.lastName}</div>
-                                <div style="font-size: 12px; color: var(--gray-500);">${person.character || person.role || ''}</div>
+                                <div style="font-weight: 500; color: var(--gray-900); font-size: 13px;">${contact.firstName} ${contact.lastName}</div>
+                                <div style="font-size: 11px; color: var(--gray-500);">${person.character || person.role || ''}</div>
                             </div>
-                            <div style="display: flex; gap: 6px;">
-                                <button class="btn btn-sm ${currentStatus === 'Present' ? 'btn-success' : 'btn-secondary'}" onclick="markAttendanceInModal('${id}', '${person.id}', 'Present')" title="Present">✓</button>
-                                <button class="btn btn-sm ${currentStatus === 'Late' ? 'btn-warning' : 'btn-secondary'}" onclick="markAttendanceInModal('${id}', '${person.id}', 'Late')" title="Late" style="${currentStatus === 'Late' ? 'background: var(--warning); color: white;' : ''}">⏱</button>
-                                <button class="btn btn-sm ${currentStatus === 'Absent' ? 'btn-danger' : 'btn-secondary'}" onclick="markAttendanceInModal('${id}', '${person.id}', 'Absent')" title="Absent">✗</button>
+                            <div style="display: flex; gap: 4px;">
+                                <button class="btn btn-sm ${currentStatus === 'Present' ? 'btn-success' : 'btn-secondary'}" onclick="markAttendanceInModal('${id}', '${person.id}', 'Present')" title="Present" style="padding: 4px 8px;">✓</button>
+                                <button class="btn btn-sm ${currentStatus === 'Late' ? 'btn-warning' : 'btn-secondary'}" onclick="markAttendanceInModal('${id}', '${person.id}', 'Late')" title="Late" style="padding: 4px 8px; ${currentStatus === 'Late' ? 'background: var(--warning); color: white;' : ''}">⏱</button>
+                                <button class="btn btn-sm ${currentStatus === 'Absent' ? 'btn-danger' : 'btn-secondary'}" onclick="markAttendanceInModal('${id}', '${person.id}', 'Absent')" title="Absent" style="padding: 4px 8px;">✗</button>
                             </div>
                         </div>
                     `;
@@ -3326,47 +3409,97 @@
             openModal(`📅 ${rehearsal.type || 'Rehearsal'}`, bodyHtml, footerHtml);
         }
         
-        async function saveRehearsalNotes(id) {
-            const notes = document.getElementById('rehearsalNotesInput').value;
-            const rehearsal = data.rehearsals.find(r => r.id === id);
-            if (rehearsal) {
-                rehearsal.notes = notes;
-                await saveSheetData('rehearsals');
-                showNotification('Notes saved!', 'success');
-            }
-        }
-        
-        function copyRehearsalNotes(id) {
+        async function saveStructuredNotes(id) {
             const rehearsal = data.rehearsals.find(r => r.id === id);
             if (!rehearsal) return;
             
-            const notes = document.getElementById('rehearsalNotesInput').value;
+            const people = getProductionData('people');
+            const calledPeople = people.filter(p => (rehearsal.calledCastIds || []).includes(p.id));
+            const principals = calledPeople.filter(p => p.role === 'Cast - Principal' || p.role === 'Cast - Supporting' || p.role === 'Cast');
+            
+            // Collect all notes
+            const structuredNotes = {
+                general: document.getElementById('notes-general')?.value || '',
+                ensemble: document.getElementById('notes-ensemble')?.value || '',
+                crew: document.getElementById('notes-crew')?.value || '',
+                characters: {}
+            };
+            
+            // Collect character notes
+            principals.forEach(person => {
+                const noteEl = document.getElementById(`notes-char-${person.id}`);
+                if (noteEl && noteEl.value.trim()) {
+                    structuredNotes.characters[person.id] = noteEl.value;
+                }
+            });
+            
+            // Save as JSON string
+            rehearsal.notes = JSON.stringify(structuredNotes);
+            await saveSheetData('rehearsals');
+            showNotification('All notes saved!', 'success');
+        }
+        
+        function copyStructuredNotes(id) {
+            const rehearsal = data.rehearsals.find(r => r.id === id);
+            if (!rehearsal) return;
+            
             const production = data.productions.find(p => p.id === rehearsal.productionId);
+            const people = getProductionData('people');
+            const calledPeople = people.filter(p => (rehearsal.calledCastIds || []).includes(p.id));
+            const principals = calledPeople.filter(p => p.role === 'Cast - Principal' || p.role === 'Cast - Supporting' || p.role === 'Cast');
+            
             const dateFormatted = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
             
-            const text = `${production?.title || 'Production'} - ${rehearsal.type || 'Rehearsal'} Notes
-${dateFormatted} | ${formatTime12(rehearsal.startTime)} - ${formatTime12(rehearsal.endTime)}
-Location: ${rehearsal.location || 'TBD'}
-
-${notes || 'No notes yet.'}`;
+            // Get current values from form
+            const general = document.getElementById('notes-general')?.value || '';
+            const ensemble = document.getElementById('notes-ensemble')?.value || '';
+            const crew = document.getElementById('notes-crew')?.value || '';
+            
+            let text = `${production?.title || 'Production'} - ${rehearsal.type || 'Rehearsal'} Notes\n`;
+            text += `${dateFormatted} | ${formatTime12(rehearsal.startTime)} - ${formatTime12(rehearsal.endTime)}\n`;
+            text += `Location: ${rehearsal.location || 'TBD'}\n`;
+            text += `\n${'═'.repeat(40)}\n\n`;
+            
+            if (general) {
+                text += `📢 GENERAL NOTES:\n${general}\n\n`;
+            }
+            
+            // Character notes
+            let hasCharNotes = false;
+            principals.forEach(person => {
+                const contact = getContact(person);
+                const noteEl = document.getElementById(`notes-char-${person.id}`);
+                if (noteEl && noteEl.value.trim()) {
+                    if (!hasCharNotes) {
+                        text += `🎭 CHARACTER NOTES:\n`;
+                        hasCharNotes = true;
+                    }
+                    text += `\n${person.character || contact.firstName + ' ' + contact.lastName}:\n${noteEl.value}\n`;
+                }
+            });
+            if (hasCharNotes) text += '\n';
+            
+            if (ensemble) {
+                text += `👥 ENSEMBLE NOTES:\n${ensemble}\n\n`;
+            }
+            
+            if (crew) {
+                text += `🔧 CREW NOTES:\n${crew}\n\n`;
+            }
             
             navigator.clipboard.writeText(text).then(() => {
-                showNotification('Notes copied to clipboard!', 'success');
+                showNotification('All notes copied to clipboard!', 'success');
             }).catch(() => {
                 showNotification('Failed to copy notes', 'error');
             });
         }
         
-        function emailRehearsalNotes(id) {
+        async function emailStructuredNotes(id, mode = 'all') {
             const rehearsal = data.rehearsals.find(r => r.id === id);
             if (!rehearsal) return;
             
             // Save notes first
-            const notesInput = document.getElementById('rehearsalNotesInput');
-            if (notesInput) {
-                rehearsal.notes = notesInput.value;
-                saveSheetData('rehearsals');
-            }
+            await saveStructuredNotes(id);
             
             const production = data.productions.find(p => p.id === rehearsal.productionId);
             const people = getProductionData('people');
@@ -3374,44 +3507,130 @@ ${notes || 'No notes yet.'}`;
             const calledPeople = people.filter(p => (rehearsal.calledCastIds || []).includes(p.id));
             const rehearsalScenes = scenes.filter(s => (rehearsal.sceneIds || []).includes(s.id));
             
-            // Get email addresses from called cast
-            const emails = calledPeople.map(p => {
-                const contact = getContact(p);
-                return contact.email;
-            }).filter(e => e);
+            // Get current values from form
+            const general = document.getElementById('notes-general')?.value || '';
+            const ensembleNotes = document.getElementById('notes-ensemble')?.value || '';
+            const crewNotes = document.getElementById('notes-crew')?.value || '';
             
             const dateFormatted = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            const dateShort = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             
-            // Build email subject
-            const subject = `${production?.title || 'Production'} - ${rehearsal.type || 'Rehearsal'} Notes (${new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
-            
-            // Build email body
-            let body = `${production?.title || 'Production'} - ${rehearsal.type || 'Rehearsal'} Notes\n\n`;
-            body += `📅 Date: ${dateFormatted}\n`;
-            body += `🕐 Time: ${formatTime12(rehearsal.startTime)} - ${formatTime12(rehearsal.endTime)}\n`;
-            body += `📍 Location: ${rehearsal.location || 'TBD'}\n`;
-            
-            if (rehearsalScenes.length > 0) {
-                body += `🎬 Scenes: ${rehearsalScenes.map(s => s.sceneNumber + ': ' + s.title).join(', ')}\n`;
+            if (mode === 'general') {
+                // Send general notes to everyone
+                const emails = calledPeople.map(p => getContact(p).email).filter(e => e);
+                if (emails.length === 0) {
+                    showNotification('No email addresses found', 'error');
+                    return;
+                }
+                
+                const subject = `${production?.title || 'Production'} - ${rehearsal.type || 'Rehearsal'} Notes (${dateShort})`;
+                let body = buildEmailHeader(production, rehearsal, dateFormatted, rehearsalScenes);
+                body += `📢 NOTES:\n\n${general || 'No notes.'}\n\n`;
+                body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+                body += `Sent to ${calledPeople.length} cast/crew member(s).`;
+                
+                window.open(`mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+                showNotification(`Opening email to ${emails.length} recipient(s)`, 'success');
+                
+            } else {
+                // Send personalized notes - open email compose for each unique combination
+                // Group by note content to minimize emails
+                const principals = calledPeople.filter(p => p.role === 'Cast - Principal' || p.role === 'Cast - Supporting' || p.role === 'Cast');
+                const ensemble = calledPeople.filter(p => p.role === 'Cast - Ensemble');
+                const crew = calledPeople.filter(p => p.role === 'Crew' || p.role === 'Stage Manager' || p.role === 'Assistant Stage Manager');
+                
+                let emailCount = 0;
+                const subject = `${production?.title || 'Production'} - ${rehearsal.type || 'Rehearsal'} Notes (${dateShort})`;
+                
+                // Email principals individually (they get personalized notes)
+                for (const person of principals) {
+                    const contact = getContact(person);
+                    if (!contact.email) continue;
+                    
+                    const charNote = document.getElementById(`notes-char-${person.id}`)?.value || '';
+                    
+                    let body = buildEmailHeader(production, rehearsal, dateFormatted, rehearsalScenes);
+                    
+                    if (general) {
+                        body += `📢 GENERAL NOTES:\n\n${general}\n\n`;
+                    }
+                    
+                    if (charNote) {
+                        body += `🎭 NOTES FOR ${(person.character || contact.firstName).toUpperCase()}:\n\n${charNote}\n\n`;
+                    }
+                    
+                    body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+                    body += `This is your personalized rehearsal notes.`;
+                    
+                    // Only send if there are actual notes
+                    if (general || charNote) {
+                        window.open(`mailto:${contact.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+                        emailCount++;
+                    }
+                }
+                
+                // Email ensemble as a group
+                if (ensemble.length > 0 && (general || ensembleNotes)) {
+                    const emails = ensemble.map(p => getContact(p).email).filter(e => e);
+                    if (emails.length > 0) {
+                        let body = buildEmailHeader(production, rehearsal, dateFormatted, rehearsalScenes);
+                        
+                        if (general) {
+                            body += `📢 GENERAL NOTES:\n\n${general}\n\n`;
+                        }
+                        
+                        if (ensembleNotes) {
+                            body += `👥 ENSEMBLE NOTES:\n\n${ensembleNotes}\n\n`;
+                        }
+                        
+                        body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+                        body += `Sent to ${ensemble.length} ensemble member(s).`;
+                        
+                        window.open(`mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+                        emailCount++;
+                    }
+                }
+                
+                // Email crew as a group
+                if (crew.length > 0 && (general || crewNotes)) {
+                    const emails = crew.map(p => getContact(p).email).filter(e => e);
+                    if (emails.length > 0) {
+                        let body = buildEmailHeader(production, rehearsal, dateFormatted, rehearsalScenes);
+                        
+                        if (general) {
+                            body += `📢 GENERAL NOTES:\n\n${general}\n\n`;
+                        }
+                        
+                        if (crewNotes) {
+                            body += `🔧 CREW NOTES:\n\n${crewNotes}\n\n`;
+                        }
+                        
+                        body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+                        body += `Sent to ${crew.length} crew member(s).`;
+                        
+                        window.open(`mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+                        emailCount++;
+                    }
+                }
+                
+                if (emailCount === 0) {
+                    showNotification('No notes to send or no email addresses found', 'error');
+                } else {
+                    showNotification(`Opening ${emailCount} email(s) with personalized notes`, 'success');
+                }
             }
-            
-            body += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-            body += `📝 REHEARSAL NOTES:\n\n`;
-            body += rehearsal.notes || 'No notes.';
-            body += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-            body += `This email was sent to ${calledPeople.length} cast member(s) called for this rehearsal.`;
-            
-            // Open email client with pre-filled content
-            const mailtoLink = `mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            
-            // Check if there are any emails
-            if (emails.length === 0) {
-                showNotification('No email addresses found for called cast members', 'error');
-                return;
+        }
+        
+        function buildEmailHeader(production, rehearsal, dateFormatted, scenes) {
+            let header = `${production?.title || 'Production'} - ${rehearsal.type || 'Rehearsal'} Notes\n\n`;
+            header += `📅 Date: ${dateFormatted}\n`;
+            header += `🕐 Time: ${formatTime12(rehearsal.startTime)} - ${formatTime12(rehearsal.endTime)}\n`;
+            header += `📍 Location: ${rehearsal.location || 'TBD'}\n`;
+            if (scenes.length > 0) {
+                header += `🎬 Scenes: ${scenes.map(s => s.sceneNumber + ': ' + s.title).join(', ')}\n`;
             }
-            
-            window.open(mailtoLink, '_blank');
-            showNotification(`Opening email to ${emails.length} cast member(s)`, 'success');
+            header += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            return header;
         }
 
         async function markAttendanceInModal(rehearsalId, personId, status) {
