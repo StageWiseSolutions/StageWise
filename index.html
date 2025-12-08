@@ -2011,8 +2011,8 @@
 
         const HEADERS = {
             productions: ['ID', 'Title', 'Venue', 'StartDate', 'EndDate', 'Synopsis', 'Director', 'MusicDirector', 'Choreographer', 'StageManager', 'Status'],
-            people: ['ID', 'ProductionID', 'ContactID', 'FirstName', 'LastName', 'Email', 'Phone', 'EmergencyContact', 'EmergencyPhone', 'Role', 'Character', 'VoiceType', 'Measurements', 'ShoeSize', 'Notes'],
-            contacts: ['ID', 'FirstName', 'LastName', 'Email', 'Phone', 'EmergencyContact', 'EmergencyPhone', 'Notes'],
+            people: ['ID', 'ProductionID', 'ContactID', 'FirstName', 'LastName', 'Email', 'Phone', 'EmergencyContact', 'EmergencyPhone', 'Role', 'Character', 'Notes'],
+            contacts: ['ID', 'FirstName', 'LastName', 'Email', 'Phone', 'EmergencyContact', 'EmergencyPhone', 'VoiceType', 'Measurements', 'ShoeSize', 'Notes'],
             scenes: ['ID', 'ProductionID', 'SceneNumber', 'Title', 'Act', 'Setting', 'Description', 'Status', 'CastIDs', 'Notes'],
             rehearsals: ['ID', 'ProductionID', 'Date', 'StartTime', 'EndTime', 'Location', 'Type', 'SceneIDs', 'CalledCastIDs', 'Notes'],
             attendance: ['ID', 'RehearsalID', 'PersonID', 'Status', 'ArrivalTime', 'Notes'],
@@ -2735,6 +2735,21 @@
                     <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" id="contact_phone" value="${isEditing ? editItem.phone || '' : ''}"></div>
                     <div class="form-group"><label class="form-label">Emergency Contact</label><input type="text" class="form-input" id="contact_emergencyContact" value="${isEditing ? editItem.emergencyContact || '' : ''}"></div>
                     <div class="form-group"><label class="form-label">Emergency Phone</label><input type="tel" class="form-input" id="contact_emergencyPhone" value="${isEditing ? editItem.emergencyPhone || '' : ''}"></div>
+                    <div class="form-group">
+                        <label class="form-label">Voice Type</label>
+                        <select class="form-select" id="contact_voiceType">
+                            <option value="">Select...</option>
+                            <option ${isEditing && editItem && editItem.voiceType === 'Soprano' ? 'selected' : ''}>Soprano</option>
+                            <option ${isEditing && editItem && editItem.voiceType === 'Mezzo-Soprano' ? 'selected' : ''}>Mezzo-Soprano</option>
+                            <option ${isEditing && editItem && editItem.voiceType === 'Alto' ? 'selected' : ''}>Alto</option>
+                            <option ${isEditing && editItem && editItem.voiceType === 'Tenor' ? 'selected' : ''}>Tenor</option>
+                            <option ${isEditing && editItem && editItem.voiceType === 'Baritone' ? 'selected' : ''}>Baritone</option>
+                            <option ${isEditing && editItem && editItem.voiceType === 'Bass' ? 'selected' : ''}>Bass</option>
+                            <option ${isEditing && editItem && editItem.voiceType === 'Non-Singer' ? 'selected' : ''}>Non-Singer</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label class="form-label">Shoe Size</label><input type="text" class="form-input" id="contact_shoeSize" value="${isEditing ? editItem.shoeSize || '' : ''}" placeholder="e.g., 10, 8.5W"></div>
+                    <div class="form-group full-width"><label class="form-label">Measurements / Clothing Sizes</label><textarea class="form-textarea" id="contact_measurements" placeholder="e.g., Shirt: M, Pants: 32x30, Dress: 8, Chest: 38&quot;, Waist: 30&quot;" style="min-height: 60px;">${isEditing ? editItem.measurements || '' : ''}</textarea></div>
                     <div class="form-group full-width"><label class="form-label">Notes</label><textarea class="form-textarea" id="contact_notes">${isEditing ? editItem.notes || '' : ''}</textarea></div>
                 </div>
             `;
@@ -2753,7 +2768,19 @@
         async function addContactFromModal() {
             const fn = document.getElementById('contact_firstName').value.trim(), ln = document.getElementById('contact_lastName').value.trim();
             if (!fn || !ln) return showNotification('Enter first and last name', 'error');
-            data.contacts.push({ id: generateId(), firstName: fn, lastName: ln, email: document.getElementById('contact_email').value, phone: document.getElementById('contact_phone').value, emergencyContact: document.getElementById('contact_emergencyContact').value, emergencyPhone: document.getElementById('contact_emergencyPhone').value, notes: document.getElementById('contact_notes').value });
+            data.contacts.push({ 
+                id: generateId(), 
+                firstName: fn, 
+                lastName: ln, 
+                email: document.getElementById('contact_email').value, 
+                phone: document.getElementById('contact_phone').value, 
+                emergencyContact: document.getElementById('contact_emergencyContact').value, 
+                emergencyPhone: document.getElementById('contact_emergencyPhone').value, 
+                voiceType: document.getElementById('contact_voiceType').value,
+                measurements: document.getElementById('contact_measurements').value,
+                shoeSize: document.getElementById('contact_shoeSize').value,
+                notes: document.getElementById('contact_notes').value 
+            });
             await saveSheetData('contacts');
             closeModal();
             renderContent();
@@ -2763,7 +2790,18 @@
             const fn = document.getElementById('contact_firstName').value.trim(), ln = document.getElementById('contact_lastName').value.trim();
             if (!fn || !ln) return showNotification('Enter first and last name', 'error');
             const item = data.contacts.find(c => c.id === editing.contact);
-            if (item) { item.firstName = fn; item.lastName = ln; item.email = document.getElementById('contact_email').value; item.phone = document.getElementById('contact_phone').value; item.emergencyContact = document.getElementById('contact_emergencyContact').value; item.emergencyPhone = document.getElementById('contact_emergencyPhone').value; item.notes = document.getElementById('contact_notes').value; }
+            if (item) { 
+                item.firstName = fn; 
+                item.lastName = ln; 
+                item.email = document.getElementById('contact_email').value; 
+                item.phone = document.getElementById('contact_phone').value; 
+                item.emergencyContact = document.getElementById('contact_emergencyContact').value; 
+                item.emergencyPhone = document.getElementById('contact_emergencyPhone').value; 
+                item.voiceType = document.getElementById('contact_voiceType').value;
+                item.measurements = document.getElementById('contact_measurements').value;
+                item.shoeSize = document.getElementById('contact_shoeSize').value;
+                item.notes = document.getElementById('contact_notes').value; 
+            }
             editing.contact = null;
             await saveSheetData('contacts');
             closeModal();
@@ -2918,27 +2956,6 @@
                         <label class="form-label">Character Name</label>
                         <input type="text" class="form-input" id="person_character" value="${isEditing && editItem ? editItem.character || '' : ''}" placeholder="e.g., Harold Hill">
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Voice Type</label>
-                        <select class="form-select" id="person_voiceType">
-                            <option value="">Select...</option>
-                            <option ${isEditing && editItem && editItem.voiceType === 'Soprano' ? 'selected' : ''}>Soprano</option>
-                            <option ${isEditing && editItem && editItem.voiceType === 'Mezzo-Soprano' ? 'selected' : ''}>Mezzo-Soprano</option>
-                            <option ${isEditing && editItem && editItem.voiceType === 'Alto' ? 'selected' : ''}>Alto</option>
-                            <option ${isEditing && editItem && editItem.voiceType === 'Tenor' ? 'selected' : ''}>Tenor</option>
-                            <option ${isEditing && editItem && editItem.voiceType === 'Baritone' ? 'selected' : ''}>Baritone</option>
-                            <option ${isEditing && editItem && editItem.voiceType === 'Bass' ? 'selected' : ''}>Bass</option>
-                            <option ${isEditing && editItem && editItem.voiceType === 'Non-Singer' ? 'selected' : ''}>Non-Singer</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Shoe Size</label>
-                        <input type="text" class="form-input" id="person_shoeSize" value="${isEditing && editItem ? editItem.shoeSize || '' : ''}" placeholder="e.g., 10, 8.5W">
-                    </div>
-                    <div class="form-group full-width">
-                        <label class="form-label">Measurements / Clothing Sizes</label>
-                        <textarea class="form-textarea" id="person_measurements" placeholder="e.g., Shirt: M, Pants: 32x30, Dress: 8, Chest: 38&quot;, Waist: 30&quot;, Inseam: 32&quot;" style="min-height: 60px;">${isEditing && editItem ? editItem.measurements || '' : ''}</textarea>
-                    </div>
                     <div class="form-group full-width">
                         <label class="form-label">Notes</label>
                         <textarea class="form-textarea" id="person_notes" placeholder="Any production-specific notes...">${isEditing && editItem ? editItem.notes || '' : ''}</textarea>
@@ -2968,9 +2985,6 @@
                 contactId, 
                 role, 
                 character: document.getElementById('person_character').value, 
-                voiceType: document.getElementById('person_voiceType').value,
-                shoeSize: document.getElementById('person_shoeSize').value,
-                measurements: document.getElementById('person_measurements').value,
                 notes: document.getElementById('person_notes').value 
             });
             await saveSheetData('people');
@@ -2985,9 +2999,6 @@
             if (item) { 
                 item.role = role; 
                 item.character = document.getElementById('person_character').value; 
-                item.voiceType = document.getElementById('person_voiceType').value;
-                item.shoeSize = document.getElementById('person_shoeSize').value;
-                item.measurements = document.getElementById('person_measurements').value;
                 item.notes = document.getElementById('person_notes').value; 
             }
             editing.person = null;
