@@ -1827,6 +1827,19 @@
                 display: flex;
             }
         }
+        
+        /* Collapsible person cards */
+        .person-card-details {
+            display: none;
+            padding: 0 16px 16px 16px;
+            border-top: 1px solid var(--gray-200);
+        }
+        .person-card-details.expanded {
+            display: block;
+        }
+        .person-card.expanded {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -2727,7 +2740,7 @@
                                         </div>
                                         
                                         <!-- Details (collapsible) -->
-                                        <div id="details-contact-card-${c.id}" class="person-card-details" style="display: none; padding: 0 16px 16px 16px; border-top: 1px solid var(--gray-200);">
+                                        <div id="details-contact-card-${c.id}" class="person-card-details">
                                             <!-- Contact Info -->
                                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; padding-top: 12px; margin-bottom: 12px;">
                                                 <div>
@@ -2794,21 +2807,15 @@
         }
         
         function togglePersonCard(cardId) {
+            const card = document.getElementById(cardId);
             const details = document.getElementById('details-' + cardId);
             const chevron = document.getElementById('chevron-' + cardId);
-            const card = document.getElementById(cardId);
             
-            if (!details || !chevron || !card) return;
+            if (!card || !details || !chevron) return;
             
-            if (details.style.display === 'none') {
-                details.style.display = 'block';
-                chevron.textContent = '▲';
-                card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-            } else {
-                details.style.display = 'none';
-                chevron.textContent = '▼';
-                card.style.boxShadow = 'none';
-            }
+            const isExpanded = details.classList.toggle('expanded');
+            card.classList.toggle('expanded', isExpanded);
+            chevron.textContent = isExpanded ? '▲' : '▼';
         }
         
         function viewContactModal(id) {
@@ -2993,7 +3000,7 @@
                                         </div>
                                         
                                         <!-- Details (collapsible) -->
-                                        <div id="details-person-card-${p.id}" class="person-card-details" style="display: none; padding: 0 16px 16px 16px; border-top: 1px solid var(--gray-200);">
+                                        <div id="details-person-card-${p.id}" class="person-card-details">
                                             <!-- Contact Info -->
                                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; padding-top: 12px; margin-bottom: 12px;">
                                                 <div>
