@@ -1840,6 +1840,15 @@
         .person-card.expanded {
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
+        
+        /* Responsive: cards on mobile, table on desktop */
+        .mobile-cards { display: block; }
+        .desktop-table { display: none; }
+        
+        @media (min-width: 768px) {
+            .mobile-cards { display: none; }
+            .desktop-table { display: block; }
+        }
     </style>
 </head>
 <body>
@@ -2706,104 +2715,113 @@
         // ==================== PEOPLE ====================
         // ==================== CONTACTS (COMPANY ROSTER) ====================
         function renderContacts() {
-            return `
-                <div class="card">
-                    <div class="card-header">
-                        <span class="card-title">Company Roster (${data.contacts.length})</span>
-                    </div>
-                    <div class="card-body">
-                        ${data.contacts.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">📇</div><div class="empty-state-title">No contacts yet</div><p>Add people to your company roster. They can then be assigned to productions.</p></div>' :
-                            `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
-                                ${data.contacts.sort((a, b) => (a.lastName || '').localeCompare(b.lastName || '')).map(c => {
-                                    const assignments = data.people.filter(p => p.contactId === c.id);
-                                    return `
-                                    <div class="person-card" id="contact-card-${c.id}" style="border: 1px solid var(--gray-200); border-radius: 12px; background: var(--bg-primary); overflow: hidden;">
-                                        <!-- Header (always visible) -->
-                                        <div class="person-card-header" onclick="togglePersonCard('contact-card-${c.id}')" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer;">
-                                            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
-                                                <div style="width: 44px; height: 44px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; flex-shrink: 0;">
-                                                    ${(c.firstName || '?')[0]}${(c.lastName || '?')[0]}
+            const sortedContacts = data.contacts.sort((a, b) => (a.lastName || '').localeCompare(b.lastName || ''));
+            
+            // Desktop table view
+            const desktopView = `
+                <div class="desktop-table">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Company Roster (${data.contacts.length})</span>
+                        </div>
+                        <div class="card-body no-padding">
+                            ${data.contacts.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">📇</div><div class="empty-state-title">No contacts yet</div><p>Add people to your company roster.</p></div>' :
+                                `<div class="table-wrapper"><table>
+                                    <thead><tr><th>Name</th><th>Contact</th><th>Emergency</th><th>Voice</th><th>Sizes</th><th>Notes</th><th>Actions</th></tr></thead>
+                                    <tbody>${sortedContacts.map(c => {
+                                        const assignments = data.people.filter(p => p.contactId === c.id);
+                                        return `
+                                        <tr>
+                                            <td>
+                                                <div class="table-name">${c.firstName || ''} ${c.lastName || ''}</div>
+                                                ${assignments.length > 0 ? `<div class="table-meta">${assignments.map(a => {
+                                                    const prod = data.productions.find(p => p.id === a.productionId);
+                                                    return prod ? prod.title : '';
+                                                }).filter(t => t).join(', ')}</div>` : ''}
+                                            </td>
+                                            <td>
+                                                <div>${c.email ? `<a href="mailto:${c.email}" style="color:var(--primary)">${c.email}</a>` : '-'}</div>
+                                                <div class="table-meta">${c.phone ? `<a href="tel:${c.phone}" style="color:var(--primary)">${c.phone}</a>` : ''}</div>
+                                            </td>
+                                            <td>
+                                                <div>${c.emergencyContact || '-'}</div>
+                                                <div class="table-meta">${c.emergencyPhone || ''}</div>
+                                            </td>
+                                            <td>${c.voiceType ? `<span class="badge badge-in-progress">${c.voiceType}</span>` : '-'}</td>
+                                            <td>
+                                                <div>${c.shoeSize ? '👟 ' + c.shoeSize : '-'}</div>
+                                                <div class="table-meta" style="max-width: 150px;">${c.measurements || ''}</div>
+                                            </td>
+                                            <td><div class="table-meta" style="max-width: 150px;">${c.notes || '-'}</div></td>
+                                            <td>
+                                                <div class="table-actions">
+                                                    <button class="btn btn-ghost btn-icon" onclick="openContactModal('${c.id}')" title="Edit">✏️</button>
+                                                    <button class="btn btn-ghost btn-icon" onclick="deleteContact('${c.id}')" title="Delete">🗑️</button>
                                                 </div>
-                                                <div style="min-width: 0; flex: 1;">
-                                                    <div style="font-size: 15px; font-weight: 600; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.firstName || ''} ${c.lastName || ''}</div>
-                                                    <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px;">
-                                                        ${c.voiceType ? `<span class="badge badge-in-progress" style="font-size: 10px;">${c.voiceType}</span>` : ''}
-                                                        ${assignments.length > 0 ? `<span class="badge badge-not-started" style="font-size: 10px;">${assignments.length} production${assignments.length > 1 ? 's' : ''}</span>` : ''}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div style="display: flex; align-items: center; gap: 4px;">
-                                                <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openContactModal('${c.id}')" title="Edit" style="padding: 6px;">✏️</button>
-                                                <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deleteContact('${c.id}')" title="Delete" style="padding: 6px;">🗑️</button>
-                                                <span id="chevron-contact-card-${c.id}" class="card-chevron" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Details (collapsible) -->
-                                        <div id="details-contact-card-${c.id}" class="person-card-details">
-                                            <!-- Contact Info -->
-                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; padding-top: 12px; margin-bottom: 12px;">
-                                                <div>
-                                                    <div style="color: var(--gray-500); font-size: 11px;">📧 Email</div>
-                                                    <div>${c.email ? `<a href="mailto:${c.email}" style="color: var(--primary);">${c.email}</a>` : '-'}</div>
-                                                </div>
-                                                <div>
-                                                    <div style="color: var(--gray-500); font-size: 11px;">📱 Phone</div>
-                                                    <div>${c.phone ? `<a href="tel:${c.phone}" style="color: var(--primary);">${c.phone}</a>` : '-'}</div>
-                                                </div>
-                                                <div>
-                                                    <div style="color: var(--gray-500); font-size: 11px;">🆘 Emergency</div>
-                                                    <div>${c.emergencyContact || '-'}</div>
-                                                </div>
-                                                <div>
-                                                    <div style="color: var(--gray-500); font-size: 11px;">📞 Emerg. Phone</div>
-                                                    <div>${c.emergencyPhone ? `<a href="tel:${c.emergencyPhone}" style="color: var(--primary);">${c.emergencyPhone}</a>` : '-'}</div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Costume Info -->
-                                            <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
-                                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
-                                                    <div>
-                                                        <div style="color: var(--gray-500); font-size: 11px;">👟 Shoe Size</div>
-                                                        <div style="color: var(--gray-900);">${c.shoeSize || '-'}</div>
-                                                    </div>
-                                                    <div>
-                                                        <div style="color: var(--gray-500); font-size: 11px;">📏 Measurements</div>
-                                                        <div style="color: var(--gray-900); white-space: pre-wrap; word-break: break-word;">${c.measurements || '-'}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Productions -->
-                                            ${assignments.length > 0 ? `
-                                            <div style="border-top: 1px solid var(--gray-200); padding-top: 10px;">
-                                                <div style="font-size: 11px; color: var(--gray-500); margin-bottom: 6px;">🎭 Productions (${assignments.length})</div>
-                                                <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                                    ${assignments.map(a => {
-                                                        const prod = data.productions.find(p => p.id === a.productionId);
-                                                        return prod ? `<span class="badge badge-not-started" style="font-size: 11px;">${prod.title}${a.character ? ' - ' + a.character : ''}</span>` : '';
-                                                    }).join('')}
-                                                </div>
-                                            </div>
-                                            ` : ''}
-                                            
-                                            <!-- Notes -->
-                                            ${c.notes ? `
-                                            <div style="border-top: 1px solid var(--gray-200); padding-top: 10px; margin-top: 10px;">
-                                                <div style="font-size: 11px; color: var(--gray-500);">📝 Notes</div>
-                                                <div style="font-size: 13px; color: var(--gray-700);">${c.notes}</div>
-                                            </div>
-                                            ` : ''}
-                                        </div>
-                                    </div>
-                                `}).join('')}
-                            </div>`
-                        }
+                                            </td>
+                                        </tr>
+                                    `}).join('')}</tbody>
+                                </table></div>`
+                            }
+                        </div>
                     </div>
                 </div>
-                <button class="fab" onclick="openContactModal()" title="Add Contact">+</button>
             `;
+            
+            // Mobile card view
+            const mobileView = `
+                <div class="mobile-cards">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Company Roster (${data.contacts.length})</span>
+                        </div>
+                        <div class="card-body">
+                            ${data.contacts.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">📇</div><div class="empty-state-title">No contacts yet</div><p>Add people to your company roster.</p></div>' :
+                                `<div style="display: flex; flex-direction: column; gap: 12px;">
+                                    ${sortedContacts.map(c => {
+                                        const assignments = data.people.filter(p => p.contactId === c.id);
+                                        return `
+                                        <div class="person-card" id="contact-card-${c.id}" style="border: 1px solid var(--gray-200); border-radius: 12px; background: var(--bg-primary); overflow: hidden;">
+                                            <div class="person-card-header" onclick="togglePersonCard('contact-card-${c.id}')" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer;">
+                                                <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+                                                    <div style="width: 44px; height: 44px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; flex-shrink: 0;">
+                                                        ${(c.firstName || '?')[0]}${(c.lastName || '?')[0]}
+                                                    </div>
+                                                    <div style="min-width: 0; flex: 1;">
+                                                        <div style="font-size: 15px; font-weight: 600; color: var(--gray-900);">${c.firstName || ''} ${c.lastName || ''}</div>
+                                                        <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px;">
+                                                            ${c.voiceType ? `<span class="badge badge-in-progress" style="font-size: 10px;">${c.voiceType}</span>` : ''}
+                                                            ${assignments.length > 0 ? `<span class="badge badge-not-started" style="font-size: 10px;">${assignments.length} prod</span>` : ''}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 4px;">
+                                                    <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openContactModal('${c.id}')" style="padding: 6px;">✏️</button>
+                                                    <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deleteContact('${c.id}')" style="padding: 6px;">🗑️</button>
+                                                    <span id="chevron-contact-card-${c.id}" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
+                                                </div>
+                                            </div>
+                                            <div id="details-contact-card-${c.id}" class="person-card-details">
+                                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; padding-top: 12px;">
+                                                    <div><div style="color: var(--gray-500); font-size: 11px;">📧 Email</div><div>${c.email || '-'}</div></div>
+                                                    <div><div style="color: var(--gray-500); font-size: 11px;">📱 Phone</div><div>${c.phone || '-'}</div></div>
+                                                    <div><div style="color: var(--gray-500); font-size: 11px;">🆘 Emergency</div><div>${c.emergencyContact || '-'}</div></div>
+                                                    <div><div style="color: var(--gray-500); font-size: 11px;">📞 Emerg Phone</div><div>${c.emergencyPhone || '-'}</div></div>
+                                                    <div><div style="color: var(--gray-500); font-size: 11px;">👟 Shoe</div><div>${c.shoeSize || '-'}</div></div>
+                                                    <div><div style="color: var(--gray-500); font-size: 11px;">📏 Sizes</div><div>${c.measurements || '-'}</div></div>
+                                                </div>
+                                                ${c.notes ? `<div style="margin-top: 8px; font-size: 13px; color: var(--gray-600);">📝 ${c.notes}</div>` : ''}
+                                            </div>
+                                        </div>
+                                    `}).join('')}
+                                </div>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return `${desktopView}${mobileView}<button class="fab" onclick="openContactModal()" title="Add Contact">+</button>`;
         }
         
         function togglePersonCard(cardId) {
@@ -2965,101 +2983,114 @@
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">Select a production first</div></div>';
             const people = getProductionData('people');
             const scenes = getProductionData('scenes');
+            
+            const emptyState = '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">No one assigned yet</div><p>Click + to add people from your company roster.</p></div>';
+            const noContactsWarning = data.contacts.length === 0 ? `<div class="card" style="margin-top: 16px; border-color: var(--warning);"><div class="card-body" style="text-align: center;"><p>📇 Add people to your <strong>Company Roster</strong> first, then assign them to this production.</p><button class="btn btn-primary" onclick="activeTab='contacts'; renderContent();">Go to Company Roster</button></div></div>` : '';
 
-            return `
-                <div class="card">
-                    <div class="card-header"><span class="card-title">Cast & Crew (${people.length})</span></div>
-                    <div class="card-body">
-                        ${people.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">No one assigned yet</div><p>Click + to add people from your company roster.</p></div>' :
-                            `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
-                                ${people.map(p => {
-                                    const c = getContact(p);
-                                    const personScenes = scenes.filter(s => (s.castIds || []).includes(p.id));
-                                    return `
-                                    <div class="person-card" id="person-card-${p.id}" style="border: 1px solid var(--gray-200); border-radius: 12px; background: var(--bg-primary); overflow: hidden;">
-                                        <!-- Header (always visible) -->
-                                        <div class="person-card-header" onclick="togglePersonCard('person-card-${p.id}')" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer;">
-                                            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
-                                                <div style="width: 44px; height: 44px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; flex-shrink: 0;">
-                                                    ${(c.firstName || '?')[0]}${(c.lastName || '?')[0]}
+            // Desktop table view
+            const desktopView = `
+                <div class="desktop-table">
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">Cast & Crew (${people.length})</span></div>
+                        <div class="card-body no-padding">
+                            ${people.length === 0 ? emptyState :
+                                `<div class="table-wrapper"><table>
+                                    <thead><tr><th>Name</th><th>Role</th><th>Character</th><th>Contact</th><th>Emergency</th><th>Voice</th><th>Sizes</th><th>Actions</th></tr></thead>
+                                    <tbody>${people.map(p => {
+                                        const c = getContact(p);
+                                        const personScenes = scenes.filter(s => (s.castIds || []).includes(p.id));
+                                        return `
+                                        <tr>
+                                            <td>
+                                                <div class="table-name">${c.firstName || ''} ${c.lastName || ''}</div>
+                                                ${personScenes.length > 0 ? `<div class="table-meta">${personScenes.length} scene${personScenes.length > 1 ? 's' : ''}</div>` : ''}
+                                            </td>
+                                            <td><span class="badge badge-not-started">${p.role || '-'}</span></td>
+                                            <td>${p.character || '-'}</td>
+                                            <td>
+                                                <div>${c.email ? `<a href="mailto:${c.email}" style="color:var(--primary)">${c.email}</a>` : '-'}</div>
+                                                <div class="table-meta">${c.phone || ''}</div>
+                                            </td>
+                                            <td>
+                                                <div>${c.emergencyContact || '-'}</div>
+                                                <div class="table-meta">${c.emergencyPhone || ''}</div>
+                                            </td>
+                                            <td>${c.voiceType ? `<span class="badge badge-in-progress">${c.voiceType}</span>` : '-'}</td>
+                                            <td>
+                                                <div>${c.shoeSize ? '👟 ' + c.shoeSize : '-'}</div>
+                                                <div class="table-meta" style="max-width: 120px;">${c.measurements || ''}</div>
+                                            </td>
+                                            <td>
+                                                <div class="table-actions">
+                                                    <button class="btn btn-ghost btn-icon" onclick="openPersonModal('${p.id}')" title="Edit">✏️</button>
+                                                    <button class="btn btn-ghost btn-icon" onclick="deletePerson('${p.id}')" title="Remove">🗑️</button>
                                                 </div>
-                                                <div style="min-width: 0; flex: 1;">
-                                                    <div style="font-size: 15px; font-weight: 600; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.firstName || ''} ${c.lastName || ''}</div>
-                                                    <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px;">
-                                                        <span class="badge badge-not-started" style="font-size: 10px;">${p.role || 'No role'}</span>
-                                                        ${c.voiceType ? `<span class="badge badge-in-progress" style="font-size: 10px;">${c.voiceType}</span>` : ''}
-                                                    </div>
-                                                    ${p.character ? `<div style="font-size: 13px; color: var(--gray-600); margin-top: 2px;">as <strong>${p.character}</strong></div>` : ''}
-                                                </div>
-                                            </div>
-                                            <div style="display: flex; align-items: center; gap: 4px;">
-                                                <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openPersonModal('${p.id}')" title="Edit" style="padding: 6px;">✏️</button>
-                                                <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deletePerson('${p.id}')" title="Remove" style="padding: 6px;">🗑️</button>
-                                                <span id="chevron-person-card-${p.id}" class="card-chevron" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Details (collapsible) -->
-                                        <div id="details-person-card-${p.id}" class="person-card-details">
-                                            <!-- Contact Info -->
-                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; padding-top: 12px; margin-bottom: 12px;">
-                                                <div>
-                                                    <div style="color: var(--gray-500); font-size: 11px;">📧 Email</div>
-                                                    <div>${c.email ? `<a href="mailto:${c.email}" style="color: var(--primary);">${c.email}</a>` : '-'}</div>
-                                                </div>
-                                                <div>
-                                                    <div style="color: var(--gray-500); font-size: 11px;">📱 Phone</div>
-                                                    <div>${c.phone ? `<a href="tel:${c.phone}" style="color: var(--primary);">${c.phone}</a>` : '-'}</div>
-                                                </div>
-                                                <div>
-                                                    <div style="color: var(--gray-500); font-size: 11px;">🆘 Emergency</div>
-                                                    <div>${c.emergencyContact || '-'}</div>
-                                                </div>
-                                                <div>
-                                                    <div style="color: var(--gray-500); font-size: 11px;">📞 Emerg. Phone</div>
-                                                    <div>${c.emergencyPhone || '-'}</div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Costume Info -->
-                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; background: var(--bg-tertiary); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
-                                                <div>
-                                                    <div style="color: var(--gray-500); font-size: 11px;">👟 Shoe Size</div>
-                                                    <div style="color: var(--gray-900);">${c.shoeSize || '-'}</div>
-                                                </div>
-                                                <div>
-                                                    <div style="color: var(--gray-500); font-size: 11px;">📏 Measurements</div>
-                                                    <div style="color: var(--gray-900); white-space: pre-wrap; word-break: break-word;">${c.measurements || '-'}</div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Scenes -->
-                                            ${personScenes.length > 0 ? `
-                                            <div style="border-top: 1px solid var(--gray-200); padding-top: 10px;">
-                                                <div style="font-size: 11px; color: var(--gray-500); margin-bottom: 6px;">🎬 Scenes (${personScenes.length})</div>
-                                                <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                                    ${personScenes.map(s => `<span class="badge badge-in-progress" style="font-size: 11px;">${s.sceneNumber}: ${s.title}</span>`).join('')}
-                                                </div>
-                                            </div>
-                                            ` : ''}
-                                            
-                                            <!-- Notes -->
-                                            ${p.notes ? `
-                                            <div style="border-top: 1px solid var(--gray-200); padding-top: 10px; margin-top: 10px;">
-                                                <div style="font-size: 11px; color: var(--gray-500);">📝 Notes</div>
-                                                <div style="font-size: 13px; color: var(--gray-700);">${p.notes}</div>
-                                            </div>
-                                            ` : ''}
-                                        </div>
-                                    </div>
-                                `}).join('')}
-                            </div>`
-                        }
+                                            </td>
+                                        </tr>
+                                    `}).join('')}</tbody>
+                                </table></div>`
+                            }
+                        </div>
                     </div>
                 </div>
-                ${data.contacts.length === 0 ? `<div class="card" style="margin-top: 16px; border-color: var(--warning);"><div class="card-body" style="text-align: center;"><p>📇 Add people to your <strong>Company Roster</strong> first, then assign them to this production.</p><button class="btn btn-primary" onclick="activeTab='contacts'; renderContent();">Go to Company Roster</button></div></div>` : ''}
-                <button class="fab" onclick="openPersonModal()" title="Add to Production">+</button>
             `;
+            
+            // Mobile card view
+            const mobileView = `
+                <div class="mobile-cards">
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">Cast & Crew (${people.length})</span></div>
+                        <div class="card-body">
+                            ${people.length === 0 ? emptyState :
+                                `<div style="display: flex; flex-direction: column; gap: 12px;">
+                                    ${people.map(p => {
+                                        const c = getContact(p);
+                                        const personScenes = scenes.filter(s => (s.castIds || []).includes(p.id));
+                                        return `
+                                        <div class="person-card" id="person-card-${p.id}" style="border: 1px solid var(--gray-200); border-radius: 12px; background: var(--bg-primary); overflow: hidden;">
+                                            <div class="person-card-header" onclick="togglePersonCard('person-card-${p.id}')" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer;">
+                                                <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+                                                    <div style="width: 44px; height: 44px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; flex-shrink: 0;">
+                                                        ${(c.firstName || '?')[0]}${(c.lastName || '?')[0]}
+                                                    </div>
+                                                    <div style="min-width: 0; flex: 1;">
+                                                        <div style="font-size: 15px; font-weight: 600; color: var(--gray-900);">${c.firstName || ''} ${c.lastName || ''}</div>
+                                                        <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px;">
+                                                            <span class="badge badge-not-started" style="font-size: 10px;">${p.role || 'No role'}</span>
+                                                            ${c.voiceType ? `<span class="badge badge-in-progress" style="font-size: 10px;">${c.voiceType}</span>` : ''}
+                                                        </div>
+                                                        ${p.character ? `<div style="font-size: 13px; color: var(--gray-600); margin-top: 2px;">as <strong>${p.character}</strong></div>` : ''}
+                                                    </div>
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 4px;">
+                                                    <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openPersonModal('${p.id}')" style="padding: 6px;">✏️</button>
+                                                    <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deletePerson('${p.id}')" style="padding: 6px;">🗑️</button>
+                                                    <span id="chevron-person-card-${p.id}" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
+                                                </div>
+                                            </div>
+                                            <div id="details-person-card-${p.id}" class="person-card-details">
+                                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; padding-top: 12px;">
+                                                    <div><div style="color: var(--gray-500); font-size: 11px;">📧 Email</div><div>${c.email || '-'}</div></div>
+                                                    <div><div style="color: var(--gray-500); font-size: 11px;">📱 Phone</div><div>${c.phone || '-'}</div></div>
+                                                    <div><div style="color: var(--gray-500); font-size: 11px;">🆘 Emergency</div><div>${c.emergencyContact || '-'}</div></div>
+                                                    <div><div style="color: var(--gray-500); font-size: 11px;">📞 Emerg Phone</div><div>${c.emergencyPhone || '-'}</div></div>
+                                                    <div><div style="color: var(--gray-500); font-size: 11px;">👟 Shoe</div><div>${c.shoeSize || '-'}</div></div>
+                                                    <div><div style="color: var(--gray-500); font-size: 11px;">📏 Sizes</div><div>${c.measurements || '-'}</div></div>
+                                                </div>
+                                                ${personScenes.length > 0 ? `<div style="margin-top: 8px;"><span style="color: var(--gray-500); font-size: 11px;">🎬 Scenes:</span> ${personScenes.map(s => s.sceneNumber).join(', ')}</div>` : ''}
+                                                ${p.notes ? `<div style="margin-top: 8px; font-size: 13px; color: var(--gray-600);">📝 ${p.notes}</div>` : ''}
+                                            </div>
+                                        </div>
+                                    `}).join('')}
+                                </div>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return `${desktopView}${mobileView}${noContactsWarning}<button class="fab" onclick="openPersonModal()" title="Add to Production">+</button>`;
+        }
         }
         
         function viewPersonModal(id) {
