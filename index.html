@@ -3258,12 +3258,21 @@
                             </div>
                         </div>
                     ` : ''}
-                    ${rehearsal.notes ? `
-                        <div>
-                            <div style="font-size: 12px; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px;">Notes</div>
-                            <div style="color: var(--gray-700); font-size: 14px;">${rehearsal.notes}</div>
-                        </div>
-                    ` : ''}
+                </div>
+            `;
+            
+            // Build rehearsal notes section (editable)
+            let notesHtml = `
+                <div style="border-top: 1px solid var(--gray-200); padding-top: 16px; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <div style="font-size: 14px; font-weight: 600; color: var(--gray-900);">📝 Rehearsal Notes</div>
+                        <button class="btn btn-sm btn-secondary" onclick="saveRehearsalNotes('${id}')" id="saveNotesBtn">💾 Save Notes</button>
+                    </div>
+                    <textarea class="form-textarea" id="rehearsalNotesInput" placeholder="Add notes about this rehearsal..." style="min-height: 100px; width: 100%; resize: vertical;">${rehearsal.notes || ''}</textarea>
+                    <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                        <button class="btn btn-sm btn-primary" onclick="emailRehearsalNotes('${id}')">✉️ Email Notes to Cast</button>
+                        <button class="btn btn-sm btn-secondary" onclick="copyRehearsalNotes('${id}')">📋 Copy Notes</button>
+                    </div>
                 </div>
             `;
             
@@ -3307,16 +3316,102 @@
             }
             attendanceHtml += `</div>`;
             
-            const bodyHtml = detailsHtml + attendanceHtml;
+            const bodyHtml = detailsHtml + notesHtml + attendanceHtml;
             
             const footerHtml = `
                 <button class="btn btn-danger" onclick="deleteRehearsalFromModal('${id}')">🗑️ Delete</button>
-                <div style="flex: 1;"></div>
-                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
                 <button class="btn btn-primary" onclick="closeModal(); openRehearsalModal('${id}')">✏️ Edit</button>
             `;
             
             openModal(`📅 ${rehearsal.type || 'Rehearsal'}`, bodyHtml, footerHtml);
+        }
+        
+        async function saveRehearsalNotes(id) {
+            const notes = document.getElementById('rehearsalNotesInput').value;
+            const rehearsal = data.rehearsals.find(r => r.id === id);
+            if (rehearsal) {
+                rehearsal.notes = notes;
+                await saveSheetData('rehearsals');
+                showNotification('Notes saved!', 'success');
+            }
+        }
+        
+        function copyRehearsalNotes(id) {
+            const rehearsal = data.rehearsals.find(r => r.id === id);
+            if (!rehearsal) return;
+            
+            const notes = document.getElementById('rehearsalNotesInput').value;
+            const production = data.productions.find(p => p.id === rehearsal.productionId);
+            const dateFormatted = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            
+            const text = `${production?.title || 'Production'} - ${rehearsal.type || 'Rehearsal'} Notes
+${dateFormatted} | ${formatTime12(rehearsal.startTime)} - ${formatTime12(rehearsal.endTime)}
+Location: ${rehearsal.location || 'TBD'}
+
+${notes || 'No notes yet.'}`;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('Notes copied to clipboard!', 'success');
+            }).catch(() => {
+                showNotification('Failed to copy notes', 'error');
+            });
+        }
+        
+        function emailRehearsalNotes(id) {
+            const rehearsal = data.rehearsals.find(r => r.id === id);
+            if (!rehearsal) return;
+            
+            // Save notes first
+            const notesInput = document.getElementById('rehearsalNotesInput');
+            if (notesInput) {
+                rehearsal.notes = notesInput.value;
+                saveSheetData('rehearsals');
+            }
+            
+            const production = data.productions.find(p => p.id === rehearsal.productionId);
+            const people = getProductionData('people');
+            const scenes = getProductionData('scenes');
+            const calledPeople = people.filter(p => (rehearsal.calledCastIds || []).includes(p.id));
+            const rehearsalScenes = scenes.filter(s => (rehearsal.sceneIds || []).includes(s.id));
+            
+            // Get email addresses from called cast
+            const emails = calledPeople.map(p => {
+                const contact = getContact(p);
+                return contact.email;
+            }).filter(e => e);
+            
+            const dateFormatted = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            
+            // Build email subject
+            const subject = `${production?.title || 'Production'} - ${rehearsal.type || 'Rehearsal'} Notes (${new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+            
+            // Build email body
+            let body = `${production?.title || 'Production'} - ${rehearsal.type || 'Rehearsal'} Notes\n\n`;
+            body += `📅 Date: ${dateFormatted}\n`;
+            body += `🕐 Time: ${formatTime12(rehearsal.startTime)} - ${formatTime12(rehearsal.endTime)}\n`;
+            body += `📍 Location: ${rehearsal.location || 'TBD'}\n`;
+            
+            if (rehearsalScenes.length > 0) {
+                body += `🎬 Scenes: ${rehearsalScenes.map(s => s.sceneNumber + ': ' + s.title).join(', ')}\n`;
+            }
+            
+            body += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            body += `📝 REHEARSAL NOTES:\n\n`;
+            body += rehearsal.notes || 'No notes.';
+            body += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            body += `This email was sent to ${calledPeople.length} cast member(s) called for this rehearsal.`;
+            
+            // Open email client with pre-filled content
+            const mailtoLink = `mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            
+            // Check if there are any emails
+            if (emails.length === 0) {
+                showNotification('No email addresses found for called cast members', 'error');
+                return;
+            }
+            
+            window.open(mailtoLink, '_blank');
+            showNotification(`Opening email to ${emails.length} cast member(s)`, 'success');
         }
 
         async function markAttendanceInModal(rehearsalId, personId, status) {
