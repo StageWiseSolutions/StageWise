@@ -2797,6 +2797,10 @@
             event.stopPropagation();
             const header = event.currentTarget;
             const card = header.closest('.person-card');
+            
+            console.log('Toggle clicked:', card ? card.id : 'no card found');
+            console.log('All person-cards:', document.querySelectorAll('.person-card').length);
+            
             if (!card) return;
             
             const details = card.querySelector('.person-card-details');
