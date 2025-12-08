@@ -3353,7 +3353,8 @@
             notesHtml += `
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--gray-200);">
                         <button class="btn btn-sm btn-primary" onclick="emailAllNotes('${id}')">✉️ Email Notes to Cast</button>
-                        <button class="btn btn-sm btn-secondary" onclick="copyStructuredNotes('${id}')">📋 Copy All Notes</button>
+                        <button class="btn btn-sm btn-secondary" onclick="saveNotesToDocuments('${id}')">📄 Save to Documents</button>
+                        <button class="btn btn-sm btn-secondary" onclick="copyStructuredNotes('${id}')">📋 Copy</button>
                     </div>
                 </div>
             `;
@@ -3572,6 +3573,95 @@
             }
             header += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
             return header;
+        }
+        
+        async function saveNotesToDocuments(id) {
+            const rehearsal = data.rehearsals.find(r => r.id === id);
+            if (!rehearsal) return;
+            
+            // Save notes first
+            await saveStructuredNotes(id);
+            
+            const production = data.productions.find(p => p.id === rehearsal.productionId);
+            const people = getProductionData('people');
+            const scenes = getProductionData('scenes');
+            const calledPeople = people.filter(p => (rehearsal.calledCastIds || []).includes(p.id));
+            const rehearsalScenes = scenes.filter(s => (rehearsal.sceneIds || []).includes(s.id));
+            const principals = calledPeople.filter(p => p.role === 'Cast - Principal' || p.role === 'Cast - Supporting' || p.role === 'Cast');
+            
+            const dateFormatted = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            const dateShort = new Date(rehearsal.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            
+            // Get current values from form
+            const general = document.getElementById('notes-general')?.value || '';
+            const ensembleNotes = document.getElementById('notes-ensemble')?.value || '';
+            const crewNotes = document.getElementById('notes-crew')?.value || '';
+            
+            // Build document content
+            let content = `${rehearsal.type || 'Rehearsal'} Notes - ${dateShort}\n`;
+            content += `${'═'.repeat(40)}\n\n`;
+            content += `Date: ${dateFormatted}\n`;
+            content += `Time: ${formatTime12(rehearsal.startTime)} - ${formatTime12(rehearsal.endTime)}\n`;
+            content += `Location: ${rehearsal.location || 'TBD'}\n`;
+            if (rehearsalScenes.length > 0) {
+                content += `Scenes: ${rehearsalScenes.map(s => s.sceneNumber + ': ' + s.title).join(', ')}\n`;
+            }
+            content += `\n${'─'.repeat(40)}\n\n`;
+            
+            if (general) {
+                content += `GENERAL NOTES:\n${general}\n\n`;
+            }
+            
+            // Character notes
+            let hasCharNotes = false;
+            principals.forEach(person => {
+                const contact = getContact(person);
+                const noteEl = document.getElementById(`notes-char-${person.id}`);
+                if (noteEl && noteEl.value.trim()) {
+                    if (!hasCharNotes) {
+                        content += `CHARACTER NOTES:\n\n`;
+                        hasCharNotes = true;
+                    }
+                    content += `${person.character || contact.firstName + ' ' + contact.lastName}:\n${noteEl.value}\n\n`;
+                }
+            });
+            
+            if (ensembleNotes) {
+                content += `ENSEMBLE NOTES:\n${ensembleNotes}\n\n`;
+            }
+            
+            if (crewNotes) {
+                content += `CREW NOTES:\n${crewNotes}\n\n`;
+            }
+            
+            // Check if a document for this rehearsal already exists
+            const existingDoc = data.documents.find(d => 
+                d.productionId === rehearsal.productionId && 
+                d.category === 'Rehearsal Notes' && 
+                d.title === `${rehearsal.type || 'Rehearsal'} Notes - ${dateShort}`
+            );
+            
+            if (existingDoc) {
+                // Update existing document
+                existingDoc.notes = content;
+                existingDoc.dateAdded = new Date().toISOString().split('T')[0];
+                showNotification('Document updated!', 'success');
+            } else {
+                // Create new document
+                data.documents.push({
+                    id: generateId(),
+                    productionId: rehearsal.productionId,
+                    title: `${rehearsal.type || 'Rehearsal'} Notes - ${dateShort}`,
+                    category: 'Rehearsal Notes',
+                    url: '',
+                    version: '1',
+                    notes: content,
+                    dateAdded: new Date().toISOString().split('T')[0]
+                });
+                showNotification('Notes saved to Documents!', 'success');
+            }
+            
+            await saveSheetData('documents');
         }
 
         async function markAttendanceInModal(rehearsalId, personId, status) {
@@ -4145,40 +4235,92 @@
         function renderDocuments() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-title">Select a production first</div></div>';
             const documents = getProductionData('documents');
+            
+            // Group by category
+            const categories = {};
+            documents.forEach(d => {
+                const cat = d.category || 'Other';
+                if (!categories[cat]) categories[cat] = [];
+                categories[cat].push(d);
+            });
+            
+            // Sort categories with Rehearsal Notes first
+            const sortedCategories = Object.keys(categories).sort((a, b) => {
+                if (a === 'Rehearsal Notes') return -1;
+                if (b === 'Rehearsal Notes') return 1;
+                return a.localeCompare(b);
+            });
 
             return `
                 <div class="card">
                     <div class="card-header"><span class="card-title">Documents (${documents.length})</span></div>
                     <div class="card-body no-padding">
                         ${documents.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-title">No documents yet</div><p>Click the + button to add document links.</p></div>' :
-                            `<div class="table-wrapper"><table><thead><tr><th>Title</th><th>Category</th><th>Version</th><th>Link</th><th>Actions</th></tr></thead>
-                            <tbody>${documents.map(d => `
+                            `<div class="table-wrapper"><table><thead><tr><th>Title</th><th>Category</th><th>Date</th><th>Action</th><th></th></tr></thead>
+                            <tbody>${sortedCategories.map(cat => categories[cat].map(d => `
                                 <tr>
                                     <td class="table-name">${d.title || ''}</td>
-                                    <td>${d.category || '-'}</td>
-                                    <td>${d.version || '-'}</td>
-                                    <td><a href="${d.url}" target="_blank" class="btn btn-sm btn-secondary">Open →</a></td>
+                                    <td><span class="badge ${d.category === 'Rehearsal Notes' ? 'badge-in-progress' : 'badge-not-started'}">${d.category || '-'}</span></td>
+                                    <td style="font-size: 12px; color: var(--gray-500);">${d.dateAdded || '-'}</td>
+                                    <td>${d.category === 'Rehearsal Notes' && !d.url ? 
+                                        `<button class="btn btn-sm btn-primary" onclick="viewRehearsalNotesDoc('${d.id}')">📄 View</button>` : 
+                                        (d.url ? `<a href="${d.url}" target="_blank" class="btn btn-sm btn-secondary">Open →</a>` : '-')}</td>
                                     <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openDocumentModal('${d.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteDocument('${d.id}')">🗑️</button></div></td>
                                 </tr>
-                            `).join('')}</tbody></table></div>`}
+                            `).join('')).join('')}</tbody></table></div>`}
                     </div>
                 </div>
                 <button class="fab" onclick="openDocumentModal()" title="Add Document">+</button>
             `;
+        }
+        
+        function viewRehearsalNotesDoc(id) {
+            const doc = data.documents.find(d => d.id === id);
+            if (!doc) return;
+            
+            const bodyHtml = `
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span class="badge badge-in-progress">${doc.category}</span>
+                        <span style="font-size: 12px; color: var(--gray-500);">Added: ${doc.dateAdded || '-'}</span>
+                    </div>
+                </div>
+                <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 16px; white-space: pre-wrap; font-family: monospace; font-size: 13px; max-height: 400px; overflow-y: auto; color: var(--text-primary);">${doc.notes || 'No content.'}</div>
+            `;
+            
+            const footerHtml = `
+                <button class="btn btn-secondary" onclick="copyDocContent('${id}')">📋 Copy</button>
+                <button class="btn btn-secondary" onclick="closeModal(); openDocumentModal('${id}')">✏️ Edit</button>
+                <button class="btn btn-primary" onclick="closeModal()">Close</button>
+            `;
+            
+            openModal(`📄 ${doc.title}`, bodyHtml, footerHtml);
+        }
+        
+        function copyDocContent(id) {
+            const doc = data.documents.find(d => d.id === id);
+            if (!doc) return;
+            navigator.clipboard.writeText(doc.notes || '').then(() => {
+                showNotification('Content copied!', 'success');
+            }).catch(() => {
+                showNotification('Failed to copy', 'error');
+            });
         }
 
         function openDocumentModal(id = null) {
             const isEditing = id !== null;
             const editItem = isEditing ? data.documents.find(d => d.id === id) : null;
             editing.document = id;
+            
+            const isRehearsalNotes = isEditing && editItem.category === 'Rehearsal Notes';
 
             const bodyHtml = `
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
                     <div class="form-group full-width"><label class="form-label">Title *</label><input type="text" class="form-input" id="doc_title" value="${isEditing ? editItem.title || '' : ''}"></div>
-                    <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="doc_category"><option ${isEditing && editItem.category === 'Script' ? 'selected' : ''}>Script</option><option ${isEditing && editItem.category === 'Score' ? 'selected' : ''}>Score</option><option ${isEditing && editItem.category === 'Rehearsal Tracks' ? 'selected' : ''}>Rehearsal Tracks</option><option ${isEditing && editItem.category === 'Reference' ? 'selected' : ''}>Reference</option><option ${isEditing && editItem.category === 'Forms' ? 'selected' : ''}>Forms</option><option ${isEditing && editItem.category === 'Other' ? 'selected' : ''}>Other</option></select></div>
+                    <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="doc_category" onchange="toggleDocUrlField()"><option ${isEditing && editItem.category === 'Script' ? 'selected' : ''}>Script</option><option ${isEditing && editItem.category === 'Score' ? 'selected' : ''}>Score</option><option ${isEditing && editItem.category === 'Rehearsal Notes' ? 'selected' : ''}>Rehearsal Notes</option><option ${isEditing && editItem.category === 'Rehearsal Tracks' ? 'selected' : ''}>Rehearsal Tracks</option><option ${isEditing && editItem.category === 'Reference' ? 'selected' : ''}>Reference</option><option ${isEditing && editItem.category === 'Forms' ? 'selected' : ''}>Forms</option><option ${isEditing && editItem.category === 'Other' ? 'selected' : ''}>Other</option></select></div>
                     <div class="form-group"><label class="form-label">Version</label><input type="text" class="form-input" id="doc_version" value="${isEditing ? editItem.version || '1.0' : '1.0'}"></div>
-                    <div class="form-group full-width"><label class="form-label">URL *</label><input type="url" class="form-input" id="doc_url" placeholder="https://..." value="${isEditing ? editItem.url || '' : ''}"></div>
-                    <div class="form-group full-width"><label class="form-label">Notes</label><textarea class="form-textarea" id="doc_notes">${isEditing ? editItem.notes || '' : ''}</textarea></div>
+                    <div class="form-group full-width" id="doc_url_group" style="${isRehearsalNotes ? 'display: none;' : ''}"><label class="form-label">URL ${isRehearsalNotes ? '' : '*'}</label><input type="url" class="form-input" id="doc_url" placeholder="https://..." value="${isEditing ? editItem.url || '' : ''}"></div>
+                    <div class="form-group full-width"><label class="form-label">${isRehearsalNotes ? 'Content' : 'Notes'}</label><textarea class="form-textarea" id="doc_notes" style="${isRehearsalNotes ? 'min-height: 200px; font-family: monospace;' : ''}">${isEditing ? editItem.notes || '' : ''}</textarea></div>
                 </div>
             `;
 
@@ -4192,21 +4334,39 @@
 
             openModal(isEditing ? '✏️ Edit Document' : '➕ Add Document', bodyHtml, footerHtml);
         }
+        
+        function toggleDocUrlField() {
+            const category = document.getElementById('doc_category').value;
+            const urlGroup = document.getElementById('doc_url_group');
+            if (urlGroup) {
+                urlGroup.style.display = category === 'Rehearsal Notes' ? 'none' : '';
+            }
+        }
 
         async function addDocumentFromModal() {
-            const title = document.getElementById('doc_title').value.trim(), url = document.getElementById('doc_url').value.trim();
-            if (!title || !url) return showNotification('Enter title and URL', 'error');
-            data.documents.push({ id: generateId(), productionId: activeProduction, title, category: document.getElementById('doc_category').value, url, version: document.getElementById('doc_version').value, notes: document.getElementById('doc_notes').value, dateAdded: new Date().toISOString().split('T')[0] });
+            const title = document.getElementById('doc_title').value.trim();
+            const url = document.getElementById('doc_url').value.trim();
+            const category = document.getElementById('doc_category').value;
+            
+            if (!title) return showNotification('Enter a title', 'error');
+            if (category !== 'Rehearsal Notes' && !url) return showNotification('Enter a URL', 'error');
+            
+            data.documents.push({ id: generateId(), productionId: activeProduction, title, category, url, version: document.getElementById('doc_version').value, notes: document.getElementById('doc_notes').value, dateAdded: new Date().toISOString().split('T')[0] });
             await saveSheetData('documents');
             closeModal();
             renderContent();
         }
 
         async function saveDocumentFromModal() {
-            const title = document.getElementById('doc_title').value.trim(), url = document.getElementById('doc_url').value.trim();
-            if (!title || !url) return showNotification('Enter title and URL', 'error');
+            const title = document.getElementById('doc_title').value.trim();
+            const url = document.getElementById('doc_url').value.trim();
+            const category = document.getElementById('doc_category').value;
+            
+            if (!title) return showNotification('Enter a title', 'error');
+            if (category !== 'Rehearsal Notes' && !url) return showNotification('Enter a URL', 'error');
+            
             const item = data.documents.find(d => d.id === editing.document);
-            if (item) { item.title = title; item.category = document.getElementById('doc_category').value; item.url = url; item.version = document.getElementById('doc_version').value; item.notes = document.getElementById('doc_notes').value; }
+            if (item) { item.title = title; item.category = category; item.url = url; item.version = document.getElementById('doc_version').value; item.notes = document.getElementById('doc_notes').value; }
             editing.document = null;
             await saveSheetData('documents');
             closeModal();
