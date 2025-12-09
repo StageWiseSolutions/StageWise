@@ -947,13 +947,23 @@
                 gap: 8px;
             }
             .stat-card {
+                padding: 12px;
+            }
+            .stat-value {
+                font-size: 22px;
+            }
+            .stat-label {
+                font-size: 12px;
+            }
+            /* Compact stats for budget page 4-across */
+            .stats-compact .stat-card {
                 padding: 10px 6px;
                 text-align: center;
             }
-            .stat-value {
+            .stats-compact .stat-value {
                 font-size: 16px;
             }
-            .stat-label {
+            .stats-compact .stat-label {
                 font-size: 10px;
             }
             .top-bar {
@@ -4314,7 +4324,7 @@
 
             // Summary stats (both views)
             const statsHtml = `
-                <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
+                <div class="dashboard-grid stats-compact" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
                     <div class="stat-card"><div class="stat-value">$${totalActual.toFixed(0)}</div><div class="stat-label">Spent</div></div>
                     <div class="stat-card"><div class="stat-value">${totalTicketsSold}</div><div class="stat-label">Tickets</div></div>
                     <div class="stat-card"><div class="stat-value">$${totalRevenue.toFixed(0)}</div><div class="stat-label">Revenue</div></div>
