@@ -914,16 +914,17 @@
             }
             .dashboard-grid {
                 grid-template-columns: 1fr 1fr;
-                gap: 10px;
+                gap: 8px;
             }
             .stat-card {
-                padding: 12px;
+                padding: 10px 6px;
+                text-align: center;
             }
             .stat-value {
-                font-size: 20px;
+                font-size: 16px;
             }
             .stat-label {
-                font-size: 11px;
+                font-size: 10px;
             }
             .top-bar {
                 padding: 12px 16px;
@@ -4280,7 +4281,7 @@
 
             // Summary stats (both views)
             const statsHtml = `
-                <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); margin-bottom: 24px;">
+                <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
                     <div class="stat-card"><div class="stat-value">$${totalActual.toFixed(0)}</div><div class="stat-label">Spent</div></div>
                     <div class="stat-card"><div class="stat-value">${totalTicketsSold}</div><div class="stat-label">Tickets</div></div>
                     <div class="stat-card"><div class="stat-value">$${totalRevenue.toFixed(0)}</div><div class="stat-label">Revenue</div></div>
