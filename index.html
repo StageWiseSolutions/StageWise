@@ -4277,120 +4277,225 @@
             const totalTicketsSold = tickets.reduce((s, t) => s + (t.sold || 0), 0);
             const totalRevenue = tickets.reduce((s, t) => s + ((t.price || 0) * (t.sold || 0)), 0);
             const netProfit = totalRevenue - totalActual;
-            
-            // Stats for inventory items
-            const readyCount = inventory.filter(i => i.status === 'Ready').length;
-            const neededCount = inventory.filter(i => i.status === 'Needed').length;
 
-            return `
-                <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); margin-bottom: 24px;">
+            // Summary stats (both views)
+            const statsHtml = `
+                <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); margin-bottom: 24px;">
                     <div class="stat-card"><div class="stat-value">$${totalActual.toFixed(0)}</div><div class="stat-label">Spent</div></div>
-                    <div class="stat-card"><div class="stat-value">${totalTicketsSold}</div><div class="stat-label">Tickets Sold</div></div>
+                    <div class="stat-card"><div class="stat-value">${totalTicketsSold}</div><div class="stat-label">Tickets</div></div>
                     <div class="stat-card"><div class="stat-value">$${totalRevenue.toFixed(0)}</div><div class="stat-label">Revenue</div></div>
-                    <div class="stat-card"><div class="stat-value" style="color: ${netProfit >= 0 ? 'var(--success)' : 'var(--danger)'}">$${netProfit.toFixed(0)}</div><div class="stat-label">Net ${netProfit >= 0 ? 'Profit' : 'Loss'}</div></div>
+                    <div class="stat-card"><div class="stat-value" style="color: ${netProfit >= 0 ? 'var(--success)' : 'var(--danger)'}">$${netProfit.toFixed(0)}</div><div class="stat-label">${netProfit >= 0 ? 'Profit' : 'Loss'}</div></div>
                 </div>
-                
-                <!-- Ticket Sales Section -->
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header">
-                        <span class="card-title">🎟️ Ticket Sales</span>
-                        <button class="btn btn-primary btn-sm" onclick="openTicketModal()">+ Add Type</button>
-                    </div>
-                    <div class="card-body no-padding">
-                        ${tickets.length === 0 ? '<div class="empty-state" style="padding: 24px;"><div class="empty-state-icon">🎟️</div><div class="empty-state-title">No ticket types yet</div><p>Add ticket types to track sales.</p></div>' :
-                            `<div class="table-wrapper"><table>
-                                <thead><tr><th>Type</th><th>Price</th><th>Sold</th><th>Subtotal</th><th>Actions</th></tr></thead>
-                                <tbody>${tickets.map(t => {
-                                    const subtotal = (t.price || 0) * (t.sold || 0);
-                                    return `
-                                    <tr>
-                                        <td class="table-name">${t.ticketType || ''}</td>
-                                        <td>$${(t.price || 0).toFixed(2)}</td>
-                                        <td>${t.sold || 0}</td>
-                                        <td style="font-weight: 600;">$${subtotal.toFixed(2)}</td>
-                                        <td>
-                                            <div class="table-actions">
+            `;
+            
+            // ===== TICKET SALES =====
+            const ticketsDesktop = `
+                <div class="desktop-table">
+                    <div class="card" style="margin-bottom: 24px;">
+                        <div class="card-header">
+                            <span class="card-title">🎟️ Ticket Sales</span>
+                            <button class="btn btn-primary btn-sm" onclick="openTicketModal()">+ Add Type</button>
+                        </div>
+                        <div class="card-body no-padding">
+                            ${tickets.length === 0 ? '<div class="empty-state" style="padding: 24px;"><div class="empty-state-icon">🎟️</div><div class="empty-state-title">No ticket types yet</div></div>' :
+                                `<div class="table-wrapper"><table>
+                                    <thead><tr><th>Type</th><th>Price</th><th>Sold</th><th>Subtotal</th><th>Actions</th></tr></thead>
+                                    <tbody>${tickets.map(t => {
+                                        const subtotal = (t.price || 0) * (t.sold || 0);
+                                        return `<tr>
+                                            <td class="table-name">${t.ticketType || ''}</td>
+                                            <td>$${(t.price || 0).toFixed(2)}</td>
+                                            <td>${t.sold || 0}</td>
+                                            <td style="font-weight: 600;">$${subtotal.toFixed(2)}</td>
+                                            <td><div class="table-actions">
                                                 <button class="btn btn-ghost btn-icon" onclick="openTicketModal('${t.id}')">✏️</button>
                                                 <button class="btn btn-ghost btn-icon" onclick="deleteTicket('${t.id}')">🗑️</button>
-                                            </div>
-                                        </td>
-                                    </tr>`;
-                                }).join('')}
-                                <tr style="background: var(--bg-tertiary); font-weight: 600;">
-                                    <td>Total</td>
-                                    <td></td>
-                                    <td>${totalTicketsSold}</td>
-                                    <td>$${totalRevenue.toFixed(2)}</td>
-                                    <td></td>
-                                </tr>
-                                </tbody>
-                            </table></div>`
-                        }
+                                            </div></td>
+                                        </tr>`;
+                                    }).join('')}
+                                    <tr style="background: var(--bg-tertiary); font-weight: 600;">
+                                        <td>Total</td><td></td><td>${totalTicketsSold}</td><td>$${totalRevenue.toFixed(2)}</td><td></td>
+                                    </tr></tbody>
+                                </table></div>`
+                            }
+                        </div>
                     </div>
                 </div>
+            `;
             
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header">
-                        <span class="card-title">💰 Budget Summary</span>
-                        <button class="btn btn-sm btn-secondary" onclick="openBudgetPlannerModal()">✏️ Edit Planned Budgets</button>
+            const ticketsMobile = `
+                <div class="mobile-cards">
+                    <div class="card" style="margin-bottom: 16px;">
+                        <div class="card-header">
+                            <span class="card-title">🎟️ Ticket Sales</span>
+                            <button class="btn btn-primary btn-sm" onclick="openTicketModal()">+ Add</button>
+                        </div>
+                        <div class="card-body">
+                            ${tickets.length === 0 ? '<div class="empty-state" style="padding: 16px;"><div class="empty-state-icon">🎟️</div><div class="empty-state-title">No ticket types yet</div></div>' :
+                                `<div style="display: flex; flex-direction: column; gap: 8px;">
+                                    ${tickets.map(t => {
+                                        const subtotal = (t.price || 0) * (t.sold || 0);
+                                        return `
+                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                                            <div>
+                                                <div style="font-weight: 600;">${t.ticketType || ''}</div>
+                                                <div style="font-size: 13px; color: var(--gray-500);">$${(t.price || 0).toFixed(2)} × ${t.sold || 0} = <strong>$${subtotal.toFixed(2)}</strong></div>
+                                            </div>
+                                            <div style="display: flex; gap: 4px;">
+                                                <button class="btn btn-ghost btn-icon" onclick="openTicketModal('${t.id}')" style="padding: 6px;">✏️</button>
+                                                <button class="btn btn-ghost btn-icon" onclick="deleteTicket('${t.id}')" style="padding: 6px;">🗑️</button>
+                                            </div>
+                                        </div>`;
+                                    }).join('')}
+                                    <div style="display: flex; justify-content: space-between; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; font-weight: 600;">
+                                        <span>Total: ${totalTicketsSold} tickets</span>
+                                        <span>$${totalRevenue.toFixed(2)}</span>
+                                    </div>
+                                </div>`
+                            }
+                        </div>
                     </div>
-                    <div class="card-body no-padding">
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr><th>Category</th><th style="text-align:right">Planned</th><th style="text-align:right">Actual</th><th style="text-align:right">Variance</th></tr>
-                                </thead>
+                </div>
+            `;
+            
+            // ===== BUDGET SUMMARY =====
+            const budgetDesktop = `
+                <div class="desktop-table">
+                    <div class="card" style="margin-bottom: 24px;">
+                        <div class="card-header">
+                            <span class="card-title">💰 Budget Summary</span>
+                            <button class="btn btn-sm btn-secondary" onclick="openBudgetPlannerModal()">✏️ Edit</button>
+                        </div>
+                        <div class="card-body no-padding">
+                            <div class="table-wrapper"><table>
+                                <thead><tr><th>Category</th><th style="text-align:right">Planned</th><th style="text-align:right">Actual</th><th style="text-align:right">Variance</th></tr></thead>
                                 <tbody>
                                     ${BUDGET_CATEGORIES.map(cat => {
                                         const planned = plannedByCategory[cat];
                                         const actual = actualByCategory[cat];
                                         const variance = planned - actual;
-                                        const hasData = planned > 0 || actual > 0;
-                                        if (!hasData) return '';
-                                        return `
-                                        <tr>
+                                        if (planned === 0 && actual === 0) return '';
+                                        return `<tr>
                                             <td>${cat}</td>
                                             <td style="text-align:right">$${planned.toFixed(2)}</td>
                                             <td style="text-align:right">$${actual.toFixed(2)}</td>
-                                            <td style="text-align:right; color: ${variance >= 0 ? 'var(--success)' : 'var(--danger)'}; font-weight: 500;">
-                                                ${variance >= 0 ? '+' : ''}$${variance.toFixed(2)}
-                                            </td>
+                                            <td style="text-align:right; color: ${variance >= 0 ? 'var(--success)' : 'var(--danger)'};">${variance >= 0 ? '+' : ''}$${variance.toFixed(2)}</td>
                                         </tr>`;
                                     }).join('')}
-                                    ${totalPlanned === 0 && totalActual === 0 ? '<tr><td colspan="4" style="text-align:center; color: var(--gray-500); padding: 20px;">No budget data yet. Add inventory items or set planned budgets.</td></tr>' : ''}
+                                    ${totalPlanned === 0 && totalActual === 0 ? '<tr><td colspan="4" style="text-align:center; color: var(--gray-500); padding: 20px;">No budget data yet.</td></tr>' : ''}
                                 </tbody>
-                                ${(totalPlanned > 0 || totalActual > 0) ? `
-                                <tfoot style="border-top: 2px solid var(--gray-200); font-weight: 600;">
-                                    <tr>
-                                        <td>TOTAL</td>
-                                        <td style="text-align:right">$${totalPlanned.toFixed(2)}</td>
-                                        <td style="text-align:right">$${totalActual.toFixed(2)}</td>
-                                        <td style="text-align:right; color: ${totalVariance >= 0 ? 'var(--success)' : 'var(--danger)'};">
-                                            ${totalVariance >= 0 ? '+' : ''}$${totalVariance.toFixed(2)}
-                                        </td>
-                                    </tr>
+                                ${(totalPlanned > 0 || totalActual > 0) ? `<tfoot style="border-top: 2px solid var(--gray-200); font-weight: 600;">
+                                    <tr><td>TOTAL</td><td style="text-align:right">$${totalPlanned.toFixed(2)}</td><td style="text-align:right">$${totalActual.toFixed(2)}</td>
+                                    <td style="text-align:right; color: ${totalVariance >= 0 ? 'var(--success)' : 'var(--danger)'};">${totalVariance >= 0 ? '+' : ''}$${totalVariance.toFixed(2)}</td></tr>
                                 </tfoot>` : ''}
-                            </table>
+                            </table></div>
                         </div>
                     </div>
                 </div>
-
-                <div class="card">
-                    <div class="card-header"><span class="card-title">🎪 Inventory Items (${inventory.length})</span></div>
-                    <div class="card-body no-padding">
-                        ${inventory.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🎪</div><div class="empty-state-title">No items yet</div><p>Click the + button to add props, costumes, and other items.</p></div>' :
-                            `<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Category</th><th>Status</th><th style="text-align:right">Cost</th><th>Actions</th></tr></thead>
-                            <tbody>${inventory.map(i => `
-                                <tr>
-                                    <td><div class="table-name">${i.name || ''}</div><div class="table-meta">${i.description || ''}</div></td>
-                                    <td>${i.category || '-'}</td>
-                                    <td><span class="${getBadgeClass(i.status)}">${i.status || ''}</span></td>
-                                    <td style="text-align:right">$${(i.cost || 0).toFixed(2)}</td>
-                                    <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openInventoryModal('${i.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteInventory('${i.id}')">🗑️</button></div></td>
-                                </tr>
-                            `).join('')}</tbody></table></div>`}
+            `;
+            
+            const budgetMobile = `
+                <div class="mobile-cards">
+                    <div class="card" style="margin-bottom: 16px;">
+                        <div class="card-header">
+                            <span class="card-title">💰 Budget</span>
+                            <button class="btn btn-sm btn-secondary" onclick="openBudgetPlannerModal()">✏️ Edit</button>
+                        </div>
+                        <div class="card-body">
+                            ${totalPlanned === 0 && totalActual === 0 ? '<div style="text-align:center; color: var(--gray-500); padding: 16px;">No budget data yet.</div>' :
+                                `<div style="display: flex; flex-direction: column; gap: 8px;">
+                                    ${BUDGET_CATEGORIES.map(cat => {
+                                        const planned = plannedByCategory[cat];
+                                        const actual = actualByCategory[cat];
+                                        const variance = planned - actual;
+                                        if (planned === 0 && actual === 0) return '';
+                                        return `
+                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                                            <div>
+                                                <div style="font-weight: 500;">${cat}</div>
+                                                <div style="font-size: 12px; color: var(--gray-500);">Plan: $${planned.toFixed(0)} | Actual: $${actual.toFixed(0)}</div>
+                                            </div>
+                                            <div style="font-weight: 600; color: ${variance >= 0 ? 'var(--success)' : 'var(--danger)'};">${variance >= 0 ? '+' : ''}$${variance.toFixed(0)}</div>
+                                        </div>`;
+                                    }).join('')}
+                                    <div style="display: flex; justify-content: space-between; padding: 10px; background: var(--bg-tertiary); border-radius: 8px; font-weight: 600;">
+                                        <span>Total Variance</span>
+                                        <span style="color: ${totalVariance >= 0 ? 'var(--success)' : 'var(--danger)'};">${totalVariance >= 0 ? '+' : ''}$${totalVariance.toFixed(0)}</span>
+                                    </div>
+                                </div>`
+                            }
+                        </div>
                     </div>
                 </div>
+            `;
+            
+            // ===== INVENTORY ITEMS =====
+            const inventoryDesktop = `
+                <div class="desktop-table">
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">🎪 Inventory (${inventory.length})</span></div>
+                        <div class="card-body no-padding">
+                            ${inventory.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🎪</div><div class="empty-state-title">No items yet</div></div>' :
+                                `<div class="table-wrapper"><table>
+                                    <thead><tr><th>Name</th><th>Category</th><th>Status</th><th style="text-align:right">Cost</th><th>Actions</th></tr></thead>
+                                    <tbody>${inventory.map(i => `<tr>
+                                        <td><div class="table-name">${i.name || ''}</div><div class="table-meta">${i.description || ''}</div></td>
+                                        <td>${i.category || '-'}</td>
+                                        <td><span class="${getBadgeClass(i.status)}">${i.status || ''}</span></td>
+                                        <td style="text-align:right">$${(i.cost || 0).toFixed(2)}</td>
+                                        <td><div class="table-actions">
+                                            <button class="btn btn-ghost btn-icon" onclick="openInventoryModal('${i.id}')">✏️</button>
+                                            <button class="btn btn-ghost btn-icon" onclick="deleteInventory('${i.id}')">🗑️</button>
+                                        </div></td>
+                                    </tr>`).join('')}</tbody>
+                                </table></div>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const inventoryMobile = `
+                <div class="mobile-cards">
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">🎪 Inventory (${inventory.length})</span></div>
+                        <div class="card-body">
+                            ${inventory.length === 0 ? '<div class="empty-state" style="padding: 16px;"><div class="empty-state-icon">🎪</div><div class="empty-state-title">No items yet</div></div>' :
+                                `<div style="display: flex; flex-direction: column; gap: 8px;">
+                                    ${inventory.map(i => `
+                                    <div class="person-card" id="inv-card-${i.id}" style="border: 1px solid var(--gray-200); border-radius: 12px; background: var(--bg-primary); overflow: hidden;">
+                                        <div class="person-card-header" onclick="togglePersonCard('inv-card-${i.id}')" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer;">
+                                            <div style="flex: 1; min-width: 0;">
+                                                <div style="font-weight: 600;">${i.name || ''}</div>
+                                                <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px;">
+                                                    <span class="badge badge-not-started" style="font-size: 10px;">${i.category || ''}</span>
+                                                    <span class="${getBadgeClass(i.status)}" style="font-size: 10px;">${i.status || ''}</span>
+                                                    ${i.cost ? `<span style="font-size: 12px; color: var(--gray-600);">$${(i.cost || 0).toFixed(2)}</span>` : ''}
+                                                </div>
+                                            </div>
+                                            <div style="display: flex; align-items: center; gap: 4px;">
+                                                <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openInventoryModal('${i.id}')" style="padding: 6px;">✏️</button>
+                                                <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deleteInventory('${i.id}')" style="padding: 6px;">🗑️</button>
+                                                <span id="chevron-inv-card-${i.id}" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
+                                            </div>
+                                        </div>
+                                        <div id="details-inv-card-${i.id}" class="person-card-details">
+                                            ${i.description ? `<div style="font-size: 13px; color: var(--gray-600); padding-top: 8px;">📝 ${i.description}</div>` : ''}
+                                            ${i.notes ? `<div style="font-size: 13px; color: var(--gray-500); margin-top: 4px;">${i.notes}</div>` : ''}
+                                        </div>
+                                    </div>`).join('')}
+                                </div>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return `
+                ${statsHtml}
+                ${ticketsDesktop}${ticketsMobile}
+                ${budgetDesktop}${budgetMobile}
+                ${inventoryDesktop}${inventoryMobile}
                 <button class="fab" onclick="openInventoryModal()" title="Add Item">+</button>
             `;
         }
