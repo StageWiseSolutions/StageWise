@@ -4244,9 +4244,9 @@
         
         function renderInventory() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">🎪</div><div class="empty-state-title">Select a production first</div></div>';
-            const inventory = getProductionData('inventory');
-            const budgetEntries = getProductionData('budget');
-            const tickets = getProductionData('tickets');
+            const inventory = getProductionData('inventory') || [];
+            const budgetEntries = getProductionData('budget') || [];
+            const tickets = getProductionData('tickets') || [];
             
             // Calculate actual spent per category from inventory
             const actualByCategory = {};
@@ -4274,8 +4274,8 @@
             const totalVariance = totalPlanned - totalActual;
             
             // Ticket totals
-            const totalTicketsSold = tickets.reduce((s, t) => s + (t.sold || 0), 0);
-            const totalRevenue = tickets.reduce((s, t) => s + ((t.price || 0) * (t.sold || 0)), 0);
+            const totalTicketsSold = tickets.reduce((s, t) => s + (parseInt(t.sold) || 0), 0);
+            const totalRevenue = tickets.reduce((s, t) => s + ((parseFloat(t.price) || 0) * (parseInt(t.sold) || 0)), 0);
             const netProfit = totalRevenue - totalActual;
 
             // Summary stats (both views)
@@ -4301,11 +4301,11 @@
                                 `<div class="table-wrapper"><table>
                                     <thead><tr><th>Type</th><th>Price</th><th>Sold</th><th>Subtotal</th><th>Actions</th></tr></thead>
                                     <tbody>${tickets.map(t => {
-                                        const subtotal = (t.price || 0) * (t.sold || 0);
+                                        const subtotal = (parseFloat(t.price) || 0) * (parseInt(t.sold) || 0);
                                         return `<tr>
                                             <td class="table-name">${t.ticketType || ''}</td>
-                                            <td>$${(t.price || 0).toFixed(2)}</td>
-                                            <td>${t.sold || 0}</td>
+                                            <td>$${(parseFloat(t.price) || 0).toFixed(2)}</td>
+                                            <td>${parseInt(t.sold) || 0}</td>
                                             <td style="font-weight: 600;">$${subtotal.toFixed(2)}</td>
                                             <td><div class="table-actions">
                                                 <button class="btn btn-ghost btn-icon" onclick="openTicketModal('${t.id}')">✏️</button>
@@ -4334,12 +4334,12 @@
                             ${tickets.length === 0 ? '<div class="empty-state" style="padding: 16px;"><div class="empty-state-icon">🎟️</div><div class="empty-state-title">No ticket types yet</div></div>' :
                                 `<div style="display: flex; flex-direction: column; gap: 8px;">
                                     ${tickets.map(t => {
-                                        const subtotal = (t.price || 0) * (t.sold || 0);
+                                        const subtotal = (parseFloat(t.price) || 0) * (parseInt(t.sold) || 0);
                                         return `
                                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
                                             <div>
                                                 <div style="font-weight: 600;">${t.ticketType || ''}</div>
-                                                <div style="font-size: 13px; color: var(--gray-500);">$${(t.price || 0).toFixed(2)} × ${t.sold || 0} = <strong>$${subtotal.toFixed(2)}</strong></div>
+                                                <div style="font-size: 13px; color: var(--gray-500);">$${(parseFloat(t.price) || 0).toFixed(2)} × ${parseInt(t.sold) || 0} = <strong>$${subtotal.toFixed(2)}</strong></div>
                                             </div>
                                             <div style="display: flex; gap: 4px;">
                                                 <button class="btn btn-ghost btn-icon" onclick="openTicketModal('${t.id}')" style="padding: 6px;">✏️</button>
@@ -4634,8 +4634,8 @@
             
             const totalPlanned = budget.reduce((s, b) => s + (b.plannedAmount || 0), 0);
             const totalSpent = budget.reduce((s, b) => s + (b.actualAmount || 0), 0);
-            const totalTicketsSold = tickets.reduce((s, t) => s + (t.sold || 0), 0);
-            const totalRevenue = tickets.reduce((s, t) => s + ((t.price || 0) * (t.sold || 0)), 0);
+            const totalTicketsSold = tickets.reduce((s, t) => s + (parseInt(t.sold) || 0), 0);
+            const totalRevenue = tickets.reduce((s, t) => s + ((parseFloat(t.price) || 0) * (parseInt(t.sold) || 0)), 0);
             const netProfit = totalRevenue - totalSpent;
 
             return `
@@ -4658,12 +4658,12 @@
                             `<div class="table-wrapper"><table>
                                 <thead><tr><th>Type</th><th>Price</th><th>Sold</th><th>Subtotal</th><th>Actions</th></tr></thead>
                                 <tbody>${tickets.map(t => {
-                                    const subtotal = (t.price || 0) * (t.sold || 0);
+                                    const subtotal = (parseFloat(t.price) || 0) * (parseInt(t.sold) || 0);
                                     return `
                                     <tr>
                                         <td class="table-name">${t.ticketType || ''}</td>
-                                        <td>$${(t.price || 0).toFixed(2)}</td>
-                                        <td>${t.sold || 0}</td>
+                                        <td>$${(parseFloat(t.price) || 0).toFixed(2)}</td>
+                                        <td>${parseInt(t.sold) || 0}</td>
                                         <td style="font-weight: 600;">$${subtotal.toFixed(2)}</td>
                                         <td>
                                             <div class="table-actions">
@@ -4732,20 +4732,20 @@
                         <label class="form-label">Ticket Type *</label>
                         <select class="form-select" id="ticket_type">
                             <option value="">Select type...</option>
-                            ${ticketTypes.map(type => `<option value="${type}" ${isEditing && editItem.ticketType === type ? 'selected' : ''}>${type}</option>`).join('')}
+                            ${ticketTypes.map(type => `<option value="${type}" ${isEditing && editItem && editItem.ticketType === type ? 'selected' : ''}>${type}</option>`).join('')}
                         </select>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Price ($) *</label>
-                        <input type="number" class="form-input" id="ticket_price" value="${isEditing ? editItem.price || 0 : ''}" step="0.01" min="0" placeholder="0.00">
+                        <input type="number" class="form-input" id="ticket_price" value="${isEditing && editItem ? editItem.price || 0 : ''}" step="0.01" min="0" placeholder="0.00">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Tickets Sold</label>
-                        <input type="number" class="form-input" id="ticket_sold" value="${isEditing ? editItem.sold || 0 : 0}" min="0">
+                        <input type="number" class="form-input" id="ticket_sold" value="${isEditing && editItem ? editItem.sold || 0 : 0}" min="0">
                     </div>
                     <div class="form-group full-width">
                         <label class="form-label">Notes</label>
-                        <textarea class="form-textarea" id="ticket_notes" placeholder="Any additional notes...">${isEditing ? editItem.notes || '' : ''}</textarea>
+                        <textarea class="form-textarea" id="ticket_notes" placeholder="Any additional notes...">${isEditing && editItem ? editItem.notes || '' : ''}</textarea>
                     </div>
                 </div>
             `;
