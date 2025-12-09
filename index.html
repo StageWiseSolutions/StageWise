@@ -2435,8 +2435,8 @@
                 const totalPeople = data.people.length;
                 const totalScenes = data.scenes.length;
                 const totalRehearsals = data.rehearsals.length;
-                const totalBudget = data.budget.reduce((sum, b) => sum + (b.plannedAmount || 0), 0);
-                const totalSpent = data.budget.reduce((sum, b) => sum + (b.actualAmount || 0), 0);
+                const totalBudget = data.budget.reduce((sum, b) => sum + (parseFloat(b.plannedAmount) || 0), 0);
+                const totalSpent = data.inventory.reduce((sum, i) => sum + (parseFloat(i.cost) || 0), 0);
                 const totalInventory = data.inventory.length;
                 const readyItems = data.inventory.filter(i => i.status === 'Ready').length;
                 const neededItems = data.inventory.filter(i => i.status === 'Needed').length;
@@ -2555,8 +2555,8 @@
             const todayRehearsals = rehearsals.filter(r => r.date === today).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
             const upcomingRehearsals = rehearsals.filter(r => r.date >= today).sort((a, b) => a.date.localeCompare(b.date) || (a.startTime || '').localeCompare(b.startTime || '')).slice(0, 5);
             
-            const totalBudget = budget.reduce((sum, b) => sum + (b.plannedAmount || 0), 0);
-            const totalSpent = budget.reduce((sum, b) => sum + (b.actualAmount || 0), 0);
+            const totalBudget = budget.reduce((sum, b) => sum + (parseFloat(b.plannedAmount) || 0), 0);
+            const totalSpent = inventory.reduce((sum, i) => sum + (parseFloat(i.cost) || 0), 0);
             const readyItems = inventory.filter(i => i.status === 'Ready').length;
             const neededItems = inventory.filter(i => i.status === 'Needed').length;
 
