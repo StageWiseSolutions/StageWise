@@ -2027,7 +2027,7 @@
 
         const SHEETS = {
             productions: 'Productions', people: 'People', scenes: 'Scenes', rehearsals: 'Rehearsals',
-            attendance: 'Attendance', inventory: 'Inventory', budget: 'Budget',
+            attendance: 'Attendance', inventory: 'Inventory', budget: 'Budget', tickets: 'Tickets',
             documents: 'Documents', cueSheets: 'CueSheets', emails: 'Emails', contacts: 'Contacts'
         };
 
@@ -2040,6 +2040,7 @@
             attendance: ['ID', 'RehearsalID', 'PersonID', 'Status', 'ArrivalTime', 'Notes'],
             inventory: ['ID', 'ProductionID', 'Category', 'Name', 'Description', 'SceneIDs', 'CharacterIDs', 'Status', 'Notes', 'Cost'],
             budget: ['ID', 'ProductionID', 'Category', 'Description', 'PlannedAmount', 'ActualAmount', 'Date', 'Vendor', 'Notes'],
+            tickets: ['ID', 'ProductionID', 'TicketType', 'Price', 'Sold', 'Notes'],
             documents: ['ID', 'ProductionID', 'Title', 'Category', 'URL', 'Version', 'Notes', 'DateAdded'],
             cueSheets: ['ID', 'ProductionID', 'Type', 'CueNumber', 'Page', 'Action', 'Description', 'Notes'],
             emails: ['ID', 'ProductionID', 'Subject', 'Body', 'Recipients', 'DateCreated', 'Status']
@@ -2057,6 +2058,7 @@
             'Date': 'date', 'StartTime': 'startTime', 'EndTime': 'endTime', 'Location': 'location', 'Type': 'type',
             'ArrivalTime': 'arrivalTime', 'Category': 'category', 'Name': 'name', 'Cost': 'cost',
             'PlannedAmount': 'plannedAmount', 'ActualAmount': 'actualAmount', 'Vendor': 'vendor',
+            'TicketType': 'ticketType', 'Price': 'price', 'Sold': 'sold',
             'URL': 'url', 'Version': 'version', 'DateAdded': 'dateAdded', 'CueNumber': 'cueNumber',
             'Page': 'page', 'Action': 'action', 'Subject': 'subject', 'Body': 'body',
             'Recipients': 'recipients', 'DateCreated': 'dateCreated'
@@ -2064,9 +2066,9 @@
 
         // ==================== STATE ====================
         let tokenClient, gapiInited = false, gisInited = false, accessToken = null;
-        let data = { productions: [], people: [], scenes: [], rehearsals: [], attendance: [], inventory: [], budget: [], documents: [], cueSheets: [], emails: [], contacts: [] };
+        let data = { productions: [], people: [], scenes: [], rehearsals: [], attendance: [], inventory: [], budget: [], tickets: [], documents: [], cueSheets: [], emails: [], contacts: [] };
         let activeProduction = null, activeTab = 'dashboard';
-        let editing = { production: null, person: null, scene: null, rehearsal: null, inventory: null, budget: null, document: null, cueSheet: null, email: null, contact: null };
+        let editing = { production: null, person: null, scene: null, rehearsal: null, inventory: null, budget: null, ticket: null, document: null, cueSheet: null, email: null, contact: null };
         let calendarDate = new Date(); // Current calendar view month
 
         // ==================== INIT ====================
@@ -4478,18 +4480,70 @@
         function renderBudget() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">💰</div><div class="empty-state-title">Select a production first</div></div>';
             const budget = getProductionData('budget');
-            const totalPlanned = budget.reduce((s, b) => s + (b.plannedAmount || 0), 0), totalSpent = budget.reduce((s, b) => s + (b.actualAmount || 0), 0), remaining = totalPlanned - totalSpent;
+            const tickets = getProductionData('tickets');
+            
+            const totalPlanned = budget.reduce((s, b) => s + (b.plannedAmount || 0), 0);
+            const totalSpent = budget.reduce((s, b) => s + (b.actualAmount || 0), 0);
+            const totalTicketsSold = tickets.reduce((s, t) => s + (t.sold || 0), 0);
+            const totalRevenue = tickets.reduce((s, t) => s + ((t.price || 0) * (t.sold || 0)), 0);
+            const netProfit = totalRevenue - totalSpent;
 
             return `
-                <div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+                <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-bottom: 24px;">
                     <div class="stat-card"><div class="stat-value">$${totalPlanned.toFixed(0)}</div><div class="stat-label">Budgeted</div></div>
                     <div class="stat-card"><div class="stat-value">$${totalSpent.toFixed(0)}</div><div class="stat-label">Spent</div></div>
-                    <div class="stat-card"><div class="stat-value" style="color: ${remaining >= 0 ? 'var(--success)' : 'var(--danger)'}">$${remaining.toFixed(0)}</div><div class="stat-label">Remaining</div></div>
+                    <div class="stat-card"><div class="stat-value">${totalTicketsSold}</div><div class="stat-label">Tickets Sold</div></div>
+                    <div class="stat-card"><div class="stat-value">$${totalRevenue.toFixed(0)}</div><div class="stat-label">Revenue</div></div>
+                    <div class="stat-card"><div class="stat-value" style="color: ${netProfit >= 0 ? 'var(--success)' : 'var(--danger)'}">$${netProfit.toFixed(0)}</div><div class="stat-label">Net ${netProfit >= 0 ? 'Profit' : 'Loss'}</div></div>
                 </div>
-                <div class="card">
-                    <div class="card-header"><span class="card-title">Budget Entries (${budget.length})</span></div>
+                
+                <!-- Ticket Sales Section -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <span class="card-title">🎟️ Ticket Sales</span>
+                        <button class="btn btn-primary btn-sm" onclick="openTicketModal()">+ Add Ticket Type</button>
+                    </div>
                     <div class="card-body no-padding">
-                        ${budget.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">💰</div><div class="empty-state-title">No entries yet</div><p>Click the + button to add budget entries.</p></div>' :
+                        ${tickets.length === 0 ? '<div class="empty-state" style="padding: 24px;"><div class="empty-state-icon">🎟️</div><div class="empty-state-title">No ticket types yet</div><p>Add ticket types to track sales.</p></div>' :
+                            `<div class="table-wrapper"><table>
+                                <thead><tr><th>Type</th><th>Price</th><th>Sold</th><th>Subtotal</th><th>Actions</th></tr></thead>
+                                <tbody>${tickets.map(t => {
+                                    const subtotal = (t.price || 0) * (t.sold || 0);
+                                    return `
+                                    <tr>
+                                        <td class="table-name">${t.ticketType || ''}</td>
+                                        <td>$${(t.price || 0).toFixed(2)}</td>
+                                        <td>${t.sold || 0}</td>
+                                        <td style="font-weight: 600;">$${subtotal.toFixed(2)}</td>
+                                        <td>
+                                            <div class="table-actions">
+                                                <button class="btn btn-ghost btn-icon" onclick="openTicketModal('${t.id}')">✏️</button>
+                                                <button class="btn btn-ghost btn-icon" onclick="deleteTicket('${t.id}')">🗑️</button>
+                                            </div>
+                                        </td>
+                                    </tr>`;
+                                }).join('')}
+                                <tr style="background: var(--bg-tertiary); font-weight: 600;">
+                                    <td>Total</td>
+                                    <td></td>
+                                    <td>${totalTicketsSold}</td>
+                                    <td>$${totalRevenue.toFixed(2)}</td>
+                                    <td></td>
+                                </tr>
+                                </tbody>
+                            </table></div>`
+                        }
+                    </div>
+                </div>
+                
+                <!-- Budget/Expenses Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">💸 Expenses (${budget.length})</span>
+                        <button class="btn btn-primary btn-sm" onclick="openBudgetModal()">+ Add Expense</button>
+                    </div>
+                    <div class="card-body no-padding">
+                        ${budget.length === 0 ? '<div class="empty-state" style="padding: 24px;"><div class="empty-state-icon">💰</div><div class="empty-state-title">No expenses yet</div><p>Click + to add budget entries.</p></div>' :
                             `<div class="table-wrapper"><table><thead><tr><th>Description</th><th>Category</th><th>Planned</th><th>Actual</th><th>Variance</th><th>Actions</th></tr></thead>
                             <tbody>${budget.map(b => { const v = (b.plannedAmount || 0) - (b.actualAmount || 0); return `
                                 <tr>
@@ -4499,11 +4553,101 @@
                                     <td>$${(b.actualAmount || 0).toFixed(2)}</td>
                                     <td style="color: ${v >= 0 ? 'var(--success)' : 'var(--danger)'}">$${v.toFixed(2)}</td>
                                     <td><div class="table-actions"><button class="btn btn-ghost btn-icon" onclick="openBudgetModal('${b.id}')">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteBudget('${b.id}')">🗑️</button></div></td>
-                                </tr>`; }).join('')}</tbody></table></div>`}
+                                </tr>`; }).join('')}
+                            <tr style="background: var(--bg-tertiary); font-weight: 600;">
+                                <td>Total</td>
+                                <td></td>
+                                <td>$${totalPlanned.toFixed(2)}</td>
+                                <td>$${totalSpent.toFixed(2)}</td>
+                                <td style="color: ${(totalPlanned - totalSpent) >= 0 ? 'var(--success)' : 'var(--danger)'}">$${(totalPlanned - totalSpent).toFixed(2)}</td>
+                                <td></td>
+                            </tr>
+                            </tbody></table></div>`}
                     </div>
                 </div>
-                <button class="fab" onclick="openBudgetModal()" title="Add Entry">+</button>
             `;
+        }
+
+        // Ticket Modal and Functions
+        function openTicketModal(id = null) {
+            const isEditing = id !== null;
+            const editItem = isEditing ? data.tickets.find(t => t.id === id) : null;
+            editing.ticket = id;
+
+            const bodyHtml = \`
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group full-width">
+                        <label class="form-label">Ticket Type *</label>
+                        <input type="text" class="form-input" id="ticket_type" value="\${isEditing ? editItem.ticketType || '' : ''}" placeholder="e.g., Adult, Child, Senior, Student, Comp">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Price ($) *</label>
+                        <input type="number" class="form-input" id="ticket_price" value="\${isEditing ? editItem.price || 0 : ''}" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tickets Sold</label>
+                        <input type="number" class="form-input" id="ticket_sold" value="\${isEditing ? editItem.sold || 0 : 0}" min="0">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-textarea" id="ticket_notes" placeholder="Any additional notes...">\${isEditing ? editItem.notes || '' : ''}</textarea>
+                    </div>
+                </div>
+            \`;
+
+            const footerHtml = isEditing ? \`
+                <button class="btn btn-secondary" onclick="deleteTicket('\${id}')">🗑️ Delete</button>
+                <button class="btn btn-primary" onclick="saveTicketFromModal()">💾 Save Changes</button>
+            \` : \`
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addTicketFromModal()">+ Add Ticket Type</button>
+            \`;
+
+            openModal(isEditing ? '✏️ Edit Ticket Type' : '➕ Add Ticket Type', bodyHtml, footerHtml);
+        }
+
+        async function addTicketFromModal() {
+            const ticketType = document.getElementById('ticket_type').value.trim();
+            const price = parseFloat(document.getElementById('ticket_price').value) || 0;
+            if (!ticketType) return showNotification('Enter ticket type', 'error');
+            
+            data.tickets.push({
+                id: generateId(),
+                productionId: activeProduction,
+                ticketType: ticketType,
+                price: price,
+                sold: parseInt(document.getElementById('ticket_sold').value) || 0,
+                notes: document.getElementById('ticket_notes').value
+            });
+            await saveSheetData('tickets');
+            closeModal();
+            renderContent();
+        }
+
+        async function saveTicketFromModal() {
+            const ticketType = document.getElementById('ticket_type').value.trim();
+            if (!ticketType) return showNotification('Enter ticket type', 'error');
+            
+            const item = data.tickets.find(t => t.id === editing.ticket);
+            if (item) {
+                item.ticketType = ticketType;
+                item.price = parseFloat(document.getElementById('ticket_price').value) || 0;
+                item.sold = parseInt(document.getElementById('ticket_sold').value) || 0;
+                item.notes = document.getElementById('ticket_notes').value;
+            }
+            editing.ticket = null;
+            await saveSheetData('tickets');
+            closeModal();
+            renderContent();
+        }
+
+        async function deleteTicket(id) {
+            if (confirm('Delete this ticket type?')) {
+                data.tickets = data.tickets.filter(t => t.id !== id);
+                await saveSheetData('tickets');
+                closeModal();
+                renderContent();
+            }
         }
 
         function openBudgetModal(id = null) {
