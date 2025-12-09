@@ -4574,34 +4574,34 @@
             const editItem = isEditing ? data.tickets.find(t => t.id === id) : null;
             editing.ticket = id;
 
-            const bodyHtml = \`
+            const bodyHtml = `
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
                     <div class="form-group full-width">
                         <label class="form-label">Ticket Type *</label>
-                        <input type="text" class="form-input" id="ticket_type" value="\${isEditing ? editItem.ticketType || '' : ''}" placeholder="e.g., Adult, Child, Senior, Student, Comp">
+                        <input type="text" class="form-input" id="ticket_type" value="${isEditing ? editItem.ticketType || '' : ''}" placeholder="e.g., Adult, Child, Senior, Student, Comp">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Price ($) *</label>
-                        <input type="number" class="form-input" id="ticket_price" value="\${isEditing ? editItem.price || 0 : ''}" step="0.01" min="0" placeholder="0.00">
+                        <input type="number" class="form-input" id="ticket_price" value="${isEditing ? editItem.price || 0 : ''}" step="0.01" min="0" placeholder="0.00">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Tickets Sold</label>
-                        <input type="number" class="form-input" id="ticket_sold" value="\${isEditing ? editItem.sold || 0 : 0}" min="0">
+                        <input type="number" class="form-input" id="ticket_sold" value="${isEditing ? editItem.sold || 0 : 0}" min="0">
                     </div>
                     <div class="form-group full-width">
                         <label class="form-label">Notes</label>
-                        <textarea class="form-textarea" id="ticket_notes" placeholder="Any additional notes...">\${isEditing ? editItem.notes || '' : ''}</textarea>
+                        <textarea class="form-textarea" id="ticket_notes" placeholder="Any additional notes...">${isEditing ? editItem.notes || '' : ''}</textarea>
                     </div>
                 </div>
-            \`;
+            `;
 
-            const footerHtml = isEditing ? \`
-                <button class="btn btn-secondary" onclick="deleteTicket('\${id}')">🗑️ Delete</button>
+            const footerHtml = isEditing ? `
+                <button class="btn btn-secondary" onclick="deleteTicket('${id}')">🗑️ Delete</button>
                 <button class="btn btn-primary" onclick="saveTicketFromModal()">💾 Save Changes</button>
-            \` : \`
+            ` : `
                 <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="addTicketFromModal()">+ Add Ticket Type</button>
-            \`;
+            `;
 
             openModal(isEditing ? '✏️ Edit Ticket Type' : '➕ Add Ticket Type', bodyHtml, footerHtml);
         }
