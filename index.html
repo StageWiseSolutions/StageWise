@@ -4618,12 +4618,17 @@
             const isEditing = id !== null;
             const editItem = isEditing ? data.tickets.find(t => t.id === id) : null;
             editing.ticket = id;
+            
+            const ticketTypes = ['Adult', 'Child', 'Senior', 'Student', 'Group', 'VIP', 'Comp', 'Other'];
 
             const bodyHtml = `
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
                     <div class="form-group full-width">
                         <label class="form-label">Ticket Type *</label>
-                        <input type="text" class="form-input" id="ticket_type" value="${isEditing ? editItem.ticketType || '' : ''}" placeholder="e.g., Adult, Child, Senior, Student, Comp">
+                        <select class="form-select" id="ticket_type">
+                            <option value="">Select type...</option>
+                            ${ticketTypes.map(type => `<option value="${type}" ${isEditing && editItem.ticketType === type ? 'selected' : ''}>${type}</option>`).join('')}
+                        </select>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Price ($) *</label>
