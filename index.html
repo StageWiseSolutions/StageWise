@@ -4246,6 +4246,7 @@
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">🎪</div><div class="empty-state-title">Select a production first</div></div>';
             const inventory = getProductionData('inventory');
             const budgetEntries = getProductionData('budget');
+            const tickets = getProductionData('tickets');
             
             // Calculate actual spent per category from inventory
             const actualByCategory = {};
@@ -4272,11 +4273,62 @@
             const totalActual = Object.values(actualByCategory).reduce((a, b) => a + b, 0);
             const totalVariance = totalPlanned - totalActual;
             
+            // Ticket totals
+            const totalTicketsSold = tickets.reduce((s, t) => s + (t.sold || 0), 0);
+            const totalRevenue = tickets.reduce((s, t) => s + ((t.price || 0) * (t.sold || 0)), 0);
+            const netProfit = totalRevenue - totalActual;
+            
             // Stats for inventory items
             const readyCount = inventory.filter(i => i.status === 'Ready').length;
             const neededCount = inventory.filter(i => i.status === 'Needed').length;
 
             return `
+                <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); margin-bottom: 24px;">
+                    <div class="stat-card"><div class="stat-value">$${totalActual.toFixed(0)}</div><div class="stat-label">Spent</div></div>
+                    <div class="stat-card"><div class="stat-value">${totalTicketsSold}</div><div class="stat-label">Tickets Sold</div></div>
+                    <div class="stat-card"><div class="stat-value">$${totalRevenue.toFixed(0)}</div><div class="stat-label">Revenue</div></div>
+                    <div class="stat-card"><div class="stat-value" style="color: ${netProfit >= 0 ? 'var(--success)' : 'var(--danger)'}">$${netProfit.toFixed(0)}</div><div class="stat-label">Net ${netProfit >= 0 ? 'Profit' : 'Loss'}</div></div>
+                </div>
+                
+                <!-- Ticket Sales Section -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <span class="card-title">🎟️ Ticket Sales</span>
+                        <button class="btn btn-primary btn-sm" onclick="openTicketModal()">+ Add Type</button>
+                    </div>
+                    <div class="card-body no-padding">
+                        ${tickets.length === 0 ? '<div class="empty-state" style="padding: 24px;"><div class="empty-state-icon">🎟️</div><div class="empty-state-title">No ticket types yet</div><p>Add ticket types to track sales.</p></div>' :
+                            `<div class="table-wrapper"><table>
+                                <thead><tr><th>Type</th><th>Price</th><th>Sold</th><th>Subtotal</th><th>Actions</th></tr></thead>
+                                <tbody>${tickets.map(t => {
+                                    const subtotal = (t.price || 0) * (t.sold || 0);
+                                    return `
+                                    <tr>
+                                        <td class="table-name">${t.ticketType || ''}</td>
+                                        <td>$${(t.price || 0).toFixed(2)}</td>
+                                        <td>${t.sold || 0}</td>
+                                        <td style="font-weight: 600;">$${subtotal.toFixed(2)}</td>
+                                        <td>
+                                            <div class="table-actions">
+                                                <button class="btn btn-ghost btn-icon" onclick="openTicketModal('${t.id}')">✏️</button>
+                                                <button class="btn btn-ghost btn-icon" onclick="deleteTicket('${t.id}')">🗑️</button>
+                                            </div>
+                                        </td>
+                                    </tr>`;
+                                }).join('')}
+                                <tr style="background: var(--bg-tertiary); font-weight: 600;">
+                                    <td>Total</td>
+                                    <td></td>
+                                    <td>${totalTicketsSold}</td>
+                                    <td>$${totalRevenue.toFixed(2)}</td>
+                                    <td></td>
+                                </tr>
+                                </tbody>
+                            </table></div>`
+                        }
+                    </div>
+                </div>
+            
                 <div class="card" style="margin-bottom: 24px;">
                     <div class="card-header">
                         <span class="card-title">💰 Budget Summary</span>
@@ -4321,13 +4373,6 @@
                             </table>
                         </div>
                     </div>
-                </div>
-
-                <div class="dashboard-grid" style="margin-bottom: 24px;">
-                    <div class="stat-card"><div class="stat-value">${inventory.length}</div><div class="stat-label">Total Items</div></div>
-                    <div class="stat-card"><div class="stat-value">${readyCount}</div><div class="stat-label">Ready</div></div>
-                    <div class="stat-card"><div class="stat-value" style="color: ${neededCount > 0 ? 'var(--warning)' : 'var(--success)'}">${neededCount}</div><div class="stat-label">Still Needed</div></div>
-                    <div class="stat-card"><div class="stat-value">$${totalActual.toFixed(0)}</div><div class="stat-label">Total Spent</div></div>
                 </div>
 
                 <div class="card">
