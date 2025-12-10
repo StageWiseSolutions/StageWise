@@ -470,6 +470,32 @@
             cursor: pointer;
             transition: all 0.15s;
             border: none;
+            position: relative;
+        }
+        .btn.loading {
+            color: transparent !important;
+            pointer-events: none;
+        }
+        .btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-left: -8px;
+            margin-top: -8px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: btn-spin 0.6s linear infinite;
+        }
+        .btn-secondary.loading::after {
+            border: 2px solid rgba(0,0,0,0.1);
+            border-top-color: var(--gray-600);
+        }
+        @keyframes btn-spin {
+            to { transform: rotate(360deg); }
         }
         .btn-primary {
             background: var(--primary);
@@ -1869,15 +1895,37 @@
         
         /* Collapsible person cards */
         .person-card-details {
-            display: none;
-            padding: 0 16px 16px 16px;
-            border-top: 1px solid var(--gray-200);
+            max-height: 0;
+            overflow: hidden;
+            padding: 0 16px;
+            border-top: 1px solid transparent;
+            transition: max-height 0.3s ease, padding 0.3s ease, border-color 0.3s ease;
         }
         .person-card-details.expanded {
-            display: block;
+            max-height: 500px;
+            padding: 16px;
+            border-top: 1px solid var(--gray-200);
+        }
+        .person-card {
+            transition: box-shadow 0.3s ease, transform 0.2s ease;
         }
         .person-card.expanded {
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .person-card:active {
+            transform: scale(0.99);
+        }
+        .person-card-header {
+            transition: background-color 0.2s ease;
+        }
+        .person-card-header:hover {
+            background-color: var(--bg-secondary);
+        }
+        #chevron-transition {
+            transition: transform 0.3s ease;
+        }
+        .person-card.expanded [id^="chevron-"] {
+            transform: rotate(180deg);
         }
         
         /* Responsive: cards on mobile, table on desktop */
@@ -2234,6 +2282,17 @@
         // ==================== UI HELPERS ====================
         function showLoading(text) { document.getElementById('loadingText').textContent = text; document.getElementById('loadingOverlay').classList.remove('hidden'); }
         function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+        
+        function setButtonLoading(btn, loading = true) {
+            if (!btn) return;
+            if (loading) {
+                btn.classList.add('loading');
+                btn.dataset.originalText = btn.innerHTML;
+            } else {
+                btn.classList.remove('loading');
+                if (btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText;
+            }
+        }
         function showNotification(msg, type = 'success') { const n = document.getElementById('notification'); n.textContent = msg; n.className = 'notification ' + type; setTimeout(() => n.classList.add('hidden'), 3000); }
         function setSyncStatus(status) { /* Sync status UI removed */ }
         function generateId() { return Math.random().toString(36).substr(2, 9); }
@@ -2564,6 +2623,63 @@
             const calledToday = new Set();
             todayRehearsals.forEach(r => (r.calledCastIds || []).forEach(id => calledToday.add(id)));
             const calledPeople = people.filter(p => calledToday.has(p.id));
+            
+            // Calculate attention items
+            const attentionItems = [];
+            
+            // Missing emergency contacts
+            const missingEmergency = people.filter(p => {
+                const c = data.contacts.find(x => x.id === p.contactId);
+                return c && !c.emergencyName;
+            });
+            if (missingEmergency.length > 0) {
+                attentionItems.push({ icon: '🚨', text: `${missingEmergency.length} cast member${missingEmergency.length > 1 ? 's' : ''} missing emergency contact`, action: "document.querySelector('[data-tab=contacts]').click()" });
+            }
+            
+            // Scenes with no cast assigned
+            const emptyScenes = scenes.filter(s => !s.castIds || s.castIds.length === 0);
+            if (emptyScenes.length > 0) {
+                attentionItems.push({ icon: '🎬', text: `${emptyScenes.length} scene${emptyScenes.length > 1 ? 's' : ''} with no cast assigned`, action: "document.querySelector('[data-tab=scenes]').click()" });
+            }
+            
+            // Items still needed
+            if (neededItems > 0) {
+                attentionItems.push({ icon: '📦', text: `${neededItems} inventory item${neededItems > 1 ? 's' : ''} still needed`, action: "document.querySelector('[data-tab=inventory]').click()" });
+            }
+            
+            // Over budget categories
+            const overBudget = totalBudget > 0 && totalSpent > totalBudget;
+            if (overBudget) {
+                attentionItems.push({ icon: '💰', text: `Over budget by $${(totalSpent - totalBudget).toFixed(0)}`, action: "document.querySelector('[data-tab=inventory]').click()" });
+            }
+            
+            // Scenes not polished
+            const unpolishedScenes = scenes.filter(s => s.status !== 'Polished' && s.status !== 'Complete');
+            if (unpolishedScenes.length > 0 && scenes.length > 0) {
+                const pct = Math.round((scenes.length - unpolishedScenes.length) / scenes.length * 100);
+                if (pct < 100) {
+                    attentionItems.push({ icon: '✨', text: `${pct}% of scenes polished (${scenes.length - unpolishedScenes.length}/${scenes.length})`, action: "document.querySelector('[data-tab=scenes]').click()" });
+                }
+            }
+
+            const needsAttentionHtml = attentionItems.length > 0 ? `
+                <div class="card" style="margin-bottom: 16px; border-left: 4px solid var(--warning);">
+                    <div class="card-header" style="padding-bottom: 8px;">
+                        <span class="card-title">⚠️ Needs Attention</span>
+                    </div>
+                    <div class="card-body" style="padding-top: 0;">
+                        <ul style="list-style: none; padding: 0; margin: 0;">
+                            ${attentionItems.map(item => `
+                                <li onclick="${item.action}" style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--gray-100); cursor: pointer;">
+                                    <span style="font-size: 16px;">${item.icon}</span>
+                                    <span style="color: var(--gray-700); font-size: 14px;">${item.text}</span>
+                                    <span style="margin-left: auto; color: var(--gray-400);">›</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+            ` : '';
 
             return `
                 <div class="dashboard-grid stats-compact" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 16px;">
@@ -2607,6 +2723,8 @@
                         `).join('')}</div>`
                     }
                 </div>
+
+                ${needsAttentionHtml}
 
                 <div class="dashboard-row">
                     <div class="card">
@@ -2714,7 +2832,7 @@
                                                     <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); selectProduction('${p.id}')" style="padding: 6px;" title="Select">📋</button>
                                                     <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openProductionModal('${p.id}')" style="padding: 6px;">✏️</button>
                                                     <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deleteProduction('${p.id}')" style="padding: 6px;">🗑️</button>
-                                                    <span id="chevron-prod-card-${p.id}" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
+                                                    <span style="display: inline-block; transition: transform 0.3s ease;" id="chevron-prod-card-${p.id}" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
                                                 </div>
                                             </div>
                                             <div id="details-prod-card-${p.id}" class="person-card-details">
@@ -2784,21 +2902,27 @@
         }
 
         async function addProductionFromModal() {
+            const btn = event.target;
             const title = document.getElementById('prod_title').value.trim();
             if (!title) return showNotification('Please enter a title', 'error');
+            setButtonLoading(btn, true);
             data.productions.push({ id: generateId(), title, venue: document.getElementById('prod_venue').value, startDate: document.getElementById('prod_startDate').value, endDate: document.getElementById('prod_endDate').value, director: document.getElementById('prod_director').value, musicDirector: document.getElementById('prod_musicDirector').value, choreographer: document.getElementById('prod_choreographer').value, stageManager: document.getElementById('prod_stageManager').value, status: document.getElementById('prod_status').value, synopsis: document.getElementById('prod_synopsis').value });
             await saveSheetData('productions');
+            setButtonLoading(btn, false);
             closeModal();
             renderContent();
         }
 
         async function saveProductionFromModal() {
+            const btn = event.target;
             const title = document.getElementById('prod_title').value.trim();
             if (!title) return showNotification('Please enter a title', 'error');
+            setButtonLoading(btn, true);
             const item = data.productions.find(p => p.id === editing.production);
             if (item) { item.title = title; item.venue = document.getElementById('prod_venue').value; item.startDate = document.getElementById('prod_startDate').value; item.endDate = document.getElementById('prod_endDate').value; item.director = document.getElementById('prod_director').value; item.musicDirector = document.getElementById('prod_musicDirector').value; item.choreographer = document.getElementById('prod_choreographer').value; item.stageManager = document.getElementById('prod_stageManager').value; item.status = document.getElementById('prod_status').value; item.synopsis = document.getElementById('prod_synopsis').value; }
             editing.production = null;
             await saveSheetData('productions');
+            setButtonLoading(btn, false);
             closeModal();
             renderContent();
         }
@@ -2906,7 +3030,7 @@
                                                 <div style="display: flex; align-items: center; gap: 4px;">
                                                     <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openContactModal('${c.id}')" style="padding: 6px;">✏️</button>
                                                     <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deleteContact('${c.id}')" style="padding: 6px;">🗑️</button>
-                                                    <span id="chevron-contact-card-${c.id}" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
+                                                    <span style="display: inline-block; transition: transform 0.3s ease;" id="chevron-contact-card-${c.id}" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
                                                 </div>
                                             </div>
                                             <div id="details-contact-card-${c.id}" class="person-card-details">
@@ -2935,13 +3059,11 @@
         function togglePersonCard(cardId) {
             const card = document.getElementById(cardId);
             const details = document.getElementById('details-' + cardId);
-            const chevron = document.getElementById('chevron-' + cardId);
             
-            if (!card || !details || !chevron) return;
+            if (!card || !details) return;
             
             const isExpanded = details.classList.toggle('expanded');
             card.classList.toggle('expanded', isExpanded);
-            chevron.textContent = isExpanded ? '▲' : '▼';
         }
         
         function viewContactModal(id) {
@@ -2992,8 +3114,10 @@
         }
 
         async function addContactFromModal() {
+            const btn = event.target;
             const fn = document.getElementById('contact_firstName').value.trim(), ln = document.getElementById('contact_lastName').value.trim();
             if (!fn || !ln) return showNotification('Enter first and last name', 'error');
+            setButtonLoading(btn, true);
             data.contacts.push({ 
                 id: generateId(), 
                 firstName: fn, 
@@ -3008,13 +3132,16 @@
                 notes: document.getElementById('contact_notes').value 
             });
             await saveSheetData('contacts');
+            setButtonLoading(btn, false);
             closeModal();
             renderContent();
         }
 
         async function saveContactFromModal() {
+            const btn = event.target;
             const fn = document.getElementById('contact_firstName').value.trim(), ln = document.getElementById('contact_lastName').value.trim();
             if (!fn || !ln) return showNotification('Enter first and last name', 'error');
+            setButtonLoading(btn, true);
             const item = data.contacts.find(c => c.id === editing.contact);
             if (item) { 
                 item.firstName = fn; 
@@ -3030,6 +3157,7 @@
             }
             editing.contact = null;
             await saveSheetData('contacts');
+            setButtonLoading(btn, false);
             closeModal();
             renderContent();
         }
@@ -3092,7 +3220,13 @@
             const people = getProductionData('people');
             const scenes = getProductionData('scenes');
             
-            const emptyState = '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">No one assigned yet</div><p>Click + to add people from your company roster.</p></div>';
+            const emptyState = `<div class="empty-state">
+                <div class="empty-state-icon">👥</div>
+                <div class="empty-state-title">No one assigned yet</div>
+                <p style="color: var(--gray-500); margin-bottom: 16px;">Add cast and crew from your Company Roster to this production.</p>
+                <button class="btn btn-primary" onclick="openPersonModal()">+ Add Cast or Crew</button>
+                <p style="font-size: 12px; color: var(--gray-400); margin-top: 12px;">💡 Tip: Add people to the Company Roster first, then assign them to productions</p>
+            </div>`;
             const noContactsWarning = data.contacts.length === 0 ? `<div class="card" style="margin-top: 16px; border-color: var(--warning);"><div class="card-body" style="text-align: center;"><p>📇 Add people to your <strong>Company Roster</strong> first, then assign them to this production.</p><button class="btn btn-primary" onclick="activeTab='contacts'; renderContent();">Go to Company Roster</button></div></div>` : '';
 
             // Desktop table view
@@ -3173,7 +3307,7 @@
                                                 <div style="display: flex; align-items: center; gap: 4px;">
                                                     <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openPersonModal('${p.id}')" style="padding: 6px;">✏️</button>
                                                     <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deletePerson('${p.id}')" style="padding: 6px;">🗑️</button>
-                                                    <span id="chevron-person-card-${p.id}" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
+                                                    <span style="display: inline-block; transition: transform 0.3s ease;" id="chevron-person-card-${p.id}" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
                                                 </div>
                                             </div>
                                             <div id="details-person-card-${p.id}" class="person-card-details">
@@ -3287,10 +3421,12 @@
         }
 
         async function addPersonFromModal() {
+            const btn = event.target;
             const contactId = document.getElementById('person_contactId').value;
             const role = document.getElementById('person_role').value;
             if (!contactId) return showNotification('Select a person from the roster', 'error');
             if (!role) return showNotification('Select a role', 'error');
+            setButtonLoading(btn, true);
             data.people.push({ 
                 id: generateId(), 
                 productionId: activeProduction, 
@@ -3300,13 +3436,16 @@
                 notes: document.getElementById('person_notes').value 
             });
             await saveSheetData('people');
+            setButtonLoading(btn, false);
             closeModal();
             renderContent();
         }
 
         async function savePersonFromModal() {
+            const btn = event.target;
             const role = document.getElementById('person_role').value;
             if (!role) return showNotification('Select a role', 'error');
+            setButtonLoading(btn, true);
             const item = data.people.find(p => p.id === editing.person);
             if (item) { 
                 item.role = role; 
@@ -3315,6 +3454,7 @@
             }
             editing.person = null;
             await saveSheetData('people');
+            setButtonLoading(btn, false);
             closeModal();
             renderContent();
         }
@@ -3330,7 +3470,13 @@
             const scenes = getProductionData('scenes').sort((a, b) => (a.sceneNumber || '').localeCompare(b.sceneNumber || ''));
             const people = getProductionData('people').filter(p => p.role && p.role.includes('Cast'));
             
-            const emptyState = '<div class="empty-state"><div class="empty-state-icon">🎬</div><div class="empty-state-title">No scenes yet</div><p>Click the + button to add scenes.</p></div>';
+            const emptyState = `<div class="empty-state">
+                <div class="empty-state-icon">🎬</div>
+                <div class="empty-state-title">No scenes yet</div>
+                <p style="color: var(--gray-500); margin-bottom: 16px;">Scenes help you organize your show and track which cast members are in each part.</p>
+                <button class="btn btn-primary" onclick="openSceneModal()">+ Add Your First Scene</button>
+                <p style="font-size: 12px; color: var(--gray-400); margin-top: 12px;">💡 Tip: Number scenes like "1-1", "1-2" for Act 1 Scene 1, Act 1 Scene 2</p>
+            </div>`;
             
             // Helper to get cast names for a scene
             const getCastNames = (castIds) => (castIds || []).map(cid => {
@@ -3398,7 +3544,7 @@
                                                 <div style="display: flex; align-items: center; gap: 4px;">
                                                     <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openSceneModal('${s.id}')" style="padding: 6px;">✏️</button>
                                                     <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deleteScene('${s.id}')" style="padding: 6px;">🗑️</button>
-                                                    <span id="chevron-scene-card-${s.id}" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
+                                                    <span style="display: inline-block; transition: transform 0.3s ease;" id="chevron-scene-card-${s.id}" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
                                                 </div>
                                             </div>
                                             <div id="details-scene-card-${s.id}" class="person-card-details">
@@ -4244,9 +4390,11 @@
         }
 
         async function addRehearsalFromModal() {
+            const btn = event.target;
             const date = document.getElementById('reh_date').value;
             const time = document.getElementById('reh_startTime').value;
             if (!date || !time) return showNotification('Enter date and time', 'error');
+            setButtonLoading(btn, true);
             const sceneIds = Array.from(document.getElementById('reh_scenes').selectedOptions).map(o => o.value);
             data.rehearsals.push({
                 id: generateId(),
@@ -4261,14 +4409,17 @@
                 notes: document.getElementById('reh_notes').value
             });
             await saveSheetData('rehearsals');
+            setButtonLoading(btn, false);
             closeModal();
             renderContent();
         }
 
         async function saveRehearsalFromModal() {
+            const btn = event.target;
             const date = document.getElementById('reh_date').value;
             const time = document.getElementById('reh_startTime').value;
             if (!date || !time) return showNotification('Enter date and time', 'error');
+            setButtonLoading(btn, true);
             const sceneIds = Array.from(document.getElementById('reh_scenes').selectedOptions).map(o => o.value);
             const item = data.rehearsals.find(r => r.id === editing.rehearsal);
             if (item) {
@@ -4282,6 +4433,7 @@
                 item.notes = document.getElementById('reh_notes').value;
             }
             await saveSheetData('rehearsals');
+            setButtonLoading(btn, false);
             closeModal();
             renderContent();
         }
@@ -4541,7 +4693,13 @@
                     <div class="card">
                         <div class="card-header"><span class="card-title">🎪 Inventory (${inventory.length})</span></div>
                         <div class="card-body no-padding">
-                            ${inventory.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🎪</div><div class="empty-state-title">No items yet</div></div>' :
+                            ${inventory.length === 0 ? `<div class="empty-state">
+                                <div class="empty-state-icon">🎪</div>
+                                <div class="empty-state-title">No items yet</div>
+                                <p style="color: var(--gray-500); margin-bottom: 16px;">Track props, costumes, set pieces, and other production items here.</p>
+                                <button class="btn btn-primary" onclick="openInventoryModal()">+ Add First Item</button>
+                                <p style="font-size: 12px; color: var(--gray-400); margin-top: 12px;">💡 Tip: Add costs to items to track your actual spending vs budget</p>
+                            </div>` :
                                 `<div class="table-wrapper"><table>
                                     <thead><tr><th>Name</th><th>Category</th><th>Status</th><th style="text-align:right">Cost</th><th>Actions</th></tr></thead>
                                     <tbody>${inventory.map(i => `<tr>
@@ -4582,7 +4740,7 @@
                                             <div style="display: flex; align-items: center; gap: 4px;">
                                                 <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); openInventoryModal('${i.id}')" style="padding: 6px;">✏️</button>
                                                 <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deleteInventory('${i.id}')" style="padding: 6px;">🗑️</button>
-                                                <span id="chevron-inv-card-${i.id}" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
+                                                <span style="display: inline-block; transition: transform 0.3s ease;" id="chevron-inv-card-${i.id}" style="color: var(--gray-400); font-size: 12px; margin-left: 4px;">▼</span>
                                             </div>
                                         </div>
                                         <div id="details-inv-card-${i.id}" class="person-card-details">
