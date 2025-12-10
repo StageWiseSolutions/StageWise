@@ -4205,6 +4205,9 @@
             const editItem = isEditing ? data.conflicts.find(c => c.id === id) : null;
             editing.conflict = id;
             
+            // Reset count when opening fresh
+            if (!isEditing) conflictsAddedCount = 0;
+            
             const people = getProductionData('people');
             const personOptions = people.map(p => {
                 const contact = data.contacts.find(c => c.id === p.contactId);
@@ -4219,6 +4222,7 @@
             ).join('');
             
             const bodyHtml = `
+                <div id="conflictAddedCount" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); border-radius: 8px; padding: 10px; margin-bottom: 16px; text-align: center; color: var(--success); font-weight: 500;"></div>
                 <div class="form-grid">
                     <div class="form-group full-width">
                         <label class="form-label">Person *</label>
@@ -4252,11 +4256,12 @@
                 <button class="btn btn-secondary" onclick="deleteConflict('${id}')">🗑️ Delete</button>
                 <button class="btn btn-primary" onclick="saveConflictFromModal()">💾 Save Changes</button>
             ` : `
-                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="addConflictFromModal()">+ Add Conflict</button>
+                <button class="btn btn-secondary" onclick="closeModal(); renderContent();">Done</button>
+                <button class="btn btn-secondary" onclick="addConflictFromModal(true)">+ Add & New</button>
+                <button class="btn btn-primary" onclick="addConflictFromModal(false)">+ Add & Close</button>
             `;
             
-            document.getElementById('modalTitle').textContent = isEditing ? 'Edit Conflict' : 'Add Conflict';
+            document.getElementById('modalTitle').textContent = isEditing ? 'Edit Conflict' : 'Add Conflicts';
             document.getElementById('modalBody').innerHTML = bodyHtml;
             document.getElementById('modalFooter').innerHTML = footerHtml;
             document.getElementById('modalOverlay').classList.remove('hidden');
@@ -4270,7 +4275,9 @@
             });
         }
         
-        async function addConflictFromModal() {
+        let conflictsAddedCount = 0;
+        
+        async function addConflictFromModal(addAnother = false) {
             const btn = event.target;
             const contactId = document.getElementById('conflict_contactId').value;
             const startDate = document.getElementById('conflict_startDate').value;
@@ -4293,9 +4300,26 @@
             });
             await saveSheetData('conflicts');
             setButtonLoading(btn, false);
-            closeModal();
-            showSuccessAnimation();
-            renderContent();
+            
+            if (addAnother) {
+                // Clear form for next entry but keep person selected for convenience
+                document.getElementById('conflict_startDate').value = '';
+                document.getElementById('conflict_endDate').value = '';
+                document.getElementById('conflict_notes').value = '';
+                
+                // Show count of added conflicts
+                conflictsAddedCount++;
+                const countDiv = document.getElementById('conflictAddedCount');
+                countDiv.textContent = `✓ ${conflictsAddedCount} conflict${conflictsAddedCount > 1 ? 's' : ''} added`;
+                countDiv.style.display = 'block';
+                
+                showNotification('Conflict added! Add another or click Done.', 'success');
+            } else {
+                conflictsAddedCount = 0;
+                closeModal();
+                showSuccessAnimation();
+                renderContent();
+            }
         }
         
         async function saveConflictFromModal() {
