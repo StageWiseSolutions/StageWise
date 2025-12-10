@@ -2375,7 +2375,8 @@
         const SHEETS = {
             productions: 'Productions', people: 'People', scenes: 'Scenes', rehearsals: 'Rehearsals',
             attendance: 'Attendance', inventory: 'Inventory', budget: 'Budget', tickets: 'Tickets',
-            documents: 'Documents', cueSheets: 'CueSheets', emails: 'Emails', contacts: 'Contacts'
+            documents: 'Documents', cueSheets: 'CueSheets', emails: 'Emails', contacts: 'Contacts',
+            conflicts: 'Conflicts'
         };
 
         const HEADERS = {
@@ -2390,7 +2391,8 @@
             tickets: ['ID', 'ProductionID', 'TicketType', 'Price', 'Sold', 'Notes'],
             documents: ['ID', 'ProductionID', 'Title', 'Category', 'URL', 'Version', 'Notes', 'DateAdded'],
             cueSheets: ['ID', 'ProductionID', 'Type', 'CueNumber', 'Page', 'Action', 'Description', 'Notes'],
-            emails: ['ID', 'ProductionID', 'Subject', 'Body', 'Recipients', 'DateCreated', 'Status']
+            emails: ['ID', 'ProductionID', 'Subject', 'Body', 'Recipients', 'DateCreated', 'Status'],
+            conflicts: ['ID', 'ProductionID', 'ContactID', 'StartDate', 'EndDate', 'Type', 'Notes']
         };
 
         const HEADER_TO_PROP = {
@@ -2413,7 +2415,7 @@
 
         // ==================== STATE ====================
         let tokenClient, gapiInited = false, gisInited = false, accessToken = null;
-        let data = { productions: [], people: [], scenes: [], rehearsals: [], attendance: [], inventory: [], budget: [], tickets: [], documents: [], cueSheets: [], emails: [], contacts: [] };
+        let data = { productions: [], people: [], scenes: [], rehearsals: [], attendance: [], inventory: [], budget: [], tickets: [], documents: [], cueSheets: [], emails: [], contacts: [], conflicts: [] };
         let activeProduction = null, activeTab = 'dashboard';
         
         // Filter and sort state
@@ -2423,14 +2425,14 @@
         };
         
         // Settings state
-        const defaultNavOrder = ['dashboard', 'people', 'scenes', 'rehearsals', 'inventory', 'documents', 'cueSheets', 'emails'];
+        const defaultNavOrder = ['dashboard', 'conflicts', 'people', 'scenes', 'rehearsals', 'inventory', 'documents', 'cueSheets', 'emails'];
         let settings = {
             theme: localStorage.getItem('stagewise_theme') || 'purple',
             defaultPage: localStorage.getItem('stagewise_default_page') || 'dashboard',
             navOrder: JSON.parse(localStorage.getItem('stagewise_nav_order') || 'null') || [...defaultNavOrder]
         };
         
-        let editing = { production: null, person: null, scene: null, rehearsal: null, inventory: null, budget: null, ticket: null, document: null, cueSheet: null, email: null, contact: null };
+        let editing = { production: null, person: null, scene: null, rehearsal: null, inventory: null, budget: null, ticket: null, document: null, cueSheet: null, email: null, contact: null, conflict: null };
         let calendarDate = new Date(); // Current calendar view month
 
         // ==================== INIT ====================
@@ -2705,6 +2707,7 @@
             const themes = ['purple', 'blue', 'green', 'red', 'orange', 'teal', 'pink'];
             const pages = [
                 { value: 'dashboard', label: 'Dashboard' },
+                { value: 'conflicts', label: 'Conflicts' },
                 { value: 'people', label: 'Cast & Crew' },
                 { value: 'scenes', label: 'Scenes' },
                 { value: 'rehearsals', label: 'Rehearsals' },
@@ -2713,6 +2716,7 @@
             
             const navItems = {
                 dashboard: { icon: '🏠', label: 'Dashboard' },
+                conflicts: { icon: '⚠️', label: 'Conflicts' },
                 people: { icon: '👥', label: 'Cast & Crew' },
                 scenes: { icon: '🎬', label: 'Scenes' },
                 rehearsals: { icon: '📅', label: 'Rehearsals' },
@@ -2899,6 +2903,7 @@
         function renderSidebar() {
             const navItems = {
                 dashboard: { icon: '📊', label: 'Dashboard' },
+                conflicts: { icon: '⚠️', label: 'Conflicts' },
                 people: { icon: '👥', label: 'Cast & Crew' },
                 scenes: { icon: '🎬', label: 'Scenes' },
                 rehearsals: { icon: '📅', label: 'Rehearsals' },
@@ -2966,6 +2971,7 @@
                 dashboard: { icon: '🏠', label: 'Home' },
                 productions: { icon: '🎭', label: 'Shows' },
                 contacts: { icon: '📇', label: 'Roster' },
+                conflicts: { icon: '⚠️', label: 'Conflicts' },
                 people: { icon: '👥', label: 'Cast' },
                 scenes: { icon: '🎬', label: 'Scenes' },
                 rehearsals: { icon: '📅', label: 'Calendar' },
@@ -3020,7 +3026,7 @@
         // ==================== RENDER ====================
         function renderContent() {
             const content = document.getElementById('contentArea');
-            const titles = { dashboard: 'Dashboard', productions: 'Productions', people: 'Cast & Crew', scenes: 'Scenes', rehearsals: 'Rehearsals', inventory: 'Inventory & Budget', documents: 'Documents', cueSheets: 'Cue Sheets', emails: 'Emails', contacts: 'Company Roster' };
+            const titles = { dashboard: 'Dashboard', productions: 'Productions', people: 'Cast & Crew', scenes: 'Scenes', rehearsals: 'Rehearsals', inventory: 'Inventory & Budget', documents: 'Documents', cueSheets: 'Cue Sheets', emails: 'Emails', contacts: 'Company Roster', conflicts: 'Conflicts' };
             
             // Restore activeProduction from localStorage if needed
             if (!activeProduction && localStorage.getItem('activeProduction')) {
@@ -3078,6 +3084,7 @@
                 case 'dashboard': content.innerHTML = renderDashboard(); break;
                 case 'productions': content.innerHTML = renderProductions(); break;
                 case 'contacts': content.innerHTML = renderContacts(); break;
+                case 'conflicts': content.innerHTML = renderConflicts(); break;
                 case 'people': content.innerHTML = renderPeople(); break;
                 case 'scenes': content.innerHTML = renderScenes(); break;
                 case 'rehearsals': content.innerHTML = renderRehearsals(); break;
@@ -3882,6 +3889,345 @@
                 if (contact) return `${contact.firstName} ${contact.lastName || ''}`.trim();
             }
             return 'Unknown';
+        }
+
+        // ==================== CONFLICTS ====================
+        function renderConflicts() {
+            if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Select a production first</div></div>';
+            
+            const people = getProductionData('people');
+            const conflicts = data.conflicts.filter(c => c.productionId === activeProduction);
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Sort conflicts by date
+            const sortedConflicts = [...conflicts].sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+            const upcomingConflicts = sortedConflicts.filter(c => c.endDate >= today);
+            const pastConflicts = sortedConflicts.filter(c => c.endDate < today);
+            
+            const emptyState = `<div class="empty-state">
+                <div class="empty-state-icon">⚠️</div>
+                <div class="empty-state-title">No conflicts reported</div>
+                <p style="color: var(--gray-500); margin-bottom: 16px;">Track cast availability by adding conflicts when people are unavailable.</p>
+                <button class="btn btn-primary" onclick="openConflictModal()">+ Add Conflict</button>
+                <p style="font-size: 12px; color: var(--gray-400); margin-top: 12px;">💡 Tip: Add work schedules, vacations, and other commitments</p>
+            </div>`;
+            
+            const getContactName = (contactId) => {
+                const contact = data.contacts.find(c => c.id === contactId);
+                return contact ? `${contact.firstName} ${contact.lastName || ''}`.trim() : 'Unknown';
+            };
+            
+            const typeColors = {
+                'Work': 'badge-not-started',
+                'School': 'badge-in-progress',
+                'Other Show': 'badge-polished',
+                'Vacation': 'badge-blocked',
+                'Medical': 'badge-blocked',
+                'Personal': 'badge-not-started'
+            };
+            
+            const conflictCard = (conflict) => {
+                const contact = data.contacts.find(c => c.id === conflict.contactId);
+                const initials = contact ? `${(contact.firstName || '?')[0]}${(contact.lastName || '?')[0]}` : '??';
+                const isRange = conflict.startDate !== conflict.endDate;
+                const dateDisplay = isRange 
+                    ? `${formatDate(conflict.startDate)} - ${formatDate(conflict.endDate)}`
+                    : formatDate(conflict.startDate);
+                const isPast = conflict.endDate < today;
+                
+                return `
+                    <div class="person-card" style="border: 1px solid var(--gray-200); border-radius: 12px; background: var(--bg-primary); overflow: hidden; ${isPast ? 'opacity: 0.6;' : ''}">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+                                <div style="width: 40px; height: 40px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0;">
+                                    ${initials}
+                                </div>
+                                <div style="min-width: 0; flex: 1;">
+                                    <div style="font-size: 15px; font-weight: 600; color: var(--gray-900);">${getContactName(conflict.contactId)}</div>
+                                    <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
+                                        <span class="badge ${typeColors[conflict.type] || 'badge-not-started'}" style="font-size: 10px;">${conflict.type || 'Conflict'}</span>
+                                        <span style="font-size: 12px; color: var(--gray-500);">📅 ${dateDisplay}</span>
+                                    </div>
+                                    ${conflict.notes ? `<div style="font-size: 12px; color: var(--gray-500); margin-top: 4px;">📝 ${conflict.notes}</div>` : ''}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 4px;">
+                                <button class="btn btn-ghost btn-icon" onclick="openConflictModal('${conflict.id}')" style="padding: 6px;">✏️</button>
+                                <button class="btn btn-ghost btn-icon" onclick="deleteConflict('${conflict.id}')" style="padding: 6px;">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            };
+            
+            // Build conflict calendar grid
+            const calendarGrid = buildConflictCalendar();
+            
+            return `
+                <div class="card" style="margin-bottom: 16px;">
+                    <div class="card-header">
+                        <span class="card-title">📊 Availability Overview</span>
+                    </div>
+                    <div class="card-body" style="overflow-x: auto;">
+                        ${calendarGrid}
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">⚠️ Upcoming Conflicts (${upcomingConflicts.length})</span>
+                    </div>
+                    <div class="card-body">
+                        ${upcomingConflicts.length === 0 ? '<div class="empty-state" style="padding: 20px;"><p style="color: var(--gray-500);">No upcoming conflicts! 🎉</p></div>' :
+                            `<div style="display: flex; flex-direction: column; gap: 12px;">
+                                ${upcomingConflicts.map(c => conflictCard(c)).join('')}
+                            </div>`
+                        }
+                    </div>
+                </div>
+                
+                ${pastConflicts.length > 0 ? `
+                <div class="card" style="margin-top: 16px;">
+                    <div class="card-header">
+                        <span class="card-title" style="color: var(--gray-500);">Past Conflicts (${pastConflicts.length})</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            ${pastConflicts.slice(0, 5).map(c => conflictCard(c)).join('')}
+                            ${pastConflicts.length > 5 ? `<p style="text-align: center; color: var(--gray-400); font-size: 12px;">+ ${pastConflicts.length - 5} more past conflicts</p>` : ''}
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${conflicts.length === 0 ? emptyState : ''}
+                
+                <button class="fab" onclick="openConflictModal()" title="Add Conflict">+</button>
+            `;
+        }
+        
+        function buildConflictCalendar() {
+            const people = getProductionData('people');
+            const conflicts = data.conflicts.filter(c => c.productionId === activeProduction);
+            
+            if (people.length === 0) {
+                return '<p style="color: var(--gray-500); text-align: center;">Add cast members to see availability grid</p>';
+            }
+            
+            // Get next 14 days
+            const days = [];
+            const today = new Date();
+            for (let i = 0; i < 14; i++) {
+                const d = new Date(today);
+                d.setDate(d.getDate() + i);
+                days.push(d.toISOString().split('T')[0]);
+            }
+            
+            // Check if date falls within a conflict
+            const hasConflict = (contactId, date) => {
+                return conflicts.some(c => 
+                    c.contactId === contactId && 
+                    c.startDate <= date && 
+                    c.endDate >= date
+                );
+            };
+            
+            const getConflictType = (contactId, date) => {
+                const conflict = conflicts.find(c => 
+                    c.contactId === contactId && 
+                    c.startDate <= date && 
+                    c.endDate >= date
+                );
+                return conflict ? conflict.type : null;
+            };
+            
+            const getContactName = (contactId) => {
+                const contact = data.contacts.find(c => c.id === contactId);
+                return contact ? `${contact.firstName} ${(contact.lastName || '')[0] || ''}`.trim() : '?';
+            };
+            
+            const dayLabels = days.map(d => {
+                const date = new Date(d + 'T00:00:00');
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const dayNum = date.getDate();
+                const isToday = d === today.toISOString().split('T')[0];
+                return `<th style="padding: 4px 8px; font-size: 11px; text-align: center; min-width: 36px; ${isToday ? 'background: var(--primary); color: white; border-radius: 4px;' : ''}">${dayName}<br>${dayNum}</th>`;
+            }).join('');
+            
+            const rows = people.map(p => {
+                const cells = days.map(d => {
+                    const conflicted = hasConflict(p.contactId, d);
+                    const conflictType = getConflictType(p.contactId, d);
+                    const typeEmoji = conflictType ? (conflictType === 'Work' ? '💼' : conflictType === 'School' ? '📚' : conflictType === 'Vacation' ? '🏖️' : conflictType === 'Medical' ? '🏥' : conflictType === 'Other Show' ? '🎭' : '❌') : '✓';
+                    return `<td style="padding: 4px; text-align: center; background: ${conflicted ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)'}; font-size: 14px;" title="${conflicted ? conflictType || 'Unavailable' : 'Available'}">${conflicted ? typeEmoji : '✓'}</td>`;
+                }).join('');
+                return `<tr><td style="padding: 6px 8px; font-size: 13px; white-space: nowrap; font-weight: 500;">${getContactName(p.contactId)}</td>${cells}</tr>`;
+            }).join('');
+            
+            return `
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 6px 8px; text-align: left; font-size: 12px;">Name</th>
+                            ${dayLabels}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+                <div style="margin-top: 12px; display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px; color: var(--gray-500);">
+                    <span>✓ Available</span>
+                    <span>💼 Work</span>
+                    <span>📚 School</span>
+                    <span>🎭 Other Show</span>
+                    <span>🏖️ Vacation</span>
+                    <span>🏥 Medical</span>
+                    <span>❌ Personal</span>
+                </div>
+            `;
+        }
+        
+        function openConflictModal(id = null) {
+            const isEditing = id !== null;
+            const editItem = isEditing ? data.conflicts.find(c => c.id === id) : null;
+            editing.conflict = id;
+            
+            const people = getProductionData('people');
+            const personOptions = people.map(p => {
+                const contact = data.contacts.find(c => c.id === p.contactId);
+                const name = contact ? `${contact.firstName} ${contact.lastName || ''}`.trim() : 'Unknown';
+                const selected = isEditing && editItem.contactId === p.contactId ? 'selected' : '';
+                return `<option value="${p.contactId}" ${selected}>${name}</option>`;
+            }).join('');
+            
+            const types = ['Work', 'School', 'Other Show', 'Vacation', 'Medical', 'Personal'];
+            const typeOptions = types.map(t => 
+                `<option value="${t}" ${isEditing && editItem.type === t ? 'selected' : ''}>${t}</option>`
+            ).join('');
+            
+            const bodyHtml = `
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="form-label">Person *</label>
+                        <select class="form-select" id="conflict_contactId" ${isEditing ? 'disabled' : ''}>
+                            <option value="">Select person...</option>
+                            ${personOptions}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Start Date *</label>
+                        <input type="date" class="form-input" id="conflict_startDate" value="${isEditing ? editItem.startDate || '' : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">End Date *</label>
+                        <input type="date" class="form-input" id="conflict_endDate" value="${isEditing ? editItem.endDate || '' : ''}">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Type</label>
+                        <select class="form-select" id="conflict_type">
+                            ${typeOptions}
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-textarea" id="conflict_notes" placeholder="e.g., Holiday shift, out of town...">${isEditing ? editItem.notes || '' : ''}</textarea>
+                    </div>
+                </div>
+            `;
+            
+            const footerHtml = isEditing ? `
+                <button class="btn btn-secondary" onclick="deleteConflict('${id}')">🗑️ Delete</button>
+                <button class="btn btn-primary" onclick="saveConflictFromModal()">💾 Save Changes</button>
+            ` : `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addConflictFromModal()">+ Add Conflict</button>
+            `;
+            
+            document.getElementById('modalTitle').textContent = isEditing ? 'Edit Conflict' : 'Add Conflict';
+            document.getElementById('modalBody').innerHTML = bodyHtml;
+            document.getElementById('modalFooter').innerHTML = footerHtml;
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            
+            // Auto-set end date when start date changes
+            document.getElementById('conflict_startDate').addEventListener('change', function() {
+                const endDate = document.getElementById('conflict_endDate');
+                if (!endDate.value || endDate.value < this.value) {
+                    endDate.value = this.value;
+                }
+            });
+        }
+        
+        async function addConflictFromModal() {
+            const btn = event.target;
+            const contactId = document.getElementById('conflict_contactId').value;
+            const startDate = document.getElementById('conflict_startDate').value;
+            const endDate = document.getElementById('conflict_endDate').value;
+            
+            if (!contactId) return showNotification('Please select a person', 'error');
+            if (!startDate) return showNotification('Please enter a start date', 'error');
+            if (!endDate) return showNotification('Please enter an end date', 'error');
+            if (endDate < startDate) return showNotification('End date must be after start date', 'error');
+            
+            setButtonLoading(btn, true);
+            data.conflicts.push({
+                id: generateId(),
+                productionId: activeProduction,
+                contactId,
+                startDate,
+                endDate,
+                type: document.getElementById('conflict_type').value,
+                notes: document.getElementById('conflict_notes').value
+            });
+            await saveSheetData('conflicts');
+            setButtonLoading(btn, false);
+            closeModal();
+            showSuccessAnimation();
+            renderContent();
+        }
+        
+        async function saveConflictFromModal() {
+            const btn = event.target;
+            const startDate = document.getElementById('conflict_startDate').value;
+            const endDate = document.getElementById('conflict_endDate').value;
+            
+            if (!startDate) return showNotification('Please enter a start date', 'error');
+            if (!endDate) return showNotification('Please enter an end date', 'error');
+            if (endDate < startDate) return showNotification('End date must be after start date', 'error');
+            
+            setButtonLoading(btn, true);
+            const item = data.conflicts.find(c => c.id === editing.conflict);
+            if (item) {
+                item.startDate = startDate;
+                item.endDate = endDate;
+                item.type = document.getElementById('conflict_type').value;
+                item.notes = document.getElementById('conflict_notes').value;
+            }
+            editing.conflict = null;
+            await saveSheetData('conflicts');
+            setButtonLoading(btn, false);
+            closeModal();
+            showSuccessAnimation();
+            renderContent();
+        }
+        
+        async function deleteConflict(id) {
+            if (confirm('Delete this conflict?')) {
+                data.conflicts = data.conflicts.filter(c => c.id !== id);
+                await saveSheetData('conflicts');
+                closeModal();
+                renderContent();
+            }
+        }
+        
+        // Helper to get conflicts for a specific date
+        function getConflictsForDate(date) {
+            if (!activeProduction) return [];
+            return data.conflicts.filter(c => 
+                c.productionId === activeProduction &&
+                c.startDate <= date &&
+                c.endDate >= date
+            );
         }
 
         // ==================== PEOPLE (PRODUCTION CAST & CREW) ====================
@@ -5002,10 +5348,11 @@
             const defaultEndTime = isEditing ? editItem.endTime || '' : '22:00';
 
             const bodyHtml = `
+                <div id="rehearsalConflictWarning" style="margin-bottom: 16px;"></div>
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
                     <div class="form-group">
                         <label class="form-label">Date *</label>
-                        <input type="date" class="form-input" id="reh_date" value="${defaultDate}">
+                        <input type="date" class="form-input" id="reh_date" value="${defaultDate}" onchange="updateRehearsalConflictWarning()">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Type</label>
@@ -5062,8 +5409,49 @@
 
             openModal(isEditing ? '✏️ Edit Rehearsal' : '➕ Add Rehearsal', bodyHtml, footerHtml);
             
-            // Update called cast after modal opens
-            setTimeout(updateCalledCastModal, 100);
+            // Update called cast and conflict warning after modal opens
+            setTimeout(() => {
+                updateCalledCastModal();
+                updateRehearsalConflictWarning();
+            }, 100);
+        }
+        
+        function updateRehearsalConflictWarning() {
+            const warningDiv = document.getElementById('rehearsalConflictWarning');
+            if (!warningDiv) return;
+            
+            const date = document.getElementById('reh_date').value;
+            if (!date) {
+                warningDiv.innerHTML = '';
+                return;
+            }
+            
+            const conflicts = getConflictsForDate(date);
+            if (conflicts.length === 0) {
+                warningDiv.innerHTML = '';
+                return;
+            }
+            
+            const getContactName = (contactId) => {
+                const contact = data.contacts.find(c => c.id === contactId);
+                return contact ? `${contact.firstName} ${contact.lastName || ''}`.trim() : 'Unknown';
+            };
+            
+            const conflictList = conflicts.map(c => 
+                `<li style="padding: 4px 0;"><strong>${getContactName(c.contactId)}</strong> - ${c.type || 'Unavailable'}${c.notes ? ` (${c.notes})` : ''}</li>`
+            ).join('');
+            
+            warningDiv.innerHTML = `
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span style="font-size: 18px;">⚠️</span>
+                        <strong style="color: var(--danger);">${conflicts.length} conflict${conflicts.length > 1 ? 's' : ''} on this date</strong>
+                    </div>
+                    <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--gray-700);">
+                        ${conflictList}
+                    </ul>
+                </div>
+            `;
         }
         
         function selectAllCast() {
