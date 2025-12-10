@@ -3740,11 +3740,12 @@
             const desktopView = `
                 <div class="desktop-table">
                     <div class="card">
-                        <div class="card-header">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                             <span class="card-title">Company Roster (${data.contacts.length})</span>
+                            <button class="btn btn-secondary btn-sm" onclick="openBulkImportModal()" style="font-size: 12px;">📋 Bulk Import</button>
                         </div>
                         <div class="card-body no-padding">
-                            ${data.contacts.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">📇</div><div class="empty-state-title">No contacts yet</div><p>Add people to your company roster.</p></div>' :
+                            ${data.contacts.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">📇</div><div class="empty-state-title">No contacts yet</div><p>Add people to your company roster.</p><button class="btn btn-primary" onclick="openBulkImportModal()" style="margin-top: 12px;">📋 Bulk Import</button></div>' :
                                 `<div class="table-wrapper"><table>
                                     <thead><tr><th>Name</th><th>Contact</th><th>Emergency</th><th>Voice</th><th>Sizes</th><th>Notes</th><th>Actions</th></tr></thead>
                                     <tbody>${sortedContacts.map(c => {
@@ -3791,11 +3792,12 @@
             const mobileView = `
                 <div class="mobile-cards">
                     <div class="card">
-                        <div class="card-header">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                             <span class="card-title">Company Roster (${data.contacts.length})</span>
+                            <button class="btn btn-secondary btn-sm" onclick="openBulkImportModal()" style="font-size: 11px; padding: 4px 8px;">📋 Import</button>
                         </div>
                         <div class="card-body">
-                            ${data.contacts.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">📇</div><div class="empty-state-title">No contacts yet</div><p>Add people to your company roster.</p></div>' :
+                            ${data.contacts.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">📇</div><div class="empty-state-title">No contacts yet</div><p>Add people to your company roster.</p><button class="btn btn-primary" onclick="openBulkImportModal()" style="margin-top: 12px;">📋 Bulk Import</button></div>' :
                                 `<div style="display: flex; flex-direction: column; gap: 12px;">
                                     ${sortedContacts.map(c => {
                                         const assignments = data.people.filter(p => p.contactId === c.id);
@@ -3949,6 +3951,178 @@
             closeModal();
             showSuccessAnimation();
             renderContent();
+        }
+
+        function openBulkImportModal() {
+            const bodyHtml = `
+                <div style="margin-bottom: 16px;">
+                    <p style="color: var(--gray-600); font-size: 14px; margin-bottom: 12px;">
+                        Paste contact data from a spreadsheet. Each row becomes one contact.
+                    </p>
+                    <div style="background: var(--gray-50); border-radius: 8px; padding: 12px; font-size: 12px; color: var(--gray-600);">
+                        <strong>Expected columns (in order):</strong><br>
+                        First Name, Last Name, Email, Phone, Emergency Contact, Emergency Phone
+                        <br><br>
+                        <strong>Tips:</strong>
+                        <ul style="margin: 4px 0 0 16px; padding: 0;">
+                            <li>Copy rows from Excel or Google Sheets</li>
+                            <li>First two columns (First & Last Name) are required</li>
+                            <li>Tab or comma separated values both work</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Paste data here:</label>
+                    <textarea class="form-textarea" id="bulkImportData" rows="10" placeholder="John	Smith	john@email.com	555-1234
+Jane	Doe	jane@email.com	555-5678
+..." style="font-family: monospace; font-size: 12px;"></textarea>
+                </div>
+                <div id="bulkImportPreview" style="display: none; margin-top: 16px;">
+                    <div class="form-label" style="margin-bottom: 8px;">Preview:</div>
+                    <div id="bulkImportPreviewContent" style="max-height: 200px; overflow-y: auto; background: var(--gray-50); border-radius: 8px; padding: 12px;"></div>
+                </div>
+            `;
+            
+            const footerHtml = `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-secondary" onclick="previewBulkImport()">👁️ Preview</button>
+                <button class="btn btn-primary" onclick="processBulkImport()">📋 Import All</button>
+            `;
+            
+            openModal('📋 Bulk Import Contacts', bodyHtml, footerHtml);
+            
+            // Auto-preview on paste
+            setTimeout(() => {
+                const textarea = document.getElementById('bulkImportData');
+                if (textarea) {
+                    textarea.addEventListener('paste', () => {
+                        setTimeout(previewBulkImport, 100);
+                    });
+                }
+            }, 100);
+        }
+        
+        function parseBulkImportData() {
+            const raw = document.getElementById('bulkImportData').value.trim();
+            if (!raw) return [];
+            
+            const rows = raw.split('\n').filter(r => r.trim());
+            const contacts = [];
+            
+            for (const row of rows) {
+                // Try tab first, then comma
+                let cols = row.split('\t');
+                if (cols.length < 2) {
+                    cols = row.split(',').map(c => c.trim());
+                }
+                
+                const firstName = (cols[0] || '').trim();
+                const lastName = (cols[1] || '').trim();
+                
+                if (!firstName || !lastName) continue;
+                
+                contacts.push({
+                    firstName,
+                    lastName,
+                    email: (cols[2] || '').trim(),
+                    phone: (cols[3] || '').trim(),
+                    emergencyContact: (cols[4] || '').trim(),
+                    emergencyPhone: (cols[5] || '').trim()
+                });
+            }
+            
+            return contacts;
+        }
+        
+        function previewBulkImport() {
+            const contacts = parseBulkImportData();
+            const previewDiv = document.getElementById('bulkImportPreview');
+            const contentDiv = document.getElementById('bulkImportPreviewContent');
+            
+            if (contacts.length === 0) {
+                previewDiv.style.display = 'none';
+                showNotification('No valid contacts found. Check your data format.', 'error');
+                return;
+            }
+            
+            const previewHtml = `
+                <div style="font-size: 13px; color: var(--gray-700); margin-bottom: 8px;">
+                    <strong>${contacts.length} contact${contacts.length > 1 ? 's' : ''}</strong> will be imported:
+                </div>
+                <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--gray-200);">
+                            <th style="text-align: left; padding: 4px;">Name</th>
+                            <th style="text-align: left; padding: 4px;">Email</th>
+                            <th style="text-align: left; padding: 4px;">Phone</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${contacts.slice(0, 20).map(c => `
+                            <tr style="border-bottom: 1px solid var(--gray-100);">
+                                <td style="padding: 4px;">${c.firstName} ${c.lastName}</td>
+                                <td style="padding: 4px; color: var(--gray-500);">${c.email || '-'}</td>
+                                <td style="padding: 4px; color: var(--gray-500);">${c.phone || '-'}</td>
+                            </tr>
+                        `).join('')}
+                        ${contacts.length > 20 ? `<tr><td colspan="3" style="padding: 8px; text-align: center; color: var(--gray-400);">+ ${contacts.length - 20} more...</td></tr>` : ''}
+                    </tbody>
+                </table>
+            `;
+            
+            contentDiv.innerHTML = previewHtml;
+            previewDiv.style.display = 'block';
+        }
+        
+        async function processBulkImport() {
+            const contacts = parseBulkImportData();
+            
+            if (contacts.length === 0) {
+                showNotification('No valid contacts to import', 'error');
+                return;
+            }
+            
+            const btn = event.target;
+            setButtonLoading(btn, true);
+            
+            // Check for duplicates
+            let added = 0;
+            let skipped = 0;
+            
+            for (const contact of contacts) {
+                // Check if already exists (by name)
+                const exists = data.contacts.some(c => 
+                    c.firstName.toLowerCase() === contact.firstName.toLowerCase() &&
+                    c.lastName.toLowerCase() === contact.lastName.toLowerCase()
+                );
+                
+                if (exists) {
+                    skipped++;
+                    continue;
+                }
+                
+                data.contacts.push({
+                    id: generateId(),
+                    ...contact,
+                    voiceType: '',
+                    measurements: '',
+                    shoeSize: '',
+                    notes: ''
+                });
+                added++;
+            }
+            
+            await saveSheetData('contacts');
+            setButtonLoading(btn, false);
+            closeModal();
+            showSuccessAnimation();
+            renderContent();
+            
+            if (skipped > 0) {
+                showNotification(`Imported ${added} contacts (${skipped} duplicates skipped)`, 'success');
+            } else {
+                showNotification(`Imported ${added} contacts`, 'success');
+            }
         }
 
         async function deleteContact(id) {
