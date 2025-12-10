@@ -4249,10 +4249,17 @@ Jane	Doe	jane@email.com	555-5678
             // Build conflict calendar grid
             const calendarGrid = buildConflictCalendar();
             
+            const scenes = getProductionData('scenes');
+            const hasScenes = scenes.length > 0;
+            const hasPeople = people.length > 0;
+            
             return `
                 <div class="card" style="margin-bottom: 16px;">
-                    <div class="card-header">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <span class="card-title">📊 Availability Overview</span>
+                        <button class="btn btn-primary btn-sm" onclick="openSmartSchedulerModal()" ${!hasScenes || !hasPeople ? 'disabled title="Add scenes and cast first"' : ''}>
+                            🧠 Smart Scheduler
+                        </button>
                     </div>
                     <div class="card-body" style="overflow-x: auto;">
                         ${calendarGrid}
@@ -4631,6 +4638,352 @@ Jane	Doe	jane@email.com	555-5678
                 c.startDate <= date &&
                 c.endDate >= date
             );
+        }
+
+        // ==================== SMART SCHEDULER ====================
+        let proposedSchedule = [];
+        
+        function openSmartSchedulerModal() {
+            const prod = data.productions.find(p => p.id === activeProduction);
+            const scenes = getProductionData('scenes');
+            const people = getProductionData('people');
+            
+            // Default date range: today + 4 weeks
+            const today = new Date();
+            const fourWeeksLater = new Date(today);
+            fourWeeksLater.setDate(fourWeeksLater.getDate() + 28);
+            
+            const startDate = prod?.startDate || today.toISOString().split('T')[0];
+            const endDate = prod?.endDate || fourWeeksLater.toISOString().split('T')[0];
+            
+            const bodyHtml = `
+                <div style="margin-bottom: 16px;">
+                    <p style="color: var(--gray-600); font-size: 14px;">
+                        Generate an optimal rehearsal schedule based on scene assignments, cast availability, and conflicts.
+                    </p>
+                </div>
+                
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-input" id="sched_startDate" value="${startDate}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-input" id="sched_endDate" value="${endDate}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rehearsal Days</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;">
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px;"><input type="checkbox" id="day_0"> Sun</label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px;"><input type="checkbox" id="day_1" checked> Mon</label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px;"><input type="checkbox" id="day_2" checked> Tue</label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px;"><input type="checkbox" id="day_3" checked> Wed</label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px;"><input type="checkbox" id="day_4" checked> Thu</label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px;"><input type="checkbox" id="day_5"> Fri</label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px;"><input type="checkbox" id="day_6"> Sat</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Default Time</label>
+                        <select class="form-select" id="sched_time">
+                            <option value="18:00">6:00 PM</option>
+                            <option value="18:30">6:30 PM</option>
+                            <option value="19:00" selected>7:00 PM</option>
+                            <option value="19:30">7:30 PM</option>
+                            <option value="10:00">10:00 AM</option>
+                            <option value="13:00">1:00 PM</option>
+                            <option value="14:00">2:00 PM</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="background: var(--gray-50); border-radius: 8px; padding: 12px; margin-top: 16px;">
+                    <div style="font-size: 13px; color: var(--gray-600);">
+                        <strong>Will analyze:</strong>
+                        <ul style="margin: 8px 0 0 16px; padding: 0;">
+                            <li>${scenes.length} scenes with cast assignments</li>
+                            <li>${people.length} cast/crew members</li>
+                            <li>${data.conflicts.filter(c => c.productionId === activeProduction).length} reported conflicts</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div id="schedulePreview" style="display: none; margin-top: 16px;"></div>
+            `;
+            
+            const footerHtml = `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="generateSmartSchedule()">🧠 Generate Schedule</button>
+            `;
+            
+            openModal('🧠 Smart Scheduler', bodyHtml, footerHtml);
+        }
+        
+        function generateSmartSchedule() {
+            const startDate = document.getElementById('sched_startDate').value;
+            const endDate = document.getElementById('sched_endDate').value;
+            const defaultTime = document.getElementById('sched_time').value;
+            
+            if (!startDate || !endDate) {
+                return showNotification('Please select date range', 'error');
+            }
+            
+            // Get selected days
+            const selectedDays = [];
+            for (let i = 0; i < 7; i++) {
+                if (document.getElementById('day_' + i)?.checked) {
+                    selectedDays.push(i);
+                }
+            }
+            
+            if (selectedDays.length === 0) {
+                return showNotification('Please select at least one rehearsal day', 'error');
+            }
+            
+            const scenes = getProductionData('scenes');
+            const people = getProductionData('people');
+            const conflicts = data.conflicts.filter(c => c.productionId === activeProduction);
+            
+            // Get all available dates in range
+            const availableDates = [];
+            let current = new Date(startDate);
+            const end = new Date(endDate);
+            
+            while (current <= end) {
+                if (selectedDays.includes(current.getDay())) {
+                    availableDates.push(current.toISOString().split('T')[0]);
+                }
+                current.setDate(current.getDate() + 1);
+            }
+            
+            if (availableDates.length === 0) {
+                return showNotification('No available dates in the selected range', 'error');
+            }
+            
+            // Score each scene for scheduling priority
+            const sceneScores = scenes.map(scene => {
+                const castIds = scene.castIds || [];
+                const castMembers = people.filter(p => castIds.includes(p.id));
+                
+                // Higher score = should schedule first
+                let score = 0;
+                
+                // Scenes with principals (characters assigned) are higher priority
+                const hasPrincipals = castMembers.some(p => p.character && p.character.trim());
+                if (hasPrincipals) score += 10;
+                
+                // Scenes with more cast = harder to schedule = do first
+                score += castMembers.length * 2;
+                
+                // Earlier scenes (by scene number) slightly higher priority
+                const sceneNum = parseFloat(scene.sceneNumber) || 99;
+                score += (20 - Math.min(sceneNum, 20));
+                
+                // Not yet polished = higher priority
+                if (scene.status !== 'Polished') score += 5;
+                
+                return { scene, score, castMembers, castIds };
+            }).sort((a, b) => b.score - a.score);
+            
+            // Helper to check if person has conflict on date
+            const hasConflict = (contactId, date) => {
+                return conflicts.some(c => 
+                    c.contactId === contactId && 
+                    c.startDate <= date && 
+                    c.endDate >= date
+                );
+            };
+            
+            // Helper to get availability percentage for a scene on a date
+            const getAvailability = (castMembers, date) => {
+                if (castMembers.length === 0) return 100;
+                const available = castMembers.filter(p => !hasConflict(p.contactId, date)).length;
+                return Math.round((available / castMembers.length) * 100);
+            };
+            
+            // Generate schedule
+            proposedSchedule = [];
+            const scheduledSceneIds = new Set();
+            const usedDates = new Set();
+            
+            // First pass: schedule each scene on best available date
+            for (const { scene, castMembers, castIds } of sceneScores) {
+                let bestDate = null;
+                let bestAvailability = -1;
+                
+                for (const date of availableDates) {
+                    // Prefer dates not yet used
+                    const dateUsedPenalty = usedDates.has(date) ? 20 : 0;
+                    const availability = getAvailability(castMembers, date) - dateUsedPenalty;
+                    
+                    if (availability > bestAvailability) {
+                        bestAvailability = availability;
+                        bestDate = date;
+                    }
+                }
+                
+                if (bestDate && bestAvailability >= 50) {
+                    // Find conflicts for this rehearsal
+                    const unavailable = castMembers.filter(p => hasConflict(p.contactId, bestDate));
+                    
+                    proposedSchedule.push({
+                        id: generateId(),
+                        date: bestDate,
+                        sceneId: scene.id,
+                        scene: scene,
+                        castIds: castIds,
+                        castMembers: castMembers,
+                        availability: getAvailability(castMembers, bestDate),
+                        unavailable: unavailable,
+                        time: defaultTime,
+                        selected: true
+                    });
+                    
+                    scheduledSceneIds.add(scene.id);
+                    usedDates.add(bestDate);
+                }
+            }
+            
+            // Sort by date
+            proposedSchedule.sort((a, b) => a.date.localeCompare(b.date));
+            
+            // Show preview
+            showSchedulePreview();
+        }
+        
+        function showSchedulePreview() {
+            const previewDiv = document.getElementById('schedulePreview');
+            if (!previewDiv) return;
+            
+            const scenes = getProductionData('scenes');
+            const scheduledCount = proposedSchedule.filter(p => p.selected).length;
+            const unscheduledScenes = scenes.filter(s => !proposedSchedule.some(p => p.sceneId === s.id));
+            
+            const getContactName = (contactId) => {
+                const contact = data.contacts.find(c => c.id === contactId);
+                return contact ? `${contact.firstName} ${(contact.lastName || '')[0] || ''}`.trim() : '?';
+            };
+            
+            let html = `
+                <div style="border-top: 1px solid var(--gray-200); padding-top: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <strong style="color: var(--gray-700);">Proposed Schedule (${proposedSchedule.length} rehearsals)</strong>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-ghost btn-sm" onclick="selectAllSchedule(true)">Select All</button>
+                            <button class="btn btn-ghost btn-sm" onclick="selectAllSchedule(false)">Deselect All</button>
+                        </div>
+                    </div>
+                    
+                    <div style="max-height: 300px; overflow-y: auto;">
+            `;
+            
+            if (proposedSchedule.length === 0) {
+                html += `<p style="color: var(--gray-500); text-align: center; padding: 20px;">Could not generate schedule. Try adjusting parameters.</p>`;
+            } else {
+                for (let i = 0; i < proposedSchedule.length; i++) {
+                    const item = proposedSchedule[i];
+                    const availColor = item.availability >= 80 ? 'var(--success)' : item.availability >= 50 ? 'var(--warning)' : 'var(--danger)';
+                    
+                    html += `
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 10px; background: ${item.selected ? 'var(--gray-50)' : 'transparent'}; border-radius: 8px; margin-bottom: 6px; opacity: ${item.selected ? '1' : '0.5'};">
+                            <input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleScheduleItem(${i})" style="width: 18px; height: 18px;">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <span style="font-weight: 600; font-size: 13px;">${formatDate(item.date)}</span>
+                                    <span style="font-size: 12px; color: var(--gray-500);">${formatTime12(item.time)}</span>
+                                    <span class="badge badge-in-progress" style="font-size: 10px;">${item.scene.sceneNumber}: ${item.scene.title}</span>
+                                </div>
+                                <div style="font-size: 11px; color: var(--gray-500); margin-top: 2px;">
+                                    ${item.castMembers.length} cast • 
+                                    <span style="color: ${availColor};">${item.availability}% available</span>
+                                    ${item.unavailable.length > 0 ? ` • ⚠️ Missing: ${item.unavailable.map(p => getContactName(p.contactId)).join(', ')}` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            html += `</div>`;
+            
+            // Show unscheduled scenes
+            if (unscheduledScenes.length > 0) {
+                html += `
+                    <div style="margin-top: 12px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                        <div style="font-size: 12px; color: var(--danger); font-weight: 500;">
+                            ⚠️ ${unscheduledScenes.length} scene${unscheduledScenes.length > 1 ? 's' : ''} could not be scheduled (too many conflicts):
+                        </div>
+                        <div style="font-size: 11px; color: var(--gray-600); margin-top: 4px;">
+                            ${unscheduledScenes.map(s => `${s.sceneNumber}: ${s.title}`).join(', ')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += `</div>`;
+            
+            previewDiv.innerHTML = html;
+            previewDiv.style.display = 'block';
+            
+            // Update footer with apply button
+            document.getElementById('modalFooter').innerHTML = `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-secondary" onclick="generateSmartSchedule()">🔄 Regenerate</button>
+                <button class="btn btn-primary" onclick="applyProposedSchedule()" ${scheduledCount === 0 ? 'disabled' : ''}>
+                    ✅ Add ${scheduledCount} Rehearsal${scheduledCount !== 1 ? 's' : ''} to Calendar
+                </button>
+            `;
+        }
+        
+        function toggleScheduleItem(index) {
+            proposedSchedule[index].selected = !proposedSchedule[index].selected;
+            showSchedulePreview();
+        }
+        
+        function selectAllSchedule(select) {
+            proposedSchedule.forEach(item => item.selected = select);
+            showSchedulePreview();
+        }
+        
+        async function applyProposedSchedule() {
+            const selectedItems = proposedSchedule.filter(p => p.selected);
+            
+            if (selectedItems.length === 0) {
+                return showNotification('No rehearsals selected', 'error');
+            }
+            
+            const btn = event.target;
+            setButtonLoading(btn, true);
+            
+            // Create rehearsals
+            for (const item of selectedItems) {
+                data.rehearsals.push({
+                    id: generateId(),
+                    productionId: activeProduction,
+                    date: item.date,
+                    startTime: item.time,
+                    endTime: '', // Could calculate based on scene count
+                    location: '',
+                    type: 'Blocking',
+                    sceneIds: [item.sceneId],
+                    calledCastIds: item.castIds,
+                    notes: `Auto-scheduled by Smart Scheduler`
+                });
+            }
+            
+            await saveSheetData('rehearsals');
+            setButtonLoading(btn, false);
+            
+            proposedSchedule = [];
+            closeModal();
+            showSuccessAnimation();
+            showNotification(`Added ${selectedItems.length} rehearsals to calendar`, 'success');
+            
+            // Navigate to rehearsals page
+            activeTab = 'rehearsals';
+            renderSidebar();
+            renderContent();
         }
 
         // ==================== PEOPLE (PRODUCTION CAST & CREW) ====================
