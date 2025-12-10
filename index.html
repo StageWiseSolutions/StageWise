@@ -4379,8 +4379,8 @@ Jane	Doe	jane@email.com	555-5678
             const editItem = isEditing ? data.conflicts.find(c => c.id === id) : null;
             editing.conflict = id;
             
-            // Reset count when opening fresh
-            if (!isEditing) conflictsAddedCount = 0;
+            // Reset pending conflicts when opening fresh
+            if (!isEditing) pendingConflicts = [];
             
             const people = getProductionData('people');
             const personOptions = people.map(p => {
@@ -4395,105 +4395,198 @@ Jane	Doe	jane@email.com	555-5678
                 `<option value="${t}" ${isEditing && editItem.type === t ? 'selected' : ''}>${t}</option>`
             ).join('');
             
-            const bodyHtml = `
-                <div id="conflictAddedCount" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); border-radius: 8px; padding: 10px; margin-bottom: 16px; text-align: center; color: var(--success); font-weight: 500;"></div>
-                <div class="form-grid">
-                    <div class="form-group full-width">
-                        <label class="form-label">Person *</label>
-                        <select class="form-select" id="conflict_contactId" ${isEditing ? 'disabled' : ''}>
-                            <option value="">Select person...</option>
-                            ${personOptions}
-                        </select>
+            if (isEditing) {
+                // Simple edit form for single conflict
+                const bodyHtml = `
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label class="form-label">Person</label>
+                            <select class="form-select" id="conflict_contactId" disabled>
+                                ${personOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Start Date *</label>
+                            <input type="date" class="form-input" id="conflict_startDate" value="${editItem.startDate || ''}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Date *</label>
+                            <input type="date" class="form-input" id="conflict_endDate" value="${editItem.endDate || ''}">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Type</label>
+                            <select class="form-select" id="conflict_type">${typeOptions}</select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-textarea" id="conflict_notes">${editItem.notes || ''}</textarea>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Start Date *</label>
-                        <input type="date" class="form-input" id="conflict_startDate" value="${isEditing ? editItem.startDate || '' : ''}">
+                `;
+                const footerHtml = `
+                    <button class="btn btn-secondary" onclick="deleteConflict('${id}')">🗑️ Delete</button>
+                    <button class="btn btn-primary" onclick="saveConflictFromModal()">💾 Save Changes</button>
+                `;
+                document.getElementById('modalTitle').textContent = 'Edit Conflict';
+                document.getElementById('modalBody').innerHTML = bodyHtml;
+                document.getElementById('modalFooter').innerHTML = footerHtml;
+            } else {
+                // Multi-entry form for adding new conflicts
+                const bodyHtml = `
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label class="form-label">Person *</label>
+                            <select class="form-select" id="conflict_contactId" onchange="updatePendingConflictsList()">
+                                <option value="">Select person...</option>
+                                ${personOptions}
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Type</label>
+                            <select class="form-select" id="conflict_type">${typeOptions}</select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Notes <span style="color: var(--gray-400); font-weight: normal;">(applies to all dates)</span></label>
+                            <textarea class="form-textarea" id="conflict_notes" placeholder="e.g., Holiday shift, out of town..." rows="2"></textarea>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">End Date *</label>
-                        <input type="date" class="form-input" id="conflict_endDate" value="${isEditing ? editItem.endDate || '' : ''}">
+                    
+                    <div style="border-top: 1px solid var(--gray-200); margin: 16px 0; padding-top: 16px;">
+                        <label class="form-label" style="margin-bottom: 12px;">Date Ranges</label>
+                        <div id="pendingConflictsList"></div>
+                        <div style="display: flex; gap: 8px; align-items: end; margin-top: 12px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 120px;">
+                                <label style="font-size: 11px; color: var(--gray-500);">Start</label>
+                                <input type="date" class="form-input" id="conflict_startDate" style="font-size: 13px;">
+                            </div>
+                            <div style="flex: 1; min-width: 120px;">
+                                <label style="font-size: 11px; color: var(--gray-500);">End</label>
+                                <input type="date" class="form-input" id="conflict_endDate" style="font-size: 13px;">
+                            </div>
+                            <button class="btn btn-secondary" onclick="addPendingConflictDate()" style="white-space: nowrap;">+ Add Date</button>
+                        </div>
                     </div>
-                    <div class="form-group full-width">
-                        <label class="form-label">Type</label>
-                        <select class="form-select" id="conflict_type">
-                            ${typeOptions}
-                        </select>
-                    </div>
-                    <div class="form-group full-width">
-                        <label class="form-label">Notes</label>
-                        <textarea class="form-textarea" id="conflict_notes" placeholder="e.g., Holiday shift, out of town...">${isEditing ? editItem.notes || '' : ''}</textarea>
-                    </div>
-                </div>
-            `;
+                `;
+                const footerHtml = `
+                    <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveAllPendingConflicts()" id="saveConflictsBtn" disabled>💾 Save All (0)</button>
+                `;
+                document.getElementById('modalTitle').textContent = 'Add Conflicts';
+                document.getElementById('modalBody').innerHTML = bodyHtml;
+                document.getElementById('modalFooter').innerHTML = footerHtml;
+                
+                // Auto-set end date when start date changes
+                setTimeout(() => {
+                    document.getElementById('conflict_startDate').addEventListener('change', function() {
+                        const endDate = document.getElementById('conflict_endDate');
+                        if (!endDate.value || endDate.value < this.value) {
+                            endDate.value = this.value;
+                        }
+                    });
+                    updatePendingConflictsList();
+                }, 100);
+            }
             
-            const footerHtml = isEditing ? `
-                <button class="btn btn-secondary" onclick="deleteConflict('${id}')">🗑️ Delete</button>
-                <button class="btn btn-primary" onclick="saveConflictFromModal()">💾 Save Changes</button>
-            ` : `
-                <button class="btn btn-secondary" onclick="closeModal(); renderContent();">Done</button>
-                <button class="btn btn-secondary" onclick="addConflictFromModal(true)">+ Add & New</button>
-                <button class="btn btn-primary" onclick="addConflictFromModal(false)">+ Add & Close</button>
-            `;
-            
-            document.getElementById('modalTitle').textContent = isEditing ? 'Edit Conflict' : 'Add Conflicts';
-            document.getElementById('modalBody').innerHTML = bodyHtml;
-            document.getElementById('modalFooter').innerHTML = footerHtml;
             document.getElementById('modalOverlay').classList.remove('hidden');
-            
-            // Auto-set end date when start date changes
-            document.getElementById('conflict_startDate').addEventListener('change', function() {
-                const endDate = document.getElementById('conflict_endDate');
-                if (!endDate.value || endDate.value < this.value) {
-                    endDate.value = this.value;
-                }
-            });
         }
         
-        let conflictsAddedCount = 0;
+        let pendingConflicts = [];
         
-        async function addConflictFromModal(addAnother = false) {
-            const btn = event.target;
-            const contactId = document.getElementById('conflict_contactId').value;
+        function addPendingConflictDate() {
             const startDate = document.getElementById('conflict_startDate').value;
             const endDate = document.getElementById('conflict_endDate').value;
             
-            if (!contactId) return showNotification('Please select a person', 'error');
             if (!startDate) return showNotification('Please enter a start date', 'error');
             if (!endDate) return showNotification('Please enter an end date', 'error');
             if (endDate < startDate) return showNotification('End date must be after start date', 'error');
             
+            pendingConflicts.push({ startDate, endDate });
+            
+            // Clear date fields for next entry
+            document.getElementById('conflict_startDate').value = '';
+            document.getElementById('conflict_endDate').value = '';
+            
+            updatePendingConflictsList();
+        }
+        
+        function removePendingConflict(index) {
+            pendingConflicts.splice(index, 1);
+            updatePendingConflictsList();
+        }
+        
+        function updatePendingConflictsList() {
+            const listDiv = document.getElementById('pendingConflictsList');
+            const saveBtn = document.getElementById('saveConflictsBtn');
+            
+            if (!listDiv) return;
+            
+            if (pendingConflicts.length === 0) {
+                listDiv.innerHTML = '<p style="color: var(--gray-400); font-size: 13px; text-align: center; padding: 12px;">No dates added yet. Add date ranges below.</p>';
+            } else {
+                listDiv.innerHTML = pendingConflicts.map((c, idx) => {
+                    const isRange = c.startDate !== c.endDate;
+                    const dateText = isRange 
+                        ? `${formatDate(c.startDate)} → ${formatDate(c.endDate)}`
+                        : formatDate(c.startDate);
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--gray-50); border-radius: 6px; margin-bottom: 6px;">
+                            <span style="font-size: 13px;">📅 ${dateText}</span>
+                            <button class="btn btn-ghost btn-icon" onclick="removePendingConflict(${idx})" style="padding: 4px; font-size: 12px;" title="Remove">✕</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // Update save button
+            if (saveBtn) {
+                const count = pendingConflicts.length;
+                saveBtn.textContent = `💾 Save All (${count})`;
+                saveBtn.disabled = count === 0;
+            }
+        }
+        
+        async function saveAllPendingConflicts() {
+            const contactId = document.getElementById('conflict_contactId').value;
+            const type = document.getElementById('conflict_type').value;
+            const notes = document.getElementById('conflict_notes').value;
+            
+            if (!contactId) return showNotification('Please select a person', 'error');
+            if (pendingConflicts.length === 0) return showNotification('Please add at least one date range', 'error');
+            
+            const btn = event.target;
             setButtonLoading(btn, true);
-            data.conflicts.push({
-                id: generateId(),
-                productionId: activeProduction,
-                contactId,
-                startDate,
-                endDate,
-                type: document.getElementById('conflict_type').value,
-                notes: document.getElementById('conflict_notes').value
-            });
+            
+            // Add all pending conflicts
+            for (const pending of pendingConflicts) {
+                data.conflicts.push({
+                    id: generateId(),
+                    productionId: activeProduction,
+                    contactId,
+                    startDate: pending.startDate,
+                    endDate: pending.endDate,
+                    type,
+                    notes
+                });
+            }
+            
             await saveSheetData('conflicts');
             setButtonLoading(btn, false);
             
-            if (addAnother) {
-                // Clear form for next entry but keep person selected for convenience
-                document.getElementById('conflict_startDate').value = '';
-                document.getElementById('conflict_endDate').value = '';
-                document.getElementById('conflict_notes').value = '';
-                
-                // Show count of added conflicts
-                conflictsAddedCount++;
-                const countDiv = document.getElementById('conflictAddedCount');
-                countDiv.textContent = `✓ ${conflictsAddedCount} conflict${conflictsAddedCount > 1 ? 's' : ''} added`;
-                countDiv.style.display = 'block';
-                
-                showNotification('Conflict added! Add another or click Done.', 'success');
-            } else {
-                conflictsAddedCount = 0;
-                closeModal();
-                showSuccessAnimation();
-                renderContent();
-            }
+            const count = pendingConflicts.length;
+            pendingConflicts = [];
+            
+            closeModal();
+            showSuccessAnimation();
+            renderContent();
+            showNotification(`Added ${count} conflict${count > 1 ? 's' : ''}`, 'success');
+        }
+        
+        // Keep old function for backwards compatibility but it's not used in the new flow
+        let conflictsAddedCount = 0;
+        
+        async function addConflictFromModal(addAnother = false) {
+            // Redirect to new flow
+            addPendingConflictDate();
         }
         
         async function saveConflictFromModal() {
