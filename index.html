@@ -230,6 +230,160 @@
             to { transform: translateX(0); opacity: 1; }
         }
 
+        /* ==================== ONBOARDING ==================== */
+        .onboarding-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .onboarding-modal {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: scaleIn 0.3s ease;
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .onboarding-header {
+            text-align: center;
+            padding: 32px 24px 24px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+        }
+        .onboarding-logo {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        .onboarding-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0 0 8px;
+        }
+        .onboarding-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            margin: 0;
+        }
+        .onboarding-body {
+            padding: 24px;
+        }
+        .onboarding-checklist {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            background: var(--gray-50);
+            transition: all 0.2s ease;
+        }
+        .checklist-item:hover {
+            background: var(--gray-100);
+        }
+        .checklist-item.completed {
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .checklist-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .checklist-item.completed .checklist-icon {
+            background: var(--success);
+        }
+        .checklist-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .checklist-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gray-900);
+        }
+        .checklist-desc {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+        .checklist-status {
+            font-size: 18px;
+            color: var(--gray-300);
+        }
+        .checklist-item.completed .checklist-status {
+            color: var(--success);
+        }
+        .onboarding-footer {
+            padding: 16px 24px 24px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .onboarding-footer .btn {
+            flex: 1;
+        }
+
+        /* Success checkmark animation */
+        .success-checkmark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10001;
+            pointer-events: none;
+        }
+        .checkmark-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--success);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: checkPop 0.5s ease;
+            box-shadow: 0 10px 40px rgba(16, 185, 129, 0.4);
+        }
+        .checkmark-icon {
+            color: white;
+            font-size: 40px;
+            animation: checkDraw 0.3s ease 0.2s both;
+        }
+        @keyframes checkPop {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        @keyframes checkDraw {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
         /* ==================== APP LAYOUT ==================== */
         .app { display: flex; min-height: 100vh; overflow-x: hidden; width: 100%; }
 
@@ -1968,6 +2122,65 @@
     <!-- Notification -->
     <div id="notification" class="notification hidden"></div>
 
+    <!-- Onboarding Modal -->
+    <div id="onboardingOverlay" class="onboarding-overlay hidden">
+        <div class="onboarding-modal">
+            <div class="onboarding-header">
+                <div class="onboarding-logo">🎭</div>
+                <h2 class="onboarding-title">Welcome to StageWise!</h2>
+                <p class="onboarding-subtitle">Let's get your production organized</p>
+            </div>
+            <div class="onboarding-body">
+                <div class="onboarding-checklist">
+                    <div class="checklist-item" id="checklist-production">
+                        <div class="checklist-icon">1</div>
+                        <div class="checklist-content">
+                            <div class="checklist-title">Create Your First Production</div>
+                            <div class="checklist-desc">Add show details like title, venue, and dates</div>
+                        </div>
+                        <div class="checklist-status">○</div>
+                    </div>
+                    <div class="checklist-item" id="checklist-roster">
+                        <div class="checklist-icon">2</div>
+                        <div class="checklist-content">
+                            <div class="checklist-title">Build Your Company Roster</div>
+                            <div class="checklist-desc">Add cast & crew contact information</div>
+                        </div>
+                        <div class="checklist-status">○</div>
+                    </div>
+                    <div class="checklist-item" id="checklist-people">
+                        <div class="checklist-icon">3</div>
+                        <div class="checklist-content">
+                            <div class="checklist-title">Assign Cast & Crew</div>
+                            <div class="checklist-desc">Add people from roster to your production</div>
+                        </div>
+                        <div class="checklist-status">○</div>
+                    </div>
+                    <div class="checklist-item" id="checklist-scenes">
+                        <div class="checklist-icon">4</div>
+                        <div class="checklist-content">
+                            <div class="checklist-title">Add Scenes</div>
+                            <div class="checklist-desc">Break down your show and assign cast to scenes</div>
+                        </div>
+                        <div class="checklist-status">○</div>
+                    </div>
+                    <div class="checklist-item" id="checklist-rehearsal">
+                        <div class="checklist-icon">5</div>
+                        <div class="checklist-content">
+                            <div class="checklist-title">Schedule a Rehearsal</div>
+                            <div class="checklist-desc">Plan your first rehearsal and call your cast</div>
+                        </div>
+                        <div class="checklist-status">○</div>
+                    </div>
+                </div>
+            </div>
+            <div class="onboarding-footer">
+                <button class="btn btn-secondary" onclick="closeOnboarding()">Skip for Now</button>
+                <button class="btn btn-primary" onclick="startOnboarding()">Get Started →</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Container -->
     <div id="modalOverlay" class="modal-overlay hidden" onclick="closeModalOnOverlay(event)">
         <div class="modal" onclick="event.stopPropagation()">
@@ -2161,6 +2374,12 @@
         let tokenClient, gapiInited = false, gisInited = false, accessToken = null;
         let data = { productions: [], people: [], scenes: [], rehearsals: [], attendance: [], inventory: [], budget: [], tickets: [], documents: [], cueSheets: [], emails: [], contacts: [] };
         let activeProduction = null, activeTab = 'dashboard';
+        
+        // Filter and sort state
+        let filters = {
+            people: { role: 'all', sort: 'name' },
+            inventory: { category: 'all', status: 'all', sort: 'name' }
+        };
         let editing = { production: null, person: null, scene: null, rehearsal: null, inventory: null, budget: null, ticket: null, document: null, cueSheet: null, email: null, contact: null };
         let calendarDate = new Date(); // Current calendar view month
 
@@ -2201,6 +2420,7 @@
                 document.getElementById('mainApp').classList.remove('hidden');
                 hideLoading();
                 renderContent();
+                checkOnboarding();
             } catch (error) {
                 hideLoading();
                 if (error.status === 401) { localStorage.removeItem('gapi_token'); accessToken = null; showNotification('Session expired. Please sign in again.', 'error'); }
@@ -2293,6 +2513,69 @@
                 if (btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText;
             }
         }
+        
+        // ==================== ONBOARDING ====================
+        function checkOnboarding() {
+            const hasSeenOnboarding = localStorage.getItem('stagewise_onboarding_seen');
+            if (!hasSeenOnboarding && data.productions.length === 0) {
+                showOnboarding();
+            }
+        }
+        
+        function showOnboarding() {
+            updateOnboardingChecklist();
+            document.getElementById('onboardingOverlay').classList.remove('hidden');
+        }
+        
+        function closeOnboarding() {
+            document.getElementById('onboardingOverlay').classList.add('hidden');
+            localStorage.setItem('stagewise_onboarding_seen', 'true');
+        }
+        
+        function startOnboarding() {
+            closeOnboarding();
+            document.querySelector('[data-tab="productions"]').click();
+            setTimeout(() => openProductionModal(), 300);
+        }
+        
+        function updateOnboardingChecklist() {
+            const checks = {
+                'checklist-production': data.productions.length > 0,
+                'checklist-roster': data.contacts.length > 0,
+                'checklist-people': data.people.length > 0,
+                'checklist-scenes': data.scenes.length > 0,
+                'checklist-rehearsal': data.rehearsals.length > 0
+            };
+            
+            for (const [id, completed] of Object.entries(checks)) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.toggle('completed', completed);
+                    el.querySelector('.checklist-status').textContent = completed ? '✓' : '○';
+                    if (completed) {
+                        el.querySelector('.checklist-icon').textContent = '✓';
+                    }
+                }
+            }
+        }
+        
+        // ==================== SUCCESS ANIMATION ====================
+        function showSuccessAnimation() {
+            const existing = document.querySelector('.success-checkmark');
+            if (existing) existing.remove();
+            
+            const el = document.createElement('div');
+            el.className = 'success-checkmark';
+            el.innerHTML = '<div class="checkmark-circle"><span class="checkmark-icon">✓</span></div>';
+            document.body.appendChild(el);
+            
+            setTimeout(() => {
+                el.style.transition = 'opacity 0.3s ease';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 300);
+            }, 800);
+        }
+        
         function showNotification(msg, type = 'success') { const n = document.getElementById('notification'); n.textContent = msg; n.className = 'notification ' + type; setTimeout(() => n.classList.add('hidden'), 3000); }
         function setSyncStatus(status) { /* Sync status UI removed */ }
         function generateId() { return Math.random().toString(36).substr(2, 9); }
@@ -2680,6 +2963,62 @@
                     </div>
                 </div>
             ` : '';
+            
+            // Progress bars calculation
+            const polishedScenes = scenes.filter(s => s.status === 'Polished' || s.status === 'Complete').length;
+            const inProgressScenes = scenes.filter(s => s.status === 'In Progress' || s.status === 'In Rehearsal').length;
+            const scenesProgress = scenes.length > 0 ? Math.round(polishedScenes / scenes.length * 100) : 0;
+            const scenesInProgress = scenes.length > 0 ? Math.round(inProgressScenes / scenes.length * 100) : 0;
+            
+            const inventoryProgress = inventory.length > 0 ? Math.round(readyItems / inventory.length * 100) : 0;
+            const budgetProgress = totalBudget > 0 ? Math.min(100, Math.round(totalSpent / totalBudget * 100)) : 0;
+            
+            const progressHtml = scenes.length > 0 || inventory.length > 0 ? `
+                <div class="card" style="margin-bottom: 16px;">
+                    <div class="card-header" style="padding-bottom: 8px;">
+                        <span class="card-title">📊 Progress</span>
+                    </div>
+                    <div class="card-body" style="padding-top: 0;">
+                        ${scenes.length > 0 ? `
+                        <div style="margin-bottom: 16px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="font-size: 13px; color: var(--gray-700);">Scene Rehearsal</span>
+                                <span style="font-size: 13px; font-weight: 600; color: var(--gray-900);">${polishedScenes}/${scenes.length} polished</span>
+                            </div>
+                            <div style="height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
+                                <div style="height: 100%; width: ${scenesProgress + scenesInProgress}%; background: linear-gradient(to right, var(--success) ${scenesProgress > 0 ? (scenesProgress / (scenesProgress + scenesInProgress) * 100) : 0}%, var(--primary) 0%); border-radius: 4px; transition: width 0.5s ease;"></div>
+                            </div>
+                            <div style="display: flex; gap: 16px; margin-top: 6px; font-size: 11px; color: var(--gray-500);">
+                                <span>🟢 Polished: ${scenesProgress}%</span>
+                                <span>🔵 In Progress: ${scenesInProgress}%</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${inventory.length > 0 ? `
+                        <div style="margin-bottom: 16px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="font-size: 13px; color: var(--gray-700);">Inventory Ready</span>
+                                <span style="font-size: 13px; font-weight: 600; color: var(--gray-900);">${readyItems}/${inventory.length} items</span>
+                            </div>
+                            <div style="height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
+                                <div style="height: 100%; width: ${inventoryProgress}%; background: var(--success); border-radius: 4px; transition: width 0.5s ease;"></div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${totalBudget > 0 ? `
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="font-size: 13px; color: var(--gray-700);">Budget Used</span>
+                                <span style="font-size: 13px; font-weight: 600; color: ${budgetProgress > 100 ? 'var(--danger)' : 'var(--gray-900)'};">$${totalSpent.toFixed(0)} / $${totalBudget.toFixed(0)}</span>
+                            </div>
+                            <div style="height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
+                                <div style="height: 100%; width: ${budgetProgress}%; background: ${budgetProgress > 90 ? 'var(--danger)' : budgetProgress > 70 ? 'var(--warning)' : 'var(--primary)'}; border-radius: 4px; transition: width 0.5s ease;"></div>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            ` : '';
 
             return `
                 <div class="dashboard-grid stats-compact" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 16px;">
@@ -2725,6 +3064,8 @@
                 </div>
 
                 ${needsAttentionHtml}
+                
+                ${progressHtml}
 
                 <div class="dashboard-row">
                     <div class="card">
@@ -2910,6 +3251,7 @@
             await saveSheetData('productions');
             setButtonLoading(btn, false);
             closeModal();
+            showSuccessAnimation();
             renderContent();
         }
 
@@ -2924,6 +3266,7 @@
             await saveSheetData('productions');
             setButtonLoading(btn, false);
             closeModal();
+            showSuccessAnimation();
             renderContent();
         }
 
@@ -3134,6 +3477,7 @@
             await saveSheetData('contacts');
             setButtonLoading(btn, false);
             closeModal();
+            showSuccessAnimation();
             renderContent();
         }
 
@@ -3159,6 +3503,7 @@
             await saveSheetData('contacts');
             setButtonLoading(btn, false);
             closeModal();
+            showSuccessAnimation();
             renderContent();
         }
 
@@ -3217,8 +3562,49 @@
         // ==================== PEOPLE (PRODUCTION CAST & CREW) ====================
         function renderPeople() {
             if (!activeProduction) return '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">Select a production first</div></div>';
-            const people = getProductionData('people');
+            let people = getProductionData('people');
             const scenes = getProductionData('scenes');
+            
+            // Apply filters
+            const roleFilter = filters.people.role;
+            if (roleFilter !== 'all') {
+                people = people.filter(p => p.role && p.role.includes(roleFilter));
+            }
+            
+            // Apply sorting
+            const sortBy = filters.people.sort;
+            people = [...people].sort((a, b) => {
+                const cA = getContact(a), cB = getContact(b);
+                if (sortBy === 'name') return `${cA.firstName} ${cA.lastName}`.localeCompare(`${cB.firstName} ${cB.lastName}`);
+                if (sortBy === 'role') return (a.role || '').localeCompare(b.role || '');
+                if (sortBy === 'character') return (a.character || '').localeCompare(b.character || '');
+                return 0;
+            });
+            
+            const totalPeople = getProductionData('people').length;
+            
+            const filterHtml = `
+                <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 13px; color: var(--gray-600);">Filter:</label>
+                        <select class="form-select" style="padding: 6px 10px; font-size: 13px; min-width: 120px;" onchange="filters.people.role = this.value; renderContent();">
+                            <option value="all" ${roleFilter === 'all' ? 'selected' : ''}>All Roles</option>
+                            <option value="Cast" ${roleFilter === 'Cast' ? 'selected' : ''}>Cast</option>
+                            <option value="Crew" ${roleFilter === 'Crew' ? 'selected' : ''}>Crew</option>
+                            <option value="Ensemble" ${roleFilter === 'Ensemble' ? 'selected' : ''}>Ensemble</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 13px; color: var(--gray-600);">Sort:</label>
+                        <select class="form-select" style="padding: 6px 10px; font-size: 13px; min-width: 120px;" onchange="filters.people.sort = this.value; renderContent();">
+                            <option value="name" ${sortBy === 'name' ? 'selected' : ''}>Name (A-Z)</option>
+                            <option value="role" ${sortBy === 'role' ? 'selected' : ''}>Role</option>
+                            <option value="character" ${sortBy === 'character' ? 'selected' : ''}>Character</option>
+                        </select>
+                    </div>
+                    ${roleFilter !== 'all' ? `<span style="font-size: 12px; color: var(--gray-500);">Showing ${people.length} of ${totalPeople}</span>` : ''}
+                </div>
+            `;
             
             const emptyState = `<div class="empty-state">
                 <div class="empty-state-icon">👥</div>
@@ -3232,10 +3618,12 @@
             // Desktop table view
             const desktopView = `
                 <div class="desktop-table">
+                    ${totalPeople > 0 ? filterHtml : ''}
                     <div class="card">
                         <div class="card-header"><span class="card-title">Cast & Crew (${people.length})</span></div>
                         <div class="card-body no-padding">
-                            ${people.length === 0 ? emptyState :
+                            ${people.length === 0 && totalPeople === 0 ? emptyState :
+                             people.length === 0 ? '<div class="empty-state">No results match your filter</div>' :
                                 `<div class="table-wrapper"><table>
                                     <thead><tr><th>Name</th><th>Role</th><th>Character</th><th>Contact</th><th>Emergency</th><th>Voice</th><th>Sizes</th><th>Actions</th></tr></thead>
                                     <tbody>${people.map(p => {
@@ -3280,10 +3668,12 @@
             // Mobile card view
             const mobileView = `
                 <div class="mobile-cards">
+                    ${totalPeople > 0 ? filterHtml : ''}
                     <div class="card">
                         <div class="card-header"><span class="card-title">Cast & Crew (${people.length})</span></div>
                         <div class="card-body">
-                            ${people.length === 0 ? emptyState :
+                            ${people.length === 0 && totalPeople === 0 ? emptyState :
+                             people.length === 0 ? '<div class="empty-state">No results match your filter</div>' :
                                 `<div style="display: flex; flex-direction: column; gap: 12px;">
                                     ${people.map(p => {
                                         const c = getContact(p);
