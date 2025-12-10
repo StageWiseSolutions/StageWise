@@ -2781,17 +2781,6 @@
                         `}).join('')}
                     </ul>
                 </div>
-                
-                <div class="settings-section">
-                    <div class="settings-section-title">Data</div>
-                    <div class="settings-option">
-                        <div>
-                            <div class="settings-option-label">Google Sheet</div>
-                            <div class="settings-option-desc" style="word-break: break-all; max-width: 200px;">${SPREADSHEET_ID}</div>
-                        </div>
-                        <button class="btn btn-secondary" onclick="window.open('https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}', '_blank')" style="font-size: 12px;">Open Sheet</button>
-                    </div>
-                </div>
             `;
             
             document.getElementById('modalTitle').textContent = '⚙️ Settings';
