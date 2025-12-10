@@ -44,6 +44,15 @@
             --modal-bg: #FFFFFF;
         }
         
+        /* Theme Colors */
+        .theme-purple { --primary: #4F46E5; --primary-light: #818CF8; --primary-dark: #3730A3; }
+        .theme-blue { --primary: #2563EB; --primary-light: #60A5FA; --primary-dark: #1D4ED8; }
+        .theme-green { --primary: #059669; --primary-light: #34D399; --primary-dark: #047857; }
+        .theme-red { --primary: #DC2626; --primary-light: #F87171; --primary-dark: #B91C1C; }
+        .theme-orange { --primary: #EA580C; --primary-light: #FB923C; --primary-dark: #C2410C; }
+        .theme-teal { --primary: #0D9488; --primary-light: #2DD4BF; --primary-dark: #0F766E; }
+        .theme-pink { --primary: #DB2777; --primary-light: #F472B6; --primary-dark: #BE185D; }
+        
         /* Dark Mode */
         .dark-mode {
             --bg-primary: #111827;
@@ -384,6 +393,118 @@
             to { opacity: 1; transform: scale(1); }
         }
 
+        /* ==================== SETTINGS ==================== */
+        .settings-section {
+            margin-bottom: 24px;
+        }
+        .settings-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--gray-500);
+            margin-bottom: 12px;
+        }
+        .settings-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        .settings-option:last-child {
+            border-bottom: none;
+        }
+        .settings-option-label {
+            font-size: 14px;
+            color: var(--gray-700);
+        }
+        .settings-option-desc {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+        .color-picker {
+            display: flex;
+            gap: 8px;
+        }
+        .color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+        .color-swatch.active {
+            border-color: var(--gray-900);
+            box-shadow: 0 0 0 2px white, 0 0 0 4px var(--gray-300);
+        }
+        .color-purple { background: #4F46E5; }
+        .color-blue { background: #2563EB; }
+        .color-green { background: #059669; }
+        .color-red { background: #DC2626; }
+        .color-orange { background: #EA580C; }
+        .color-teal { background: #0D9488; }
+        .color-pink { background: #DB2777; }
+        
+        .nav-reorder-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .nav-reorder-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--gray-50);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+        .nav-reorder-item:hover {
+            background: var(--gray-100);
+        }
+        .nav-reorder-item.dragging {
+            opacity: 0.5;
+            background: var(--primary-light);
+        }
+        .nav-reorder-item .drag-handle {
+            color: var(--gray-400);
+            font-size: 16px;
+        }
+        .nav-reorder-item .nav-icon {
+            font-size: 16px;
+        }
+        .nav-reorder-item .nav-label {
+            flex: 1;
+            font-size: 14px;
+        }
+        .nav-reorder-item .move-buttons {
+            display: flex;
+            gap: 4px;
+        }
+        .nav-reorder-item .move-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: var(--gray-200);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-reorder-item .move-btn:hover {
+            background: var(--gray-300);
+        }
+
         /* ==================== APP LAYOUT ==================== */
         .app { display: flex; min-height: 100vh; overflow-x: hidden; width: 100%; }
 
@@ -404,6 +525,9 @@
         .sidebar-header {
             padding: 20px;
             border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         .sidebar-logo {
             display: flex;
@@ -2202,54 +2326,10 @@
                     <div class="sidebar-logo-icon">🎭</div>
                     <span>StageWise</span>
                 </div>
+                <button onclick="openSettingsModal()" style="background: none; border: none; cursor: pointer; font-size: 18px; padding: 4px; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="Settings">⚙️</button>
             </div>
 
-            <nav class="sidebar-nav">
-                <div class="nav-section">
-                    <div class="nav-item active" data-tab="dashboard">
-                        <span class="nav-item-icon">📊</span> Dashboard
-                    </div>
-                </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Company</div>
-                    <div class="nav-item" data-tab="productions">
-                        <span class="nav-item-icon">🎭</span> Productions
-                    </div>
-                    <div class="nav-item" data-tab="contacts">
-                        <span class="nav-item-icon">📇</span> Company Roster
-                    </div>
-                </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Manage</div>
-                    <div class="nav-item" data-tab="people">
-                        <span class="nav-item-icon">👥</span> Cast & Crew
-                    </div>
-                    <div class="nav-item" data-tab="scenes">
-                        <span class="nav-item-icon">🎬</span> Scenes
-                    </div>
-                    <div class="nav-item" data-tab="rehearsals">
-                        <span class="nav-item-icon">📅</span> Rehearsals
-                    </div>
-                </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Production</div>
-                    <div class="nav-item" data-tab="inventory">
-                        <span class="nav-item-icon">💰</span> Inventory & Budget
-                    </div>
-                    <div class="nav-item" data-tab="cueSheets">
-                        <span class="nav-item-icon">🎚️</span> Cue Sheets
-                    </div>
-                </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Resources</div>
-                    <div class="nav-item" data-tab="documents">
-                        <span class="nav-item-icon">📄</span> Documents
-                    </div>
-                    <div class="nav-item" data-tab="emails">
-                        <span class="nav-item-icon">✉️</span> Emails
-                    </div>
-                </div>
-            </nav>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
 
             </aside>
 
@@ -2280,46 +2360,7 @@
         <!-- Mobile Bottom Nav -->
         <nav class="mobile-nav">
             <div class="mobile-nav-items" id="mobileNavItems">
-                <div class="mobile-nav-item active" data-tab="dashboard">
-                    <span class="mobile-nav-item-icon">📊</span>
-                    Home
-                </div>
-                <div class="mobile-nav-item" data-tab="productions">
-                    <span class="mobile-nav-item-icon">🎭</span>
-                    Shows
-                </div>
-                <div class="mobile-nav-item" data-tab="contacts">
-                    <span class="mobile-nav-item-icon">📇</span>
-                    Roster
-                </div>
-                <div class="mobile-nav-item" data-tab="people">
-                    <span class="mobile-nav-item-icon">👥</span>
-                    Cast
-                </div>
-                <div class="mobile-nav-item" data-tab="scenes">
-                    <span class="mobile-nav-item-icon">🎬</span>
-                    Scenes
-                </div>
-                <div class="mobile-nav-item" data-tab="rehearsals">
-                    <span class="mobile-nav-item-icon">📅</span>
-                    Rehearsals
-                </div>
-                <div class="mobile-nav-item" data-tab="inventory">
-                    <span class="mobile-nav-item-icon">💰</span>
-                    Budget
-                </div>
-                <div class="mobile-nav-item" data-tab="cueSheets">
-                    <span class="mobile-nav-item-icon">🎚️</span>
-                    Cues
-                </div>
-                <div class="mobile-nav-item" data-tab="documents">
-                    <span class="mobile-nav-item-icon">📄</span>
-                    Docs
-                </div>
-                <div class="mobile-nav-item" data-tab="emails">
-                    <span class="mobile-nav-item-icon">✉️</span>
-                    Emails
-                </div>
+                <!-- Populated by renderMobileNav() -->
             </div>
         </nav>
     </div>
@@ -2380,6 +2421,15 @@
             people: { role: 'all', sort: 'name' },
             inventory: { category: 'all', status: 'all', sort: 'name' }
         };
+        
+        // Settings state
+        const defaultNavOrder = ['dashboard', 'people', 'scenes', 'rehearsals', 'inventory', 'documents', 'cueSheets', 'emails'];
+        let settings = {
+            theme: localStorage.getItem('stagewise_theme') || 'purple',
+            defaultPage: localStorage.getItem('stagewise_default_page') || 'dashboard',
+            navOrder: JSON.parse(localStorage.getItem('stagewise_nav_order') || 'null') || [...defaultNavOrder]
+        };
+        
         let editing = { production: null, person: null, scene: null, rehearsal: null, inventory: null, budget: null, ticket: null, document: null, cueSheet: null, email: null, contact: null };
         let calendarDate = new Date(); // Current calendar view month
 
@@ -2419,6 +2469,7 @@
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('mainApp').classList.remove('hidden');
                 hideLoading();
+                renderSidebar();
                 renderContent();
                 checkOnboarding();
             } catch (error) {
@@ -2605,6 +2656,158 @@
         
         // Initialize dark mode on page load
         initDarkMode();
+        
+        // ==================== SETTINGS ====================
+        function initSettings() {
+            applyTheme(settings.theme);
+            activeTab = settings.defaultPage;
+        }
+        
+        function applyTheme(theme) {
+            // Remove all theme classes
+            document.body.classList.remove('theme-purple', 'theme-blue', 'theme-green', 'theme-red', 'theme-orange', 'theme-teal', 'theme-pink');
+            // Add selected theme
+            if (theme !== 'purple') {
+                document.body.classList.add('theme-' + theme);
+            }
+            settings.theme = theme;
+            localStorage.setItem('stagewise_theme', theme);
+        }
+        
+        function setDefaultPage(page) {
+            settings.defaultPage = page;
+            localStorage.setItem('stagewise_default_page', page);
+            showNotification('Default page updated', 'success');
+        }
+        
+        function moveNavItem(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= settings.navOrder.length) return;
+            
+            const item = settings.navOrder[index];
+            settings.navOrder.splice(index, 1);
+            settings.navOrder.splice(newIndex, 0, item);
+            localStorage.setItem('stagewise_nav_order', JSON.stringify(settings.navOrder));
+            renderContent();
+            renderSidebar();
+        }
+        
+        function resetNavOrder() {
+            settings.navOrder = [...defaultNavOrder];
+            localStorage.setItem('stagewise_nav_order', JSON.stringify(settings.navOrder));
+            renderContent();
+            renderSidebar();
+            showNotification('Navigation order reset', 'success');
+        }
+        
+        function openSettingsModal() {
+            const isDark = document.body.classList.contains('dark-mode');
+            const themes = ['purple', 'blue', 'green', 'red', 'orange', 'teal', 'pink'];
+            const pages = [
+                { value: 'dashboard', label: 'Dashboard' },
+                { value: 'people', label: 'Cast & Crew' },
+                { value: 'scenes', label: 'Scenes' },
+                { value: 'rehearsals', label: 'Rehearsals' },
+                { value: 'inventory', label: 'Inventory & Budget' }
+            ];
+            
+            const navItems = {
+                dashboard: { icon: '🏠', label: 'Dashboard' },
+                people: { icon: '👥', label: 'Cast & Crew' },
+                scenes: { icon: '🎬', label: 'Scenes' },
+                rehearsals: { icon: '📅', label: 'Rehearsals' },
+                inventory: { icon: '🎪', label: 'Inventory & Budget' },
+                documents: { icon: '📄', label: 'Documents' },
+                cueSheets: { icon: '🎧', label: 'Cue Sheets' },
+                emails: { icon: '✉️', label: 'Emails' }
+            };
+            
+            const bodyHtml = `
+                <div class="settings-section">
+                    <div class="settings-section-title">Appearance</div>
+                    <div class="settings-option">
+                        <div>
+                            <div class="settings-option-label">Dark Mode</div>
+                            <div class="settings-option-desc">Switch between light and dark theme</div>
+                        </div>
+                        <label style="position: relative; display: inline-block; width: 50px; height: 28px;">
+                            <input type="checkbox" ${isDark ? 'checked' : ''} onchange="toggleDarkMode()" style="opacity: 0; width: 0; height: 0;">
+                            <span style="position: absolute; cursor: pointer; inset: 0; background: ${isDark ? 'var(--primary)' : 'var(--gray-300)'}; border-radius: 28px; transition: 0.3s;">
+                                <span style="position: absolute; content: ''; height: 22px; width: 22px; left: ${isDark ? '25px' : '3px'}; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s;"></span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="settings-option">
+                        <div>
+                            <div class="settings-option-label">Accent Color</div>
+                            <div class="settings-option-desc">Choose your theme color</div>
+                        </div>
+                        <div class="color-picker">
+                            ${themes.map(t => `
+                                <div class="color-swatch color-${t} ${settings.theme === t ? 'active' : ''}" 
+                                     onclick="applyTheme('${t}'); document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active')); this.classList.add('active');"
+                                     title="${t.charAt(0).toUpperCase() + t.slice(1)}"></div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <div class="settings-section-title">Navigation</div>
+                    <div class="settings-option">
+                        <div>
+                            <div class="settings-option-label">Default Page</div>
+                            <div class="settings-option-desc">Page to show when opening the app</div>
+                        </div>
+                        <select class="form-select" style="width: auto;" onchange="setDefaultPage(this.value)">
+                            ${pages.map(p => `<option value="${p.value}" ${settings.defaultPage === p.value ? 'selected' : ''}>${p.label}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div class="settings-section-title" style="margin-bottom: 0;">Navigation Order</div>
+                        <button class="btn btn-ghost" onclick="resetNavOrder()" style="font-size: 12px; padding: 4px 8px;">Reset</button>
+                    </div>
+                    <ul class="nav-reorder-list">
+                        ${settings.navOrder.map((key, idx) => {
+                            const item = navItems[key];
+                            if (!item) return '';
+                            return `
+                            <li class="nav-reorder-item">
+                                <span class="drag-handle">≡</span>
+                                <span class="nav-icon">${item.icon}</span>
+                                <span class="nav-label">${item.label}</span>
+                                <div class="move-buttons">
+                                    <button class="move-btn" onclick="moveNavItem(${idx}, -1)" ${idx === 0 ? 'disabled style="opacity:0.3"' : ''}>↑</button>
+                                    <button class="move-btn" onclick="moveNavItem(${idx}, 1)" ${idx === settings.navOrder.length - 1 ? 'disabled style="opacity:0.3"' : ''}>↓</button>
+                                </div>
+                            </li>
+                        `}).join('')}
+                    </ul>
+                </div>
+                
+                <div class="settings-section">
+                    <div class="settings-section-title">Data</div>
+                    <div class="settings-option">
+                        <div>
+                            <div class="settings-option-label">Google Sheet</div>
+                            <div class="settings-option-desc" style="word-break: break-all; max-width: 200px;">${SPREADSHEET_ID}</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="window.open('https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}', '_blank')" style="font-size: 12px;">Open Sheet</button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('modalTitle').textContent = '⚙️ Settings';
+            document.getElementById('modalBody').innerHTML = bodyHtml;
+            document.getElementById('modalFooter').innerHTML = '<button class="btn btn-primary" onclick="closeModal()">Done</button>';
+            document.getElementById('modalOverlay').classList.remove('hidden');
+        }
+        
+        // Initialize settings on page load
+        initSettings();
 
         // ==================== TIME HELPERS ====================
         function generateTimeOptions(selectedValue = '') {
@@ -2691,6 +2894,128 @@
         });
         
         function cancelEdit(type) { editing[type] = null; renderContent(); }
+
+        // ==================== SIDEBAR ====================
+        function renderSidebar() {
+            const navItems = {
+                dashboard: { icon: '📊', label: 'Dashboard' },
+                people: { icon: '👥', label: 'Cast & Crew' },
+                scenes: { icon: '🎬', label: 'Scenes' },
+                rehearsals: { icon: '📅', label: 'Rehearsals' },
+                inventory: { icon: '💰', label: 'Inventory & Budget' },
+                documents: { icon: '📄', label: 'Documents' },
+                cueSheets: { icon: '🎚️', label: 'Cue Sheets' },
+                emails: { icon: '✉️', label: 'Emails' }
+            };
+            
+            // Fixed items at top
+            let html = `
+                <div class="nav-section">
+                    <div class="nav-item ${activeTab === 'dashboard' ? 'active' : ''}" data-tab="dashboard">
+                        <span class="nav-item-icon">📊</span> Dashboard
+                    </div>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Company</div>
+                    <div class="nav-item ${activeTab === 'productions' ? 'active' : ''}" data-tab="productions">
+                        <span class="nav-item-icon">🎭</span> Productions
+                    </div>
+                    <div class="nav-item ${activeTab === 'contacts' ? 'active' : ''}" data-tab="contacts">
+                        <span class="nav-item-icon">📇</span> Company Roster
+                    </div>
+                </div>
+            `;
+            
+            // Customizable nav items based on settings.navOrder
+            const orderedItems = settings.navOrder.filter(key => key !== 'dashboard' && navItems[key]);
+            
+            if (orderedItems.length > 0) {
+                html += `<div class="nav-section"><div class="nav-section-title">Production</div>`;
+                orderedItems.forEach(key => {
+                    const item = navItems[key];
+                    html += `
+                        <div class="nav-item ${activeTab === key ? 'active' : ''}" data-tab="${key}">
+                            <span class="nav-item-icon">${item.icon}</span> ${item.label}
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+            
+            document.getElementById('sidebarNav').innerHTML = html;
+            
+            // Re-attach click handlers
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const tab = item.dataset.tab;
+                    if (tab) {
+                        activeTab = tab;
+                        document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(i => i.classList.remove('active'));
+                        document.querySelectorAll(`[data-tab="${tab}"]`).forEach(i => i.classList.add('active'));
+                        renderContent();
+                    }
+                });
+            });
+            
+            // Update mobile nav too
+            renderMobileNav();
+        }
+        
+        function renderMobileNav() {
+            const navItems = {
+                dashboard: { icon: '🏠', label: 'Home' },
+                productions: { icon: '🎭', label: 'Shows' },
+                contacts: { icon: '📇', label: 'Roster' },
+                people: { icon: '👥', label: 'Cast' },
+                scenes: { icon: '🎬', label: 'Scenes' },
+                rehearsals: { icon: '📅', label: 'Calendar' },
+                inventory: { icon: '💰', label: 'Budget' },
+                documents: { icon: '📄', label: 'Docs' },
+                cueSheets: { icon: '🎧', label: 'Cues' },
+                emails: { icon: '✉️', label: 'Email' }
+            };
+            
+            // Fixed order for mobile: Home, Shows, Roster first, then user-ordered items, then settings
+            const fixedStart = ['dashboard', 'productions', 'contacts'];
+            const orderedItems = settings.navOrder.filter(key => !fixedStart.includes(key) && navItems[key]);
+            const allItems = [...fixedStart, ...orderedItems];
+            
+            let html = '';
+            allItems.forEach(key => {
+                const item = navItems[key];
+                if (item) {
+                    html += `
+                        <div class="mobile-nav-item ${activeTab === key ? 'active' : ''}" data-tab="${key}">
+                            <span class="mobile-nav-item-icon">${item.icon}</span>
+                            <span class="mobile-nav-item-label">${item.label}</span>
+                        </div>
+                    `;
+                }
+            });
+            
+            // Add settings button
+            html += `
+                <div class="mobile-nav-item" onclick="openSettingsModal()">
+                    <span class="mobile-nav-item-icon">⚙️</span>
+                    <span class="mobile-nav-item-label">Settings</span>
+                </div>
+            `;
+            
+            document.getElementById('mobileNavItems').innerHTML = html;
+            
+            // Re-attach click handlers for mobile nav
+            document.querySelectorAll('.mobile-nav-item[data-tab]').forEach(item => {
+                item.addEventListener('click', () => {
+                    const tab = item.dataset.tab;
+                    if (tab) {
+                        activeTab = tab;
+                        document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(i => i.classList.remove('active'));
+                        document.querySelectorAll(`[data-tab="${tab}"]`).forEach(i => i.classList.add('active'));
+                        renderContent();
+                    }
+                });
+            });
+        }
 
         // ==================== RENDER ====================
         function renderContent() {
