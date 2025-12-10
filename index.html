@@ -460,49 +460,42 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 10px 12px;
+            padding: 12px 14px;
             background: var(--gray-50);
             border-radius: 8px;
             margin-bottom: 8px;
             cursor: grab;
             transition: all 0.2s ease;
+            border: 2px solid transparent;
+            user-select: none;
         }
         .nav-reorder-item:hover {
             background: var(--gray-100);
         }
+        .nav-reorder-item:active {
+            cursor: grabbing;
+        }
         .nav-reorder-item.dragging {
-            opacity: 0.5;
+            opacity: 0.4;
             background: var(--primary-light);
+            transform: scale(1.02);
+        }
+        .nav-reorder-item.drag-over {
+            border-color: var(--primary);
+            background: rgba(79, 70, 229, 0.1);
         }
         .nav-reorder-item .drag-handle {
             color: var(--gray-400);
-            font-size: 16px;
+            font-size: 18px;
+            cursor: grab;
         }
         .nav-reorder-item .nav-icon {
-            font-size: 16px;
+            font-size: 18px;
         }
         .nav-reorder-item .nav-label {
             flex: 1;
             font-size: 14px;
-        }
-        .nav-reorder-item .move-buttons {
-            display: flex;
-            gap: 4px;
-        }
-        .nav-reorder-item .move-btn {
-            width: 24px;
-            height: 24px;
-            border: none;
-            background: var(--gray-200);
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .nav-reorder-item .move-btn:hover {
-            background: var(--gray-300);
+            font-weight: 500;
         }
 
         /* ==================== APP LAYOUT ==================== */
@@ -2774,19 +2767,16 @@
                         <div class="settings-section-title" style="margin-bottom: 0;">Navigation Order</div>
                         <button class="btn btn-ghost" onclick="resetNavOrder()" style="font-size: 12px; padding: 4px 8px;">Reset</button>
                     </div>
-                    <ul class="nav-reorder-list">
+                    <p style="font-size: 12px; color: var(--gray-500); margin-bottom: 12px;">Drag items to reorder</p>
+                    <ul class="nav-reorder-list" id="navReorderList">
                         ${settings.navOrder.map((key, idx) => {
                             const item = navItems[key];
                             if (!item) return '';
                             return `
-                            <li class="nav-reorder-item">
-                                <span class="drag-handle">≡</span>
+                            <li class="nav-reorder-item" draggable="true" data-nav-key="${key}">
+                                <span class="drag-handle">⋮⋮</span>
                                 <span class="nav-icon">${item.icon}</span>
                                 <span class="nav-label">${item.label}</span>
-                                <div class="move-buttons">
-                                    <button class="move-btn" onclick="moveNavItem(${idx}, -1)" ${idx === 0 ? 'disabled style="opacity:0.3"' : ''}>↑</button>
-                                    <button class="move-btn" onclick="moveNavItem(${idx}, 1)" ${idx === settings.navOrder.length - 1 ? 'disabled style="opacity:0.3"' : ''}>↓</button>
-                                </div>
                             </li>
                         `}).join('')}
                     </ul>
@@ -2808,6 +2798,128 @@
             document.getElementById('modalBody').innerHTML = bodyHtml;
             document.getElementById('modalFooter').innerHTML = '<button class="btn btn-primary" onclick="closeModal()">Done</button>';
             document.getElementById('modalOverlay').classList.remove('hidden');
+            
+            // Setup drag and drop after modal is shown
+            setTimeout(setupNavDragDrop, 100);
+        }
+        
+        function setupNavDragDrop() {
+            const list = document.getElementById('navReorderList');
+            if (!list) return;
+            
+            let draggedItem = null;
+            let touchStartY = 0;
+            let touchCurrentItem = null;
+            
+            list.querySelectorAll('.nav-reorder-item').forEach(item => {
+                // Mouse drag events
+                item.addEventListener('dragstart', function(e) {
+                    draggedItem = this;
+                    this.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/html', this.innerHTML);
+                });
+                
+                item.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                    list.querySelectorAll('.nav-reorder-item').forEach(i => i.classList.remove('drag-over'));
+                    draggedItem = null;
+                    saveNavOrderFromDom();
+                });
+                
+                item.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (this !== draggedItem) {
+                        this.classList.add('drag-over');
+                    }
+                });
+                
+                item.addEventListener('dragleave', function() {
+                    this.classList.remove('drag-over');
+                });
+                
+                item.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+                    
+                    if (this !== draggedItem && draggedItem) {
+                        const allItems = [...list.querySelectorAll('.nav-reorder-item')];
+                        const draggedIdx = allItems.indexOf(draggedItem);
+                        const targetIdx = allItems.indexOf(this);
+                        
+                        if (draggedIdx < targetIdx) {
+                            this.parentNode.insertBefore(draggedItem, this.nextSibling);
+                        } else {
+                            this.parentNode.insertBefore(draggedItem, this);
+                        }
+                    }
+                });
+                
+                // Touch events for mobile
+                item.addEventListener('touchstart', function(e) {
+                    touchStartY = e.touches[0].clientY;
+                    touchCurrentItem = this;
+                    this.classList.add('dragging');
+                }, { passive: true });
+                
+                item.addEventListener('touchmove', function(e) {
+                    if (!touchCurrentItem) return;
+                    
+                    const touch = e.touches[0];
+                    const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                    const targetItem = elemBelow?.closest('.nav-reorder-item');
+                    
+                    list.querySelectorAll('.nav-reorder-item').forEach(i => i.classList.remove('drag-over'));
+                    
+                    if (targetItem && targetItem !== touchCurrentItem) {
+                        targetItem.classList.add('drag-over');
+                    }
+                }, { passive: true });
+                
+                item.addEventListener('touchend', function(e) {
+                    if (!touchCurrentItem) return;
+                    
+                    this.classList.remove('dragging');
+                    
+                    const touch = e.changedTouches[0];
+                    const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                    const targetItem = elemBelow?.closest('.nav-reorder-item');
+                    
+                    list.querySelectorAll('.nav-reorder-item').forEach(i => i.classList.remove('drag-over'));
+                    
+                    if (targetItem && targetItem !== touchCurrentItem) {
+                        const allItems = [...list.querySelectorAll('.nav-reorder-item')];
+                        const draggedIdx = allItems.indexOf(touchCurrentItem);
+                        const targetIdx = allItems.indexOf(targetItem);
+                        
+                        if (draggedIdx < targetIdx) {
+                            targetItem.parentNode.insertBefore(touchCurrentItem, targetItem.nextSibling);
+                        } else {
+                            targetItem.parentNode.insertBefore(touchCurrentItem, targetItem);
+                        }
+                        
+                        saveNavOrderFromDom();
+                    }
+                    
+                    touchCurrentItem = null;
+                });
+            });
+        }
+        
+        function saveNavOrderFromDom() {
+            const list = document.getElementById('navReorderList');
+            if (!list) return;
+            
+            const newOrder = [];
+            list.querySelectorAll('.nav-reorder-item').forEach(item => {
+                const key = item.dataset.navKey;
+                if (key) newOrder.push(key);
+            });
+            
+            settings.navOrder = newOrder;
+            localStorage.setItem('stagewise_nav_order', JSON.stringify(newOrder));
+            renderSidebar();
         }
         
         // Initialize settings on page load
