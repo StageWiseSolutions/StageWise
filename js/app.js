@@ -188,6 +188,11 @@ const App = {
             this.deleteUnusedSheets();
         });
 
+        // Upload Sample Data button
+        document.getElementById('upload-sample-btn')?.addEventListener('click', () => {
+            this.uploadSampleData();
+        });
+
         // Save settings button
         document.getElementById('save-settings-btn')?.addEventListener('click', () => {
             this.saveSettings();
@@ -515,6 +520,50 @@ const App = {
         } catch (error) {
             Components.hideLoading();
             Components.toast('Failed to delete sheets: ' + error.message, 'error');
+        }
+    },
+
+    /**
+     * Upload sample data to Google Sheets
+     */
+    async uploadSampleData() {
+        if (!SheetsAPI.isSignedIn()) {
+            Components.toast('Please sign in to Google first', 'warning');
+            return;
+        }
+
+        // Confirm with user
+        if (!confirm('This will generate and upload sample data to your Google Sheets. This includes:\n\n' +
+            '• 5 Teams (A through E)\n' +
+            '• 8 Positions (DCO, DDCO, SAM, CLO, MAT, C&SE, EPS, OSRES)\n' +
+            '• 40 Personnel (8 per team)\n' +
+            '• Training types and records\n' +
+            '• DuPont shift schedule (60 days)\n' +
+            '• Sample straights and swap requests\n\n' +
+            'Existing data will be replaced. Continue?')) {
+            return;
+        }
+
+        try {
+            Components.showLoading('Generating and uploading sample data...');
+            const result = await SheetsAPI.uploadSampleData();
+
+            if (result.success.length > 0) {
+                Components.toast(`Successfully uploaded data to ${result.success.length} sheets`, 'success');
+            }
+
+            if (result.failed.length > 0) {
+                Components.toast(`Failed to upload ${result.failed.length} sheets`, 'error');
+            }
+
+            // Refresh the data from sheets
+            await DataStore.refreshAll();
+
+            Components.hideLoading();
+            this.refreshCurrentView();
+        } catch (error) {
+            Components.hideLoading();
+            Components.toast('Failed to upload sample data: ' + error.message, 'error');
         }
     },
 

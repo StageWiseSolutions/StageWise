@@ -533,6 +533,50 @@ const SheetsAPI = {
 
         const sheetNames = Object.values(CONFIG.SHEETS);
         return await this.fetchMultipleSheets(sheetNames);
+    },
+
+    /**
+     * Upload sample data to Google Sheets
+     */
+    async uploadSampleData() {
+        if (!this.isConfigured()) {
+            throw new Error('Please sign in to Google first');
+        }
+
+        // Generate fresh sample data
+        DataStore.loadSampleData();
+
+        // Upload all data to sheets
+        const uploads = [
+            { sheet: CONFIG.SHEETS.TEAMS, data: DataStore.teams },
+            { sheet: CONFIG.SHEETS.POSITIONS, data: DataStore.positions },
+            { sheet: CONFIG.SHEETS.PERSONNEL, data: DataStore.personnel },
+            { sheet: CONFIG.SHEETS.TRAINING_TYPES, data: DataStore.trainingTypes },
+            { sheet: CONFIG.SHEETS.POSITION_TRAINING, data: DataStore.positionTraining },
+            { sheet: CONFIG.SHEETS.PERSONNEL_TRAINING, data: DataStore.personnelTraining },
+            { sheet: CONFIG.SHEETS.ROTATION_PATTERNS, data: DataStore.rotationPatterns },
+            { sheet: CONFIG.SHEETS.SHIFT_SCHEDULE, data: DataStore.shiftSchedule },
+            { sheet: CONFIG.SHEETS.SHIFT_SWAPS, data: DataStore.shiftSwaps },
+            { sheet: CONFIG.SHEETS.STRAIGHTS, data: DataStore.straighsAssignments }
+        ];
+
+        const results = {
+            success: [],
+            failed: []
+        };
+
+        for (const upload of uploads) {
+            try {
+                await this.saveSheet(upload.sheet, upload.data);
+                results.success.push(upload.sheet);
+                console.log(`Uploaded ${upload.data.length} rows to ${upload.sheet}`);
+            } catch (error) {
+                console.error(`Failed to upload ${upload.sheet}:`, error);
+                results.failed.push({ sheet: upload.sheet, error: error.message });
+            }
+        }
+
+        return results;
     }
 };
 

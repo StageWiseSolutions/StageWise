@@ -143,69 +143,60 @@ const DataStore = {
      * Load sample data for demo
      */
     loadSampleData() {
-        // Teams
+        // Teams - 5 rotating shift teams
         this.teams = [
-            { TeamID: 'T1', TeamName: 'Team 1', Description: 'Alpha Team', Color: '#4285f4' },
-            { TeamID: 'T2', TeamName: 'Team 2', Description: 'Bravo Team', Color: '#ea4335' },
-            { TeamID: 'T3', TeamName: 'Team 3', Description: 'Charlie Team', Color: '#34a853' },
-            { TeamID: 'T4', TeamName: 'Team 4', Description: 'Delta Team', Color: '#fbbc05' },
-            { TeamID: 'T5', TeamName: 'Team 5', Description: 'Echo Team', Color: '#9c27b0' }
+            { TeamID: 'T1', TeamName: 'Team A', Description: 'Alpha Team - Rotating Shift', Color: '#4285f4', Active: 'TRUE' },
+            { TeamID: 'T2', TeamName: 'Team B', Description: 'Bravo Team - Rotating Shift', Color: '#ea4335', Active: 'TRUE' },
+            { TeamID: 'T3', TeamName: 'Team C', Description: 'Charlie Team - Rotating Shift', Color: '#34a853', Active: 'TRUE' },
+            { TeamID: 'T4', TeamName: 'Team D', Description: 'Delta Team - Rotating Shift', Color: '#fbbc05', Active: 'TRUE' },
+            { TeamID: 'T5', TeamName: 'Team E', Description: 'Echo Team - Rotating Shift', Color: '#9c27b0', Active: 'TRUE' }
         ];
 
-        // Positions
+        // Positions - DCO, DDCO, SAM, CLO, MAT, C&SE, EPS, OSRES
         this.positions = [
-            { PositionID: 'POS001', Title: 'Operator', Description: 'Control room operator', Department: 'Operations', Level: '1' },
-            { PositionID: 'POS002', Title: 'Senior Operator', Description: 'Lead operator with training duties', Department: 'Operations', Level: '2' },
-            { PositionID: 'POS003', Title: 'Supervisor', Description: 'Shift supervisor', Department: 'Operations', Level: '3' },
-            { PositionID: 'POS004', Title: 'Technician', Description: 'Maintenance technician', Department: 'Maintenance', Level: '1' },
-            { PositionID: 'POS005', Title: 'Lead Technician', Description: 'Senior maintenance lead', Department: 'Maintenance', Level: '2' }
+            { PositionID: 'DCO', PositionName: 'DCO', Description: 'Duty Control Officer - Shift Lead', TeamID: '', MinStaffing: '1', Active: 'TRUE' },
+            { PositionID: 'DDCO', PositionName: 'DDCO', Description: 'Deputy Duty Control Officer', TeamID: '', MinStaffing: '1', Active: 'TRUE' },
+            { PositionID: 'SAM', PositionName: 'SAM', Description: 'Shift Area Manager', TeamID: '', MinStaffing: '1', Active: 'TRUE' },
+            { PositionID: 'CLO', PositionName: 'CLO', Description: 'Control Room Operator', TeamID: '', MinStaffing: '2', Active: 'TRUE' },
+            { PositionID: 'MAT', PositionName: 'MAT', Description: 'Materials Handler', TeamID: '', MinStaffing: '1', Active: 'TRUE' },
+            { PositionID: 'CSE', PositionName: 'C&SE', Description: 'Controls & Systems Engineer', TeamID: '', MinStaffing: '1', Active: 'TRUE' },
+            { PositionID: 'EPS', PositionName: 'EPS', Description: 'Electrical Power Systems', TeamID: '', MinStaffing: '1', Active: 'TRUE' },
+            { PositionID: 'OSRES', PositionName: 'OSRES', Description: 'On-Site Response', TeamID: '', MinStaffing: '1', Active: 'TRUE' }
         ];
 
-        // Training Types
+        // Training Types - relevant certifications
         this.trainingTypes = [
-            { TrainingID: 'TR001', TrainingName: 'Safety Orientation', Description: 'Basic safety and emergency procedures', ValidityMonths: '12', Category: 'Safety' },
-            { TrainingID: 'TR002', TrainingName: 'CPR/First Aid', Description: 'CPR and basic first aid certification', ValidityMonths: '24', Category: 'Safety' },
-            { TrainingID: 'TR003', TrainingName: 'Lockout/Tagout', Description: 'LOTO procedures', ValidityMonths: '12', Category: 'Safety' },
-            { TrainingID: 'TR004', TrainingName: 'Operator Certification', Description: 'Control room operations', ValidityMonths: '36', Category: 'Operations' },
-            { TrainingID: 'TR005', TrainingName: 'Confined Space', Description: 'Confined space entry procedures', ValidityMonths: '12', Category: 'Safety' },
-            { TrainingID: 'TR006', TrainingName: 'Fall Protection', Description: 'Working at heights', ValidityMonths: '12', Category: 'Safety' },
-            { TrainingID: 'TR007', TrainingName: 'Forklift Operation', Description: 'Powered industrial truck operation', ValidityMonths: '36', Category: 'Equipment' },
-            { TrainingID: 'TR008', TrainingName: 'Hazmat Awareness', Description: 'Hazardous materials handling', ValidityMonths: '12', Category: 'Safety' }
+            { TrainingID: 'TR001', TrainingName: 'Safety Orientation', Description: 'Basic safety and emergency procedures', ValidityMonths: '12', Category: 'Safety', Required: 'TRUE' },
+            { TrainingID: 'TR002', TrainingName: 'CPR/First Aid', Description: 'CPR and basic first aid certification', ValidityMonths: '24', Category: 'Safety', Required: 'TRUE' },
+            { TrainingID: 'TR003', TrainingName: 'Lockout/Tagout (LOTO)', Description: 'Energy isolation procedures', ValidityMonths: '12', Category: 'Safety', Required: 'TRUE' },
+            { TrainingID: 'TR004', TrainingName: 'Control Room Operations', Description: 'Control room certification', ValidityMonths: '12', Category: 'Operations', Required: 'TRUE' },
+            { TrainingID: 'TR005', TrainingName: 'Confined Space Entry', Description: 'Confined space entry procedures', ValidityMonths: '12', Category: 'Safety', Required: 'TRUE' },
+            { TrainingID: 'TR006', TrainingName: 'Fall Protection', Description: 'Working at heights certification', ValidityMonths: '12', Category: 'Safety', Required: 'TRUE' },
+            { TrainingID: 'TR007', TrainingName: 'Forklift Operation', Description: 'Powered industrial truck operation', ValidityMonths: '36', Category: 'Equipment', Required: 'FALSE' },
+            { TrainingID: 'TR008', TrainingName: 'Hazmat Awareness', Description: 'Hazardous materials handling', ValidityMonths: '12', Category: 'Safety', Required: 'TRUE' },
+            { TrainingID: 'TR009', TrainingName: 'Electrical Safety', Description: 'Electrical safety and arc flash', ValidityMonths: '12', Category: 'Safety', Required: 'TRUE' },
+            { TrainingID: 'TR010', TrainingName: 'Emergency Response', Description: 'Emergency response procedures', ValidityMonths: '12', Category: 'Safety', Required: 'TRUE' },
+            { TrainingID: 'TR011', TrainingName: 'Radiation Safety', Description: 'Radiation protection training', ValidityMonths: '12', Category: 'Compliance', Required: 'TRUE' },
+            { TrainingID: 'TR012', TrainingName: 'Security Awareness', Description: 'Site security procedures', ValidityMonths: '12', Category: 'Compliance', Required: 'TRUE' }
         ];
 
         // Position Training Requirements
-        this.positionTraining = [
-            { ID: 'PT001', PositionID: 'POS001', TrainingID: 'TR001', Required: 'TRUE' },
-            { ID: 'PT002', PositionID: 'POS001', TrainingID: 'TR002', Required: 'TRUE' },
-            { ID: 'PT003', PositionID: 'POS001', TrainingID: 'TR003', Required: 'TRUE' },
-            { ID: 'PT004', PositionID: 'POS001', TrainingID: 'TR004', Required: 'TRUE' },
-            { ID: 'PT005', PositionID: 'POS002', TrainingID: 'TR001', Required: 'TRUE' },
-            { ID: 'PT006', PositionID: 'POS002', TrainingID: 'TR002', Required: 'TRUE' },
-            { ID: 'PT007', PositionID: 'POS002', TrainingID: 'TR003', Required: 'TRUE' },
-            { ID: 'PT008', PositionID: 'POS002', TrainingID: 'TR004', Required: 'TRUE' },
-            { ID: 'PT009', PositionID: 'POS002', TrainingID: 'TR005', Required: 'TRUE' },
-            { ID: 'PT010', PositionID: 'POS003', TrainingID: 'TR001', Required: 'TRUE' },
-            { ID: 'PT011', PositionID: 'POS003', TrainingID: 'TR002', Required: 'TRUE' },
-            { ID: 'PT012', PositionID: 'POS004', TrainingID: 'TR001', Required: 'TRUE' },
-            { ID: 'PT013', PositionID: 'POS004', TrainingID: 'TR003', Required: 'TRUE' },
-            { ID: 'PT014', PositionID: 'POS004', TrainingID: 'TR007', Required: 'TRUE' }
-        ];
+        this.positionTraining = this.generatePositionTrainingRequirements();
 
-        // Sample Personnel (20 people, 4 per team)
+        // Sample Personnel (8 people per team = 40 people)
         this.personnel = this.generateSamplePersonnel();
 
         // Sample Training Records
         this.personnelTraining = this.generateSampleTrainingRecords();
 
-        // Rotation Patterns
+        // Rotation Patterns - DuPont
         this.rotationPatterns = [
             {
                 PatternID: 'RP001',
-                Name: 'DuPont',
+                PatternName: 'DuPont',
                 Description: '4-week rotating pattern with 12-hour shifts',
                 CycleDays: '28',
-                Pattern: 'D,D,D,D,O,O,O,N,N,N,N,O,O,O,D,D,D,O,O,O,O,N,N,N,O,O,O,O',
-                IsActive: 'TRUE'
+                Pattern: 'D,D,D,D,O,O,O,N,N,N,N,O,O,O,D,D,D,O,O,O,O,N,N,N,O,O,O,O'
             }
         ];
 
@@ -213,53 +204,168 @@ const DataStore = {
         this.shiftSchedule = this.generateSampleSchedule();
 
         // Sample straights assignments
-        this.straighsAssignments = [
-            { ID: 'SA001', PersonID: 'P001', TeamID: 'T1', WeekStartDate: this.getNextMonday(), WeekEndDate: this.getNextFriday(), Location: 'Training Center', DailyStartTime: '0700', DailyEndTime: '1500', Notes: 'Annual recertification' },
-            { ID: 'SA002', PersonID: 'P006', TeamID: 'T2', WeekStartDate: this.getNextMonday(7), WeekEndDate: this.getNextFriday(7), Location: 'Main Office', DailyStartTime: '0800', DailyEndTime: '1600', Notes: 'Administrative duties' }
-        ];
+        this.straighsAssignments = this.generateSampleStraights();
 
-        // Empty swaps
-        this.shiftSwaps = [];
+        // Sample shift swaps
+        this.shiftSwaps = this.generateSampleSwaps();
 
         this.lastLoaded = new Date();
         this.emit('dataLoaded', this.getSummary());
     },
 
     /**
-     * Generate sample personnel
+     * Generate position training requirements
+     */
+    generatePositionTrainingRequirements() {
+        const requirements = [];
+        const positions = ['DCO', 'DDCO', 'SAM', 'CLO', 'MAT', 'CSE', 'EPS', 'OSRES'];
+        const baseTraining = ['TR001', 'TR002', 'TR003', 'TR008', 'TR010', 'TR011', 'TR012']; // All positions need these
+
+        let id = 1;
+        positions.forEach(pos => {
+            // Base training for all positions
+            baseTraining.forEach(tr => {
+                requirements.push({ ID: `PT${String(id++).padStart(3, '0')}`, PositionID: pos, TrainingID: tr, Required: 'TRUE' });
+            });
+
+            // Position-specific training
+            if (pos === 'DCO' || pos === 'DDCO' || pos === 'CLO') {
+                requirements.push({ ID: `PT${String(id++).padStart(3, '0')}`, PositionID: pos, TrainingID: 'TR004', Required: 'TRUE' });
+            }
+            if (pos === 'EPS' || pos === 'CSE') {
+                requirements.push({ ID: `PT${String(id++).padStart(3, '0')}`, PositionID: pos, TrainingID: 'TR009', Required: 'TRUE' });
+            }
+            if (pos === 'MAT') {
+                requirements.push({ ID: `PT${String(id++).padStart(3, '0')}`, PositionID: pos, TrainingID: 'TR007', Required: 'TRUE' });
+            }
+            if (pos === 'OSRES' || pos === 'MAT') {
+                requirements.push({ ID: `PT${String(id++).padStart(3, '0')}`, PositionID: pos, TrainingID: 'TR005', Required: 'TRUE' });
+                requirements.push({ ID: `PT${String(id++).padStart(3, '0')}`, PositionID: pos, TrainingID: 'TR006', Required: 'TRUE' });
+            }
+        });
+
+        return requirements;
+    },
+
+    /**
+     * Generate sample straights assignments
+     */
+    generateSampleStraights() {
+        const straights = [];
+        const today = new Date();
+        const nextMonday = this.getNextMonday();
+        const nextFriday = this.getNextFriday();
+
+        straights.push({
+            AssignmentID: 'SA001',
+            PersonnelID: 'P001',
+            StartDate: nextMonday,
+            EndDate: nextFriday,
+            Reason: 'Annual recertification training',
+            ApprovedBy: 'Supervisor',
+            Notes: 'Training Center - Building A'
+        });
+
+        straights.push({
+            AssignmentID: 'SA002',
+            PersonnelID: 'P009',
+            StartDate: this.getNextMonday(7),
+            EndDate: this.getNextFriday(7),
+            Reason: 'Administrative duties',
+            ApprovedBy: 'Manager',
+            Notes: 'Main Office'
+        });
+
+        straights.push({
+            AssignmentID: 'SA003',
+            PersonnelID: 'P017',
+            StartDate: this.getNextMonday(14),
+            EndDate: this.getNextFriday(14),
+            Reason: 'Equipment maintenance support',
+            ApprovedBy: 'Lead Tech',
+            Notes: 'Maintenance shop'
+        });
+
+        return straights;
+    },
+
+    /**
+     * Generate sample shift swaps
+     */
+    generateSampleSwaps() {
+        const swaps = [];
+        const today = new Date();
+
+        swaps.push({
+            SwapID: 'SW001',
+            RequestorID: 'P002',
+            RequestDate: today.toISOString().split('T')[0],
+            OriginalDate: Utils.addDays(today, 5).toISOString().split('T')[0],
+            OriginalShift: 'Day',
+            TargetID: 'P010',
+            TargetDate: Utils.addDays(today, 7).toISOString().split('T')[0],
+            TargetShift: 'Day',
+            Status: 'Pending',
+            ApprovedBy: '',
+            ApprovedDate: '',
+            Notes: 'Family event'
+        });
+
+        swaps.push({
+            SwapID: 'SW002',
+            RequestorID: 'P005',
+            RequestDate: Utils.addDays(today, -3).toISOString().split('T')[0],
+            OriginalDate: Utils.addDays(today, 2).toISOString().split('T')[0],
+            OriginalShift: 'Night',
+            TargetID: 'P013',
+            TargetDate: Utils.addDays(today, 4).toISOString().split('T')[0],
+            TargetShift: 'Night',
+            Status: 'Approved',
+            ApprovedBy: 'DCO',
+            ApprovedDate: Utils.addDays(today, -2).toISOString().split('T')[0],
+            Notes: 'Medical appointment'
+        });
+
+        return swaps;
+    },
+
+    /**
+     * Generate sample personnel - 8 per team (40 total)
      */
     generateSamplePersonnel() {
         const firstNames = ['John', 'Jane', 'Mike', 'Sarah', 'David', 'Emily', 'Chris', 'Amanda', 'Robert', 'Lisa',
-            'James', 'Jennifer', 'Daniel', 'Michelle', 'William', 'Ashley', 'Richard', 'Jessica', 'Thomas', 'Nicole'];
+            'James', 'Jennifer', 'Daniel', 'Michelle', 'William', 'Ashley', 'Richard', 'Jessica', 'Thomas', 'Nicole',
+            'Kevin', 'Stephanie', 'Mark', 'Rachel', 'Brian', 'Megan', 'Andrew', 'Lauren', 'Steven', 'Heather',
+            'Joseph', 'Amber', 'Patrick', 'Melissa', 'Timothy', 'Christina', 'Jason', 'Samantha', 'Ryan', 'Elizabeth'];
         const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez',
-            'Anderson', 'Taylor', 'Thomas', 'Hernandez', 'Moore', 'Martin', 'Jackson', 'Thompson', 'White', 'Lopez'];
+            'Anderson', 'Taylor', 'Thomas', 'Hernandez', 'Moore', 'Martin', 'Jackson', 'Thompson', 'White', 'Lopez',
+            'Lee', 'Walker', 'Hall', 'Allen', 'Young', 'King', 'Wright', 'Scott', 'Green', 'Baker',
+            'Adams', 'Nelson', 'Hill', 'Ramirez', 'Campbell', 'Mitchell', 'Roberts', 'Carter', 'Phillips', 'Evans'];
+
+        // Position assignments per team (8 positions)
+        const positionAssignments = ['DCO', 'DDCO', 'SAM', 'CLO', 'CLO', 'MAT', 'EPS', 'OSRES'];
 
         const personnel = [];
         let personIndex = 0;
 
         for (let teamNum = 1; teamNum <= 5; teamNum++) {
-            for (let i = 0; i < 4; i++) {
+            for (let posIdx = 0; posIdx < positionAssignments.length; posIdx++) {
                 const firstName = firstNames[personIndex % firstNames.length];
                 const lastName = lastNames[personIndex % lastNames.length];
-                const positionIndex = i === 0 ? 2 : (i === 1 ? 1 : 0); // Supervisor, Senior Op, 2 Operators
+                const position = positionAssignments[posIdx];
+                const hireYear = 2018 + Math.floor(personIndex / 10);
+                const hireMonth = String((personIndex % 12) + 1).padStart(2, '0');
 
                 personnel.push({
-                    PersonID: `P${String(personIndex + 1).padStart(3, '0')}`,
-                    EmployeeNumber: `EMP${String(10000 + personIndex).substring(1)}`,
+                    PersonnelID: `P${String(personIndex + 1).padStart(3, '0')}`,
                     FirstName: firstName,
                     LastName: lastName,
                     Email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@company.com`,
                     Phone: `555-${String(100 + personIndex).padStart(3, '0')}-${String(1000 + personIndex).substring(1)}`,
-                    EmergencyContact: 'Emergency Contact',
-                    EmergencyPhone: `555-999-${String(1000 + personIndex).substring(1)}`,
                     TeamID: `T${teamNum}`,
-                    PositionID: `POS${String(positionIndex + 1).padStart(3, '0')}`,
-                    HireDate: `202${Math.floor(personIndex / 7)}-0${(personIndex % 12) + 1}-15`,
-                    PositionStartDate: `202${Math.floor(personIndex / 7) + 1}-0${(personIndex % 12) + 1}-01`,
-                    Supervisor: i === 0 ? '' : `P${String(teamNum * 4 - 3).padStart(3, '0')}`,
-                    Department: 'Operations',
-                    Status: 'Active',
-                    BadgeNumber: `B${String(100 + personIndex).padStart(3, '0')}`,
+                    PositionID: position,
+                    HireDate: `${hireYear}-${hireMonth}-15`,
+                    Status: personIndex === 38 ? 'LOA' : 'Active', // One person on LOA for demo
                     Notes: ''
                 });
                 personIndex++;
@@ -285,20 +391,20 @@ const DataStore = {
                 if (!training) return;
 
                 // Randomly generate completion dates (some expired, some current, some expiring soon)
-                const randomMonths = Math.floor(Math.random() * parseInt(training.ValidityMonths || 12));
+                const validityMonths = parseInt(training.ValidityMonths || 12);
+                const randomMonths = Math.floor(Math.random() * validityMonths);
                 const completionDate = new Date(today);
                 completionDate.setMonth(completionDate.getMonth() - randomMonths);
 
                 const expirationDate = new Date(completionDate);
-                expirationDate.setMonth(expirationDate.getMonth() + parseInt(training.ValidityMonths || 12));
+                expirationDate.setMonth(expirationDate.getMonth() + validityMonths);
 
-                const status = Utils.getTrainingStatus(expirationDate.toISOString().split('T')[0]);
+                const status = Utils.getTrainingStatus ? Utils.getTrainingStatus(expirationDate.toISOString().split('T')[0]) : 'current';
 
                 records.push({
-                    ID: `PTR${String(recordIndex).padStart(3, '0')}`,
-                    PersonID: person.PersonID,
+                    PersonnelID: person.PersonnelID,
                     TrainingID: req.TrainingID,
-                    CompletionDate: completionDate.toISOString().split('T')[0],
+                    CompletedDate: completionDate.toISOString().split('T')[0],
                     ExpirationDate: expirationDate.toISOString().split('T')[0],
                     Status: status === 'current' ? 'Current' : (status === 'expiring' ? 'Due Soon' : 'Expired'),
                     Notes: ''
@@ -345,15 +451,12 @@ const DataStore = {
                 }
 
                 schedule.push({
-                    ID: Utils.generateId('SS'),
-                    PersonID: person.PersonID,
-                    TeamID: person.TeamID,
+                    ScheduleID: Utils.generateId('SS'),
+                    PersonnelID: person.PersonnelID,
                     Date: date.toISOString().split('T')[0],
                     ShiftType: shiftType,
                     StartTime: startTime,
                     EndTime: endTime,
-                    Location: 'Main Plant',
-                    IsOverride: 'FALSE',
                     Notes: ''
                 });
             }
