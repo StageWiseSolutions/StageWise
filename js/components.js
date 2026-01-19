@@ -250,6 +250,7 @@ const Components = {
      */
     teamCard(team) {
         const stats = DataStore.getTeamStats(team.TeamID);
+        const pattern = team.PatternID ? DataStore.rotationPatterns.find(p => p.PatternID === team.PatternID) : null;
 
         return `
             <div class="team-card" style="border-top-color: ${team.Color}">
@@ -260,6 +261,13 @@ const Components = {
                 </div>
                 <div class="team-card-body">
                     <p class="team-description">${Utils.escapeHtml(team.Description || 'No description')}</p>
+                    <div class="team-pattern-info">
+                        ${pattern ?
+                            `<span class="badge badge-info"><i class="fas fa-calendar-alt"></i> ${pattern.PatternName}</span>
+                             <small class="text-muted">Offset: ${team.PatternOffset || 0} days</small>`
+                            : '<span class="text-muted"><i class="fas fa-calendar-times"></i> No pattern assigned</span>'
+                        }
+                    </div>
                     <div class="team-stats">
                         <div class="team-stat">
                             <span class="stat-value">${stats.active}</span>
@@ -277,7 +285,10 @@ const Components = {
                 </div>
                 <div class="team-card-actions">
                     <button class="btn btn-sm btn-secondary" onclick="TeamsView.viewTeam('${team.TeamID}')">
-                        <i class="fas fa-users"></i> View Members
+                        <i class="fas fa-users"></i> Members
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="TeamsView.assignPattern('${team.TeamID}')">
+                        <i class="fas fa-calendar-alt"></i> Pattern
                     </button>
                     <button class="btn btn-sm btn-primary" onclick="TeamsView.editTeam('${team.TeamID}')">
                         <i class="fas fa-edit"></i> Edit

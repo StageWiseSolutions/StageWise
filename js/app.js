@@ -548,12 +548,16 @@ const App = {
             Components.showLoading('Generating and uploading sample data...');
             const result = await SheetsAPI.uploadSampleData();
 
+            console.log('Upload result:', result);
+
             if (result.success.length > 0) {
-                Components.toast(`Successfully uploaded data to ${result.success.length} sheets`, 'success');
+                Components.toast(`Successfully uploaded data to ${result.success.length} sheets: ${result.success.join(', ')}`, 'success');
             }
 
             if (result.failed.length > 0) {
-                Components.toast(`Failed to upload ${result.failed.length} sheets`, 'error');
+                const failedSheets = result.failed.map(f => `${f.sheet}: ${f.error}`).join('; ');
+                console.error('Failed sheets:', result.failed);
+                Components.toast(`Failed to upload ${result.failed.length} sheets: ${failedSheets}`, 'error');
             }
 
             // Refresh the data from sheets
@@ -563,6 +567,7 @@ const App = {
             this.refreshCurrentView();
         } catch (error) {
             Components.hideLoading();
+            console.error('Upload sample data error:', error);
             Components.toast('Failed to upload sample data: ' + error.message, 'error');
         }
     },

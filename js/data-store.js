@@ -143,25 +143,30 @@ const DataStore = {
      * Load sample data for demo
      */
     loadSampleData() {
-        // Teams - 5 rotating shift teams
+        // Teams - 5 rotating shift teams with DuPont pattern
+        // Pattern start date is a reference date, offsets stagger teams through the 28-day cycle
+        // With 5 teams on a 28-day pattern, offset by ~5-6 days ensures proper coverage
+        const patternStart = '2024-01-01'; // Reference start date
         this.teams = [
-            { TeamID: 'T1', TeamName: 'Team A', Description: 'Alpha Team - Rotating Shift', Color: '#4285f4', Active: 'TRUE' },
-            { TeamID: 'T2', TeamName: 'Team B', Description: 'Bravo Team - Rotating Shift', Color: '#ea4335', Active: 'TRUE' },
-            { TeamID: 'T3', TeamName: 'Team C', Description: 'Charlie Team - Rotating Shift', Color: '#34a853', Active: 'TRUE' },
-            { TeamID: 'T4', TeamName: 'Team D', Description: 'Delta Team - Rotating Shift', Color: '#fbbc05', Active: 'TRUE' },
-            { TeamID: 'T5', TeamName: 'Team E', Description: 'Echo Team - Rotating Shift', Color: '#9c27b0', Active: 'TRUE' }
+            { TeamID: 'T1', TeamName: 'Team A', Description: 'Alpha Team - Rotating Shift', Color: '#4285f4', Active: 'TRUE', PatternID: 'RP001', PatternStartDate: patternStart, PatternOffset: '0' },
+            { TeamID: 'T2', TeamName: 'Team B', Description: 'Bravo Team - Rotating Shift', Color: '#ea4335', Active: 'TRUE', PatternID: 'RP001', PatternStartDate: patternStart, PatternOffset: '7' },
+            { TeamID: 'T3', TeamName: 'Team C', Description: 'Charlie Team - Rotating Shift', Color: '#34a853', Active: 'TRUE', PatternID: 'RP001', PatternStartDate: patternStart, PatternOffset: '14' },
+            { TeamID: 'T4', TeamName: 'Team D', Description: 'Delta Team - Rotating Shift', Color: '#fbbc05', Active: 'TRUE', PatternID: 'RP001', PatternStartDate: patternStart, PatternOffset: '21' },
+            { TeamID: 'T5', TeamName: 'Team E', Description: 'Echo Team - Rotating Shift', Color: '#9c27b0', Active: 'TRUE', PatternID: 'RP001', PatternStartDate: patternStart, PatternOffset: '3' }
         ];
 
         // Positions - DCO, DDCO, SAM, CLO, MAT, C&SE, EPS, OSRES
+        // Note: Pattern is assigned at TEAM level, not position level
+        // Positions define job roles, teams cycle through the rotation pattern
         this.positions = [
-            { PositionID: 'DCO', PositionName: 'DCO', Description: 'Duty Control Officer - Shift Lead', TeamID: '', MinStaffing: '1', Active: 'TRUE' },
-            { PositionID: 'DDCO', PositionName: 'DDCO', Description: 'Deputy Duty Control Officer', TeamID: '', MinStaffing: '1', Active: 'TRUE' },
-            { PositionID: 'SAM', PositionName: 'SAM', Description: 'Shift Area Manager', TeamID: '', MinStaffing: '1', Active: 'TRUE' },
-            { PositionID: 'CLO', PositionName: 'CLO', Description: 'Control Room Operator', TeamID: '', MinStaffing: '2', Active: 'TRUE' },
-            { PositionID: 'MAT', PositionName: 'MAT', Description: 'Materials Handler', TeamID: '', MinStaffing: '1', Active: 'TRUE' },
-            { PositionID: 'CSE', PositionName: 'C&SE', Description: 'Controls & Systems Engineer', TeamID: '', MinStaffing: '1', Active: 'TRUE' },
-            { PositionID: 'EPS', PositionName: 'EPS', Description: 'Electrical Power Systems', TeamID: '', MinStaffing: '1', Active: 'TRUE' },
-            { PositionID: 'OSRES', PositionName: 'OSRES', Description: 'On-Site Response', TeamID: '', MinStaffing: '1', Active: 'TRUE' }
+            { PositionID: 'DCO', PositionName: 'DCO', Description: 'Duty Control Officer - Shift Lead', TeamID: '', MinStaffing: '1', Active: 'TRUE', PatternID: '', PatternStartDate: '', PatternOffset: '0' },
+            { PositionID: 'DDCO', PositionName: 'DDCO', Description: 'Deputy Duty Control Officer', TeamID: '', MinStaffing: '1', Active: 'TRUE', PatternID: '', PatternStartDate: '', PatternOffset: '0' },
+            { PositionID: 'SAM', PositionName: 'SAM', Description: 'Shift Area Manager', TeamID: '', MinStaffing: '1', Active: 'TRUE', PatternID: '', PatternStartDate: '', PatternOffset: '0' },
+            { PositionID: 'CLO', PositionName: 'CLO', Description: 'Control Room Operator', TeamID: '', MinStaffing: '2', Active: 'TRUE', PatternID: '', PatternStartDate: '', PatternOffset: '0' },
+            { PositionID: 'MAT', PositionName: 'MAT', Description: 'Materials Handler', TeamID: '', MinStaffing: '1', Active: 'TRUE', PatternID: '', PatternStartDate: '', PatternOffset: '0' },
+            { PositionID: 'CSE', PositionName: 'C&SE', Description: 'Controls & Systems Engineer', TeamID: '', MinStaffing: '1', Active: 'TRUE', PatternID: '', PatternStartDate: '', PatternOffset: '0' },
+            { PositionID: 'EPS', PositionName: 'EPS', Description: 'Electrical Power Systems', TeamID: '', MinStaffing: '1', Active: 'TRUE', PatternID: '', PatternStartDate: '', PatternOffset: '0' },
+            { PositionID: 'OSRES', PositionName: 'OSRES', Description: 'On-Site Response', TeamID: '', MinStaffing: '1', Active: 'TRUE', PatternID: '', PatternStartDate: '', PatternOffset: '0' }
         ];
 
         // Training Types - relevant certifications
@@ -343,7 +348,7 @@ const DataStore = {
             'Adams', 'Nelson', 'Hill', 'Ramirez', 'Campbell', 'Mitchell', 'Roberts', 'Carter', 'Phillips', 'Evans'];
 
         // Position assignments per team (8 positions)
-        const positionAssignments = ['DCO', 'DDCO', 'SAM', 'CLO', 'CLO', 'MAT', 'EPS', 'OSRES'];
+        const positionAssignments = ['DCO', 'DDCO', 'SAM', 'CLO', 'MAT', 'CSE', 'EPS', 'OSRES'];
 
         const personnel = [];
         let personIndex = 0;
@@ -418,26 +423,44 @@ const DataStore = {
 
     /**
      * Generate sample schedule for next 60 days
+     * Uses team-based pattern assignments
      */
     generateSampleSchedule() {
         const schedule = [];
-        const pattern = CONFIG.DEFAULT_ROTATION_PATTERN.pattern.split(',');
-        const patternLength = pattern.length;
+        const today = new Date();
 
-        // Pattern start date (arbitrary reference point)
-        const patternStart = new Date('2024-01-01');
-
-        // Generate for each person
+        // Generate for each person based on their team's pattern
         this.personnel.forEach(person => {
             const team = this.teams.find(t => t.TeamID === person.TeamID);
-            const teamIndex = parseInt(person.TeamID.replace('T', '')) - 1;
-            const offset = Utils.getTeamPatternOffset(teamIndex, 5, patternLength);
+            if (!team) return;
+
+            // Get pattern from team assignment, fallback to default
+            const patternData = team.PatternID
+                ? this.rotationPatterns.find(p => p.PatternID === team.PatternID)
+                : { Pattern: CONFIG.DEFAULT_ROTATION_PATTERN.pattern, CycleDays: CONFIG.DEFAULT_ROTATION_PATTERN.cycleDays };
+
+            if (!patternData) return;
+
+            const patternArray = patternData.Pattern.split(',');
+            const cycleDays = parseInt(patternData.CycleDays) || patternArray.length;
+
+            // Get pattern start date and offset from team
+            const patternStartDate = team.PatternStartDate
+                ? new Date(team.PatternStartDate)
+                : new Date('2024-01-01');
+            const teamOffset = parseInt(team.PatternOffset) || 0;
 
             // Generate 60 days of schedule
-            const today = new Date();
             for (let day = 0; day < 60; day++) {
                 const date = Utils.addDays(today, day);
-                const shiftType = Utils.getShiftFromPattern(date, patternStart, CONFIG.DEFAULT_ROTATION_PATTERN.pattern, offset);
+
+                // Calculate days since pattern start
+                const daysSinceStart = Math.floor((date - patternStartDate) / (1000 * 60 * 60 * 24));
+                const adjustedDay = daysSinceStart + teamOffset;
+                const patternIndex = ((adjustedDay % cycleDays) + cycleDays) % cycleDays;
+                const shiftCode = patternArray[patternIndex] || 'O';
+
+                const shiftType = shiftCode === 'D' ? 'Day' : (shiftCode === 'N' ? 'Night' : 'Off');
 
                 let startTime = '';
                 let endTime = '';

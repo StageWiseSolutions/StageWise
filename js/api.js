@@ -17,8 +17,8 @@ const SheetsAPI = {
 
     // Sheet headers for each sheet type
     SHEET_HEADERS: {
-        Teams: ['TeamID', 'TeamName', 'Color', 'Description', 'Active'],
-        Positions: ['PositionID', 'PositionName', 'TeamID', 'Description', 'MinStaffing', 'Active'],
+        Teams: ['TeamID', 'TeamName', 'Color', 'Description', 'Active', 'PatternID', 'PatternStartDate', 'PatternOffset'],
+        Positions: ['PositionID', 'PositionName', 'TeamID', 'Description', 'MinStaffing', 'Active', 'PatternID', 'PatternStartDate', 'PatternOffset'],
         Personnel: ['PersonnelID', 'FirstName', 'LastName', 'Email', 'Phone', 'TeamID', 'PositionID', 'HireDate', 'Status', 'Notes'],
         TrainingTypes: ['TrainingID', 'TrainingName', 'Category', 'ValidityMonths', 'Description', 'Required'],
         PositionTraining: ['PositionID', 'TrainingID', 'Required'],
@@ -298,16 +298,28 @@ const SheetsAPI = {
                 throw new Error(`Unknown sheet: ${sheetName}`);
             }
 
+            // Ensure data is an array
+            const dataArray = Array.isArray(data) ? data : [];
+            console.log(`Saving ${dataArray.length} rows to ${sheetName}`);
+
             // Convert objects back to rows
-            const rows = data.map(item => headers.map(header => item[header] || ''));
+            const rows = dataArray.map(item => headers.map(header => {
+                const value = item[header];
+                // Handle various value types
+                if (value === null || value === undefined) return '';
+                if (typeof value === 'object') return JSON.stringify(value);
+                return String(value);
+            }));
             const values = [headers, ...rows];
 
+            console.log(`Clearing ${sheetName}...`);
             // Clear existing data and write new data
             await gapi.client.sheets.spreadsheets.values.clear({
                 spreadsheetId: CONFIG.SPREADSHEET_ID,
                 range: sheetName
             });
 
+            console.log(`Writing ${values.length} rows (including header) to ${sheetName}...`);
             await gapi.client.sheets.spreadsheets.values.update({
                 spreadsheetId: CONFIG.SPREADSHEET_ID,
                 range: `${sheetName}!A1`,
@@ -315,13 +327,19 @@ const SheetsAPI = {
                 resource: { values }
             });
 
+            console.log(`Successfully saved ${sheetName}`);
+
             // Update cache
-            this._cache[sheetName] = data;
+            this._cache[sheetName] = dataArray;
             this._cacheTimestamps[sheetName] = Date.now();
 
             return { success: true };
         } catch (error) {
             console.error(`Error saving sheet ${sheetName}:`, error);
+            // Log more details about the error
+            if (error.result) {
+                console.error('Error details:', error.result.error);
+            }
             throw error;
         }
     },
@@ -543,21 +561,40 @@ const SheetsAPI = {
             throw new Error('Please sign in to Google first');
         }
 
+        // First ensure all sheets exist
+        console.log('Initializing sheets before upload...');
+        await this.initializeSheets();
+
         // Generate fresh sample data
+        console.log('Generating sample data...');
         DataStore.loadSampleData();
+
+        // Debug: Log sample data counts
+        console.log('Sample data counts:', {
+            teams: DataStore.teams?.length || 0,
+            positions: DataStore.positions?.length || 0,
+            personnel: DataStore.personnel?.length || 0,
+            trainingTypes: DataStore.trainingTypes?.length || 0,
+            positionTraining: DataStore.positionTraining?.length || 0,
+            personnelTraining: DataStore.personnelTraining?.length || 0,
+            rotationPatterns: DataStore.rotationPatterns?.length || 0,
+            shiftSchedule: DataStore.shiftSchedule?.length || 0,
+            shiftSwaps: DataStore.shiftSwaps?.length || 0,
+            straighsAssignments: DataStore.straighsAssignments?.length || 0
+        });
 
         // Upload all data to sheets
         const uploads = [
-            { sheet: CONFIG.SHEETS.TEAMS, data: DataStore.teams },
-            { sheet: CONFIG.SHEETS.POSITIONS, data: DataStore.positions },
-            { sheet: CONFIG.SHEETS.PERSONNEL, data: DataStore.personnel },
-            { sheet: CONFIG.SHEETS.TRAINING_TYPES, data: DataStore.trainingTypes },
-            { sheet: CONFIG.SHEETS.POSITION_TRAINING, data: DataStore.positionTraining },
-            { sheet: CONFIG.SHEETS.PERSONNEL_TRAINING, data: DataStore.personnelTraining },
-            { sheet: CONFIG.SHEETS.ROTATION_PATTERNS, data: DataStore.rotationPatterns },
-            { sheet: CONFIG.SHEETS.SHIFT_SCHEDULE, data: DataStore.shiftSchedule },
-            { sheet: CONFIG.SHEETS.SHIFT_SWAPS, data: DataStore.shiftSwaps },
-            { sheet: CONFIG.SHEETS.STRAIGHTS, data: DataStore.straighsAssignments }
+            { sheet: CONFIG.SHEETS.TEAMS, data: DataStore.teams || [] },
+            { sheet: CONFIG.SHEETS.POSITIONS, data: DataStore.positions || [] },
+            { sheet: CONFIG.SHEETS.PERSONNEL, data: DataStore.personnel || [] },
+            { sheet: CONFIG.SHEETS.TRAINING_TYPES, data: DataStore.trainingTypes || [] },
+            { sheet: CONFIG.SHEETS.POSITION_TRAINING, data: DataStore.positionTraining || [] },
+            { sheet: CONFIG.SHEETS.PERSONNEL_TRAINING, data: DataStore.personnelTraining || [] },
+            { sheet: CONFIG.SHEETS.ROTATION_PATTERNS, data: DataStore.rotationPatterns || [] },
+            { sheet: CONFIG.SHEETS.SHIFT_SCHEDULE, data: DataStore.shiftSchedule || [] },
+            { sheet: CONFIG.SHEETS.SHIFT_SWAPS, data: DataStore.shiftSwaps || [] },
+            { sheet: CONFIG.SHEETS.STRAIGHTS, data: DataStore.straighsAssignments || [] }
         ];
 
         const results = {
