@@ -2101,6 +2101,25 @@ textarea.form-control {
     color: var(--gray-700);
 }
 
+.detail-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.detail-section .section-header h4 {
+    margin-bottom: 0;
+}
+
+.form-help {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: var(--gray-100);
+    border-radius: var(--radius);
+    color: var(--gray-600);
+}
+
 .detail-row {
     display: flex;
     justify-content: space-between;

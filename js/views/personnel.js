@@ -326,7 +326,12 @@ const PersonnelView = {
                     </div>
 
                     <div class="detail-section">
-                        <h4>Training Status</h4>
+                        <div class="section-header">
+                            <h4>Training Status</h4>
+                            <button class="btn btn-sm btn-primary" onclick="PersonnelView.showAddTrainingModal('${personId}')">
+                                <i class="fas fa-plus"></i> Add Training
+                            </button>
+                        </div>
                         <table class="data-table">
                             <thead>
                                 <tr>
@@ -335,19 +340,26 @@ const PersonnelView = {
                                     <th>Completion Date</th>
                                     <th>Expiration Date</th>
                                     <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${requiredTraining.map(training => {
+                                    const trainingName = training.TrainingName || training.Name || '';
                                     const record = trainingRecords.find(r => r.TrainingID === training.TrainingID);
                                     const status = record ? Utils.getTrainingStatus(record.ExpirationDate) : 'missing';
                                     return `
                                         <tr>
-                                            <td>${training.Name}</td>
+                                            <td>${trainingName}</td>
                                             <td>${training.Category}</td>
                                             <td>${record ? Utils.formatDate(record.CompletionDate) : '-'}</td>
                                             <td>${record ? Utils.formatDate(record.ExpirationDate) : '-'}</td>
                                             <td>${Components.statusBadge(status === 'missing' ? 'Missing' : (status === 'current' ? 'Current' : (status === 'expiring' ? 'Due Soon' : 'Expired')))}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-icon" title="${record ? 'Update' : 'Record'}" onclick="PersonnelView.showAddTrainingModal('${personId}', '${training.TrainingID}')">
+                                                    <i class="fas fa-${record ? 'edit' : 'plus'}"></i>
+                                                </button>
+                                            </td>
                                         </tr>
                                     `;
                                 }).join('')}
@@ -495,6 +507,168 @@ const PersonnelView = {
             this.render();
             Components.toast('Personnel deleted successfully', 'success');
         }
+    },
+
+    /**
+     * Show modal to add/edit training record for a person
+     */
+    showAddTrainingModal(personId, trainingId = null) {
+        const person = DataStore.getPerson(personId);
+        if (!person) return;
+
+        // Get existing record if updating
+        const existingRecord = trainingId
+            ? DataStore.personnelTraining.find(r => r.PersonnelID === personId && r.TrainingID === trainingId)
+            : null;
+
+        // Get the training type info
+        const training = trainingId ? DataStore.getTrainingType(trainingId) : null;
+        const trainingName = training ? (training.TrainingName || training.Name) : '';
+
+        // Build training options for dropdown
+        const trainingOptions = DataStore.trainingTypes.map(t => ({
+            value: t.TrainingID,
+            label: t.TrainingName || t.Name
+        }));
+
+        const isEdit = !!existingRecord;
+        const today = new Date().toISOString().split('T')[0];
+
+        const content = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>${isEdit ? 'Update' : 'Add'} Training Record</h3>
+                    <button class="modal-close" onclick="Components.closeModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Person:</strong> ${person.FirstName} ${person.LastName}</p>
+                    <form id="person-training-form">
+                        <input type="hidden" name="PersonnelID" value="${personId}">
+                        ${trainingId
+                            ? `<input type="hidden" name="TrainingID" value="${trainingId}">
+                               <div class="form-group">
+                                   <label>Training</label>
+                                   <input type="text" value="${trainingName}" disabled>
+                               </div>`
+                            : Components.formField({
+                                type: 'select',
+                                name: 'TrainingID',
+                                label: 'Training',
+                                required: true,
+                                options: trainingOptions
+                            })
+                        }
+                        ${Components.formField({
+                            type: 'date',
+                            name: 'CompletedDate',
+                            label: 'Completion Date',
+                            value: existingRecord?.CompletedDate || today,
+                            required: true
+                        })}
+                        ${Components.formField({
+                            type: 'date',
+                            name: 'ExpirationDate',
+                            label: 'Expiration Date',
+                            value: existingRecord?.ExpirationDate || '',
+                            required: true
+                        })}
+                        ${Components.formField({
+                            type: 'textarea',
+                            name: 'Notes',
+                            label: 'Notes',
+                            value: existingRecord?.Notes || ''
+                        })}
+                    </form>
+                    <div class="form-help">
+                        <small><i class="fas fa-info-circle"></i> Tip: Click "Calculate Expiration" to auto-calculate based on training validity period.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="PersonnelView.calculateExpiration()">
+                        <i class="fas fa-calculator"></i> Calculate Expiration
+                    </button>
+                    <button class="btn btn-secondary" onclick="Components.closeModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="PersonnelView.saveTrainingRecord(${isEdit})">
+                        <i class="fas fa-save"></i> ${isEdit ? 'Update' : 'Add'} Record
+                    </button>
+                </div>
+            </div>
+        `;
+
+        Components.openModal(content);
+    },
+
+    /**
+     * Calculate expiration date based on completion date and training validity
+     */
+    calculateExpiration() {
+        const form = document.getElementById('person-training-form');
+        const trainingId = form.querySelector('[name="TrainingID"]').value;
+        const completionDate = form.querySelector('[name="CompletedDate"]').value;
+
+        if (!trainingId || !completionDate) {
+            Components.toast('Please select a training and completion date first', 'warning');
+            return;
+        }
+
+        const training = DataStore.getTrainingType(trainingId);
+        if (!training) {
+            Components.toast('Training type not found', 'error');
+            return;
+        }
+
+        const validityMonths = parseInt(training.ValidityMonths) || 12;
+        const completion = new Date(completionDate);
+        const expiration = new Date(completion);
+        expiration.setMonth(expiration.getMonth() + validityMonths);
+
+        form.querySelector('[name="ExpirationDate"]').value = expiration.toISOString().split('T')[0];
+        Components.toast(`Expiration set to ${validityMonths} months from completion`, 'success');
+    },
+
+    /**
+     * Save training record
+     */
+    saveTrainingRecord(isEdit) {
+        const form = document.getElementById('person-training-form');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        data.Status = 'Current';
+
+        if (isEdit) {
+            // Update existing record
+            const index = DataStore.personnelTraining.findIndex(
+                r => r.PersonnelID === data.PersonnelID && r.TrainingID === data.TrainingID
+            );
+            if (index !== -1) {
+                DataStore.personnelTraining[index] = { ...DataStore.personnelTraining[index], ...data };
+            }
+        } else {
+            // Check if record already exists
+            const existing = DataStore.personnelTraining.find(
+                r => r.PersonnelID === data.PersonnelID && r.TrainingID === data.TrainingID
+            );
+            if (existing) {
+                // Update instead
+                Object.assign(existing, data);
+            } else {
+                // Add new record
+                data.ID = Utils.generateId('PTR');
+                DataStore.personnelTraining.push(data);
+            }
+        }
+
+        DataStore.saveToCache();
+        Components.closeModal();
+
+        // Refresh the person view
+        this.viewPerson(data.PersonnelID);
+        Components.toast(`Training record ${isEdit ? 'updated' : 'added'} successfully`, 'success');
     },
 
     /**
