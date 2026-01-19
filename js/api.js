@@ -453,6 +453,54 @@ const SheetsAPI = {
     },
 
     /**
+     * Delete sheets that are not needed by the Personnel Tracker
+     */
+    async deleteUnusedSheets() {
+        if (!this.isConfigured()) {
+            throw new Error('Please sign in to Google first');
+        }
+
+        try {
+            // Get existing sheets
+            const response = await gapi.client.sheets.spreadsheets.get({
+                spreadsheetId: CONFIG.SPREADSHEET_ID
+            });
+
+            const existingSheets = response.result.sheets;
+            const requiredSheets = Object.values(CONFIG.SHEETS);
+
+            // Find sheets to delete (not in required list)
+            const sheetsToDelete = existingSheets.filter(sheet =>
+                !requiredSheets.includes(sheet.properties.title)
+            );
+
+            if (sheetsToDelete.length === 0) {
+                console.log('No unused sheets to delete');
+                return { deleted: [], kept: requiredSheets };
+            }
+
+            // Create delete requests
+            const requests = sheetsToDelete.map(sheet => ({
+                deleteSheet: {
+                    sheetId: sheet.properties.sheetId
+                }
+            }));
+
+            await gapi.client.sheets.spreadsheets.batchUpdate({
+                spreadsheetId: CONFIG.SPREADSHEET_ID,
+                resource: { requests }
+            });
+
+            const deletedNames = sheetsToDelete.map(s => s.properties.title);
+            console.log('Deleted sheets:', deletedNames);
+            return { deleted: deletedNames, kept: requiredSheets };
+        } catch (error) {
+            console.error('Error deleting unused sheets:', error);
+            throw error;
+        }
+    },
+
+    /**
      * Test connection to Google Sheets
      */
     async testConnection() {

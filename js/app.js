@@ -183,6 +183,11 @@ const App = {
             this.initializeSheets();
         });
 
+        // Delete Unused Sheets button
+        document.getElementById('delete-unused-sheets-btn')?.addEventListener('click', () => {
+            this.deleteUnusedSheets();
+        });
+
         // Save settings button
         document.getElementById('save-settings-btn')?.addEventListener('click', () => {
             this.saveSettings();
@@ -479,6 +484,37 @@ const App = {
         } catch (error) {
             Components.hideLoading();
             Components.toast('Failed to initialize sheets: ' + error.message, 'error');
+        }
+    },
+
+    /**
+     * Delete unused sheets from the spreadsheet
+     */
+    async deleteUnusedSheets() {
+        if (!SheetsAPI.isSignedIn()) {
+            Components.toast('Please sign in to Google first', 'warning');
+            return;
+        }
+
+        // Confirm with user
+        if (!confirm('This will delete all sheets that are not used by Personnel Tracker (e.g., old StageWise sheets). This cannot be undone. Continue?')) {
+            return;
+        }
+
+        try {
+            Components.showLoading('Deleting unused sheets...');
+            const result = await SheetsAPI.deleteUnusedSheets();
+
+            if (result.deleted.length > 0) {
+                Components.toast(`Deleted ${result.deleted.length} sheets: ${result.deleted.join(', ')}`, 'success');
+            } else {
+                Components.toast('No unused sheets to delete', 'info');
+            }
+
+            Components.hideLoading();
+        } catch (error) {
+            Components.hideLoading();
+            Components.toast('Failed to delete sheets: ' + error.message, 'error');
         }
     },
 
