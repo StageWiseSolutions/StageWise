@@ -10,7 +10,7 @@ const CONFIG = {
 
     // OAuth Configuration (for read/write access)
     CLIENT_ID: '110270758432-i5tmkuq7ve7vc1pijlc2p7o70ib0879r.apps.googleusercontent.com',
-    SCOPES: 'https://www.googleapis.com/auth/spreadsheets'
+    SCOPES: 'https://www.googleapis.com/auth/spreadsheets',
 
     // Sheet Names (must match exactly with your Google Sheets tabs)
     SHEETS: {
