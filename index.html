@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Personnel & Shift Tracker</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google APIs for Sheets integration -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle Sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="app-title">
+                <i class="fas fa-users-cog"></i>
+                Personnel & Shift Tracker
+            </h1>
+        </div>
+        <div class="header-right">
+            <div class="header-info">
+                <span id="current-date" class="current-date"></span>
+                <span id="google-user-info" class="google-user-info" style="display: none;"></span>
+                <span id="connection-status" class="connection-status">
+                    <i class="fas fa-circle"></i>
+                    <span>Connecting...</span>
+                </span>
+            </div>
+            <button id="google-signin-btn" class="btn btn-google" title="Sign in with Google">
+                <i class="fab fa-google"></i> Sign In
+            </button>
+            <button id="google-signout-btn" class="btn btn-secondary" title="Sign Out" style="display: none;">
+                <i class="fas fa-sign-out-alt"></i> Sign Out
+            </button>
+            <button id="refresh-btn" class="btn btn-icon" title="Refresh Data">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button id="settings-btn" class="btn btn-icon" title="Settings">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-section">
+                <h3 class="sidebar-section-title">Dashboard</h3>
+                <ul class="nav-menu">
+                    <li>
+                        <a href="#" class="nav-item active" data-view="dashboard">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Overview</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="sidebar-section-title">Personnel</h3>
+                <ul class="nav-menu">
+                    <li>
+                        <a href="#" class="nav-item" data-view="personnel">
+                            <i class="fas fa-users"></i>
+                            <span>All Personnel</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item" data-view="teams">
+                            <i class="fas fa-user-friends"></i>
+                            <span>Teams</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item" data-view="positions">
+                            <i class="fas fa-briefcase"></i>
+                            <span>Positions</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="sidebar-section-title">Training</h3>
+                <ul class="nav-menu">
+                    <li>
+                        <a href="#" class="nav-item" data-view="training-overview">
+                            <i class="fas fa-graduation-cap"></i>
+                            <span>Training Overview</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item" data-view="training-types">
+                            <i class="fas fa-list-check"></i>
+                            <span>Training Types</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item" data-view="training-matrix">
+                            <i class="fas fa-table-cells"></i>
+                            <span>Training Matrix</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item" data-view="expiring-training">
+                            <i class="fas fa-clock"></i>
+                            <span>Expiring Soon</span>
+                            <span id="expiring-badge" class="badge badge-warning">0</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="sidebar-section-title">Scheduling</h3>
+                <ul class="nav-menu">
+                    <li>
+                        <a href="#" class="nav-item" data-view="schedule-calendar">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Calendar View</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item" data-view="schedule-team">
+                            <i class="fas fa-calendar-week"></i>
+                            <span>Team Schedule</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item" data-view="whos-working">
+                            <i class="fas fa-user-clock"></i>
+                            <span>Who's Working</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item" data-view="rotation-patterns">
+                            <i class="fas fa-rotate"></i>
+                            <span>Rotation Patterns</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="sidebar-section-title">Assignments</h3>
+                <ul class="nav-menu">
+                    <li>
+                        <a href="#" class="nav-item" data-view="straights">
+                            <i class="fas fa-building"></i>
+                            <span>Straights Weeks</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item" data-view="shift-swaps">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>Shift Swaps</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="sidebar-section-title">Reports</h3>
+                <ul class="nav-menu">
+                    <li>
+                        <a href="#" class="nav-item" data-view="reports">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main id="main-content" class="main-content">
+            <!-- Dashboard View -->
+            <section id="view-dashboard" class="view active">
+                <div class="view-header">
+                    <h2>Dashboard Overview</h2>
+                    <p class="view-subtitle">Quick snapshot of your organization</p>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-blue">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="stat-total-personnel">--</span>
+                            <span class="stat-label">Total Personnel</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-green">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="stat-on-shift">--</span>
+                            <span class="stat-label">On Shift Today</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-orange">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="stat-training-due">--</span>
+                            <span class="stat-label">Training Due Soon</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-purple">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="stat-on-straights">--</span>
+                            <span class="stat-label">On Straights</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Panels -->
+                <div class="dashboard-grid">
+                    <!-- Today's Coverage -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-sun"></i> Today's Coverage</h3>
+                            <span id="today-date" class="panel-date"></span>
+                        </div>
+                        <div class="panel-body">
+                            <div id="todays-coverage" class="coverage-grid">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Training Alerts -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-bell"></i> Training Alerts</h3>
+                            <a href="#" class="panel-link" data-view="expiring-training">View All</a>
+                        </div>
+                        <div class="panel-body">
+                            <div id="training-alerts" class="alert-list">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Team Status -->
+                    <div class="panel panel-wide">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-user-friends"></i> Team Status</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div id="team-status" class="team-status-grid">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div id="recent-activity" class="activity-list">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Straights -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-calendar-check"></i> Upcoming Straights</h3>
+                            <a href="#" class="panel-link" data-view="straights">View All</a>
+                        </div>
+                        <div class="panel-body">
+                            <div id="upcoming-straights" class="straights-list">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Personnel View -->
+            <section id="view-personnel" class="view">
+                <div class="view-header">
+                    <div class="view-header-left">
+                        <h2>Personnel Management</h2>
+                        <p class="view-subtitle">Manage all personnel records</p>
+                    </div>
+                    <div class="view-header-actions">
+                        <button id="add-personnel-btn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Personnel
+                        </button>
+                        <button id="export-personnel-btn" class="btn btn-secondary">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters-bar">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="personnel-search" placeholder="Search by name, ID, or badge...">
+                    </div>
+                    <div class="filter-group">
+                        <select id="filter-team" class="filter-select">
+                            <option value="">All Teams</option>
+                        </select>
+                        <select id="filter-position" class="filter-select">
+                            <option value="">All Positions</option>
+                        </select>
+                        <select id="filter-status" class="filter-select">
+                            <option value="">All Statuses</option>
+                            <option value="Active">Active</option>
+                            <option value="LOA">LOA</option>
+                            <option value="Terminated">Terminated</option>
+                        </select>
+                    </div>
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active" data-display="table" title="Table View">
+                            <i class="fas fa-table"></i>
+                        </button>
+                        <button class="view-toggle-btn" data-display="cards" title="Card View">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Personnel Table -->
+                <div id="personnel-table-container" class="table-container">
+                    <table class="data-table" id="personnel-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="LastName">Name <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="EmployeeNumber">Employee # <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="TeamID">Team <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="PositionID">Position <i class="fas fa-sort"></i></th>
+                                <th>Training Status</th>
+                                <th class="sortable" data-sort="Status">Status <i class="fas fa-sort"></i></th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="personnel-table-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Personnel Cards (Alternative View) -->
+                <div id="personnel-cards-container" class="cards-container hidden">
+                    <!-- Populated by JavaScript -->
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="personnel-pagination">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Teams View -->
+            <section id="view-teams" class="view">
+                <div class="view-header">
+                    <div class="view-header-left">
+                        <h2>Teams</h2>
+                        <p class="view-subtitle">Manage shift teams</p>
+                    </div>
+                    <div class="view-header-actions">
+                        <button id="add-team-btn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Team
+                        </button>
+                    </div>
+                </div>
+
+                <div id="teams-grid" class="teams-grid">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Positions View -->
+            <section id="view-positions" class="view">
+                <div class="view-header">
+                    <div class="view-header-left">
+                        <h2>Positions</h2>
+                        <p class="view-subtitle">Manage positions and their training requirements</p>
+                    </div>
+                    <div class="view-header-actions">
+                        <button id="add-position-btn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Position
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" id="positions-table">
+                        <thead>
+                            <tr>
+                                <th>Position ID</th>
+                                <th>Title</th>
+                                <th>Department</th>
+                                <th>Level</th>
+                                <th>Required Training</th>
+                                <th>Personnel Count</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positions-table-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Training Overview View -->
+            <section id="view-training-overview" class="view">
+                <div class="view-header">
+                    <h2>Training Overview</h2>
+                    <p class="view-subtitle">Organization-wide training compliance</p>
+                </div>
+
+                <!-- Training Stats -->
+                <div class="stats-grid stats-grid-4">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-green">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="stat-training-current">--</span>
+                            <span class="stat-label">Current</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-orange">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="stat-training-expiring">--</span>
+                            <span class="stat-label">Expiring Soon</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-red">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="stat-training-expired">--</span>
+                            <span class="stat-label">Expired</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-gray">
+                            <i class="fas fa-minus-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="stat-training-missing">--</span>
+                            <span class="stat-label">Missing</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Compliance by Team -->
+                <div class="panel panel-full">
+                    <div class="panel-header">
+                        <h3>Compliance by Team</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div id="training-by-team" class="compliance-bars">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Training Types View -->
+            <section id="view-training-types" class="view">
+                <div class="view-header">
+                    <div class="view-header-left">
+                        <h2>Training Types</h2>
+                        <p class="view-subtitle">Manage training courses and certifications</p>
+                    </div>
+                    <div class="view-header-actions">
+                        <button id="add-training-type-btn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Training Type
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" id="training-types-table">
+                        <thead>
+                            <tr>
+                                <th>Training ID</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Validity (Months)</th>
+                                <th>Required By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="training-types-table-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Training Matrix View -->
+            <section id="view-training-matrix" class="view">
+                <div class="view-header">
+                    <div class="view-header-left">
+                        <h2>Training Matrix</h2>
+                        <p class="view-subtitle">Personnel vs Training requirements</p>
+                    </div>
+                    <div class="view-header-actions">
+                        <select id="matrix-team-filter" class="filter-select">
+                            <option value="">All Teams</option>
+                        </select>
+                        <button id="export-matrix-btn" class="btn btn-secondary">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <div class="matrix-container">
+                    <table class="matrix-table" id="training-matrix-table">
+                        <thead id="training-matrix-header">
+                            <!-- Populated by JavaScript -->
+                        </thead>
+                        <tbody id="training-matrix-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="matrix-legend">
+                    <span class="legend-item"><span class="legend-color bg-green"></span> Current</span>
+                    <span class="legend-item"><span class="legend-color bg-orange"></span> Expiring Soon</span>
+                    <span class="legend-item"><span class="legend-color bg-red"></span> Expired</span>
+                    <span class="legend-item"><span class="legend-color bg-gray"></span> Not Required</span>
+                    <span class="legend-item"><span class="legend-color bg-white"></span> Missing</span>
+                </div>
+            </section>
+
+            <!-- Expiring Training View -->
+            <section id="view-expiring-training" class="view">
+                <div class="view-header">
+                    <div class="view-header-left">
+                        <h2>Expiring Training</h2>
+                        <p class="view-subtitle">Training expiring within the next 30 days</p>
+                    </div>
+                    <div class="view-header-actions">
+                        <select id="expiring-days-filter" class="filter-select">
+                            <option value="30">Next 30 Days</option>
+                            <option value="60">Next 60 Days</option>
+                            <option value="90">Next 90 Days</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" id="expiring-training-table">
+                        <thead>
+                            <tr>
+                                <th>Person</th>
+                                <th>Team</th>
+                                <th>Training</th>
+                                <th>Expiration Date</th>
+                                <th>Days Remaining</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expiring-training-table-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Schedule Calendar View -->
+            <section id="view-schedule-calendar" class="view">
+                <div class="view-header">
+                    <div class="view-header-left">
+                        <h2>Schedule Calendar</h2>
+                        <p class="view-subtitle">Monthly calendar view</p>
+                    </div>
+                    <div class="view-header-actions">
+                        <div class="calendar-nav">
+                            <button id="cal-prev-month" class="btn btn-icon"><i class="fas fa-chevron-left"></i></button>
+                            <span id="cal-current-month" class="calendar-month-label">January 2024</span>
+                            <button id="cal-next-month" class="btn btn-icon"><i class="fas fa-chevron-right"></i></button>
+                            <button id="cal-today" class="btn btn-secondary">Today</button>
+                        </div>
+                        <select id="calendar-team-filter" class="filter-select">
+                            <option value="">All Teams</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <div class="calendar-day-header">Sun</div>
+                        <div class="calendar-day-header">Mon</div>
+                        <div class="calendar-day-header">Tue</div>
+                        <div class="calendar-day-header">Wed</div>
+                        <div class="calendar-day-header">Thu</div>
+                        <div class="calendar-day-header">Fri</div>
+                        <div class="calendar-day-header">Sat</div>
+                    </div>
+                    <div id="calendar-grid" class="calendar-grid">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="calendar-legend">
+                    <span class="legend-item"><span class="legend-color shift-day"></span> Day Shift</span>
+                    <span class="legend-item"><span class="legend-color shift-night"></span> Night Shift</span>
+                    <span class="legend-item"><span class="legend-color shift-straights"></span> Straights</span>
+                    <span class="legend-item"><span class="legend-color shift-off"></span> Off</span>
+                </div>
+            </section>
+
+            <!-- Team Schedule View -->
+            <section id="view-schedule-team" class="view">
+                <div class="view-header">
+                    <div class="view-header-left">
+                        <h2>Team Schedule</h2>
+                        <p class="view-subtitle">Weekly team view</p>
+                    </div>
+                    <div class="view-header-actions">
+                        <div class="week-nav">
+                            <button id="week-prev" class="btn btn-icon"><i class="fas fa-chevron-left"></i></button>
+                            <span id="week-label" class="week-label">Week of Jan 1, 2024</span>
+                            <button id="week-next" class="btn btn-icon"><i class="fas fa-chevron-right"></i></button>
+                            <button id="week-current" class="btn btn-secondary">This Week</button>
+                        </div>
+                        <select id="team-schedule-filter" class="filter-select">
+                            <option value="">All Teams</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="schedule-table" id="team-schedule-table">
+                        <thead id="team-schedule-header">
+                            <!-- Populated by JavaScript -->
+                        </thead>
+                        <tbody id="team-schedule-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Who's Working View -->
+            <section id="view-whos-working" class="view">
+                <div class="view-header">
+                    <div class="view-header-left">
+                        <h2>Who's Working</h2>
+                        <p class="view-subtitle">Current shift coverage</p>
+                    </div>
+                    <div class="view-header-actions">
+                        <input type="date" id="whos-working-date" class="date-input">
+                        <select id="whos-working-shift" class="filter-select">
+                            <option value="">All Shifts</option>
+                            <option value="Day">Day Shift</option>
+                            <option value="Night">Night Shift</option>
+                            <option value="Straights">Straights</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="whos-working-grid" class="whos-working-grid">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Rotation Patterns View -->
+            <section id="view-rotation-patterns" class="view">
+                <div class="view-header">
+                    <div class="view-header-left">
+                        <h2>Rotation Patterns</h2>
+                        <p class="view-subtitle">Configure shift rotation patterns</p>
+                    </div>
+                    <div class="view-header-actions">
+                        <button id="add-pattern-btn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Pattern
+                        </button>
+                        <button id="generate-schedule-btn" class="btn btn-success">
+                            <i class="fas fa-calendar-plus"></i> Generate Schedule
+                        </button>
+                    </div>
+                </div>
+
+                <div id="patterns-list" class="patterns-list">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Straights Weeks View -->
+            <section id="view-straights" class="view">
+                <div class="view-header">
+                    <div class="view-header-left">
+                        <h2>Straights Weeks</h2>
+                        <p class="view-subtitle">Track 8-hour day assignments</p>
+                    </div>
+                    <div class="view-header-actions">
+                        <button id="add-straights-btn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Straights Assignment
+                        </button>
+                    </div>
+                </div>
+
+                <div class="filters-bar">
+                    <select id="straights-team-filter" class="filter-select">
+                        <option value="">All Teams</option>
+                    </select>
+                    <select id="straights-status-filter" class="filter-select">
+                        <option value="">All</option>
+                        <option value="upcoming">Upcoming</option>
+                        <option value="current">Current</option>
+                        <option value="past">Past</option>
+                    </select>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" id="straights-table">
+                        <thead>
+                            <tr>
+                                <th>Person</th>
+                                <th>Team</th>
+                                <th>Week Start</th>
+                                <th>Week End</th>
+                                <th>Location</th>
+                                <th>Hours</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="straights-table-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Shift Swaps View -->
+            <section id="view-shift-swaps" class="view">
+                <div class="view-header">
+                    <div class="view-header-left">
+                        <h2>Shift Swaps</h2>
+                        <p class="view-subtitle">Manage shift swap requests</p>
+                    </div>
+                    <div class="view-header-actions">
+                        <button id="add-swap-btn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> New Swap Request
+                        </button>
+                    </div>
+                </div>
+
+                <div class="filters-bar">
+                    <select id="swap-status-filter" class="filter-select">
+                        <option value="">All Statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" id="swaps-table">
+                        <thead>
+                            <tr>
+                                <th>Requestor</th>
+                                <th>Original Date</th>
+                                <th>Swap With</th>
+                                <th>Swap Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="swaps-table-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Reports View -->
+            <section id="view-reports" class="view">
+                <div class="view-header">
+                    <h2>Reports</h2>
+                    <p class="view-subtitle">Generate and export reports</p>
+                </div>
+
+                <div class="reports-grid">
+                    <div class="report-card" data-report="personnel-roster">
+                        <div class="report-icon"><i class="fas fa-users"></i></div>
+                        <h3>Personnel Roster</h3>
+                        <p>Complete list of all personnel with contact info</p>
+                        <button class="btn btn-primary">Generate</button>
+                    </div>
+                    <div class="report-card" data-report="training-compliance">
+                        <div class="report-icon"><i class="fas fa-graduation-cap"></i></div>
+                        <h3>Training Compliance</h3>
+                        <p>Training status for all personnel</p>
+                        <button class="btn btn-primary">Generate</button>
+                    </div>
+                    <div class="report-card" data-report="schedule-export">
+                        <div class="report-icon"><i class="fas fa-calendar"></i></div>
+                        <h3>Schedule Export</h3>
+                        <p>Export schedule for date range</p>
+                        <button class="btn btn-primary">Generate</button>
+                    </div>
+                    <div class="report-card" data-report="team-summary">
+                        <div class="report-icon"><i class="fas fa-chart-pie"></i></div>
+                        <h3>Team Summary</h3>
+                        <p>Team composition and statistics</p>
+                        <button class="btn btn-primary">Generate</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Container -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div id="modal-container" class="modal-container">
+            <!-- Modal content populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading...</span>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="modal-close" data-close="settings-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h4>Google Sheets Connection</h4>
+                    <div class="form-group">
+                        <label>Connection Status</label>
+                        <div id="settings-connection-status" class="connection-status-box">
+                            <i class="fas fa-circle text-gray"></i>
+                            <span>Not connected - Please sign in with Google</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-spreadsheet-id">Spreadsheet ID</label>
+                        <input type="text" id="setting-spreadsheet-id" placeholder="Enter your Google Sheets ID" readonly>
+                        <small>Using configured spreadsheet. Contact admin to change.</small>
+                    </div>
+                    <div class="form-row">
+                        <button id="test-connection-btn" class="btn btn-secondary">
+                            <i class="fas fa-plug"></i> Test Connection
+                        </button>
+                        <button id="init-sheets-btn" class="btn btn-primary">
+                            <i class="fas fa-table"></i> Initialize Sheets
+                        </button>
+                    </div>
+                    <small class="help-text">Initialize Sheets will create any missing sheets in your Google Spreadsheet with the required columns.</small>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Shift Times</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="setting-day-start">Day Shift Start</label>
+                            <input type="time" id="setting-day-start" value="06:00">
+                        </div>
+                        <div class="form-group">
+                            <label for="setting-day-end">Day Shift End</label>
+                            <input type="time" id="setting-day-end" value="18:00">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="setting-night-start">Night Shift Start</label>
+                            <input type="time" id="setting-night-start" value="18:00">
+                        </div>
+                        <div class="form-group">
+                            <label for="setting-night-end">Night Shift End</label>
+                            <input type="time" id="setting-night-end" value="06:00">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="setting-straights-start">Straights Start</label>
+                            <input type="time" id="setting-straights-start" value="07:00">
+                        </div>
+                        <div class="form-group">
+                            <label for="setting-straights-end">Straights End</label>
+                            <input type="time" id="setting-straights-end" value="15:00">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Training Alerts</h4>
+                    <div class="form-group">
+                        <label for="setting-warning-days">Warning Days Before Expiration</label>
+                        <input type="number" id="setting-warning-days" value="30" min="1" max="90">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-close="settings-modal">Cancel</button>
+                <button id="save-settings-btn" class="btn btn-primary">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/data-store.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/views/dashboard.js"></script>
+    <script src="js/views/personnel.js"></script>
+    <script src="js/views/teams.js"></script>
+    <script src="js/views/positions.js"></script>
+    <script src="js/views/training.js"></script>
+    <script src="js/views/schedule.js"></script>
+    <script src="js/views/straights.js"></script>
+    <script src="js/views/swaps.js"></script>
+    <script src="js/views/reports.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
