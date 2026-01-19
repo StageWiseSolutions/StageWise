@@ -380,6 +380,16 @@ img {
     background: #dc2626;
 }
 
+.btn-info {
+    background: var(--info);
+    color: white;
+    border-color: var(--info);
+}
+
+.btn-info:hover:not(:disabled) {
+    background: #0284c7;
+}
+
 .btn-icon {
     padding: 0.5rem;
     width: 2.25rem;
