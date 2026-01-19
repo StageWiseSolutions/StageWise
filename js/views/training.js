@@ -118,11 +118,12 @@ const TrainingView = {
         tbody.innerHTML = DataStore.trainingTypes.map(training => {
             const requiredBy = DataStore.positionTraining.filter(pt => pt.TrainingID === training.TrainingID);
             const positions = requiredBy.map(pt => DataStore.getPositionTitle(pt.PositionID));
+            const trainingName = training.TrainingName || training.Name || '';
 
             return `
                 <tr>
                     <td>${training.TrainingID}</td>
-                    <td><strong>${Utils.escapeHtml(training.Name)}</strong></td>
+                    <td><strong>${Utils.escapeHtml(trainingName)}</strong></td>
                     <td><span class="badge badge-secondary">${training.Category}</span></td>
                     <td>${training.ValidityMonths} months</td>
                     <td>${positions.length > 0 ? positions.join(', ') : '<span class="text-muted">None</span>'}</td>
@@ -147,6 +148,7 @@ const TrainingView = {
     showAddTrainingTypeModal(trainingId = null) {
         const training = trainingId ? DataStore.getTrainingType(trainingId) : null;
         const isEdit = !!training;
+        const trainingName = training ? (training.TrainingName || training.Name || '') : '';
 
         const categoryOptions = CONFIG.TRAINING.CATEGORIES.map(c => ({ value: c, label: c }));
 
@@ -159,7 +161,7 @@ const TrainingView = {
                 <div class="modal-body">
                     <form id="training-type-form">
                         ${Components.formField({ name: 'TrainingID', label: 'Training ID', value: training?.TrainingID, required: true, disabled: isEdit })}
-                        ${Components.formField({ name: 'Name', label: 'Training Name', value: training?.Name, required: true })}
+                        ${Components.formField({ name: 'TrainingName', label: 'Training Name', value: trainingName, required: true })}
                         ${Components.formField({ type: 'textarea', name: 'Description', label: 'Description', value: training?.Description })}
                         ${Components.formField({ type: 'select', name: 'Category', label: 'Category', value: training?.Category || 'Safety', required: true, options: categoryOptions })}
                         ${Components.formField({ type: 'number', name: 'ValidityMonths', label: 'Validity (Months)', value: training?.ValidityMonths || '12', required: true })}
@@ -224,7 +226,7 @@ const TrainingView = {
         if (!training) return;
 
         const confirmed = await Components.confirm(
-            `Are you sure you want to delete "${training.Name}"?`,
+            `Are you sure you want to delete "${training.TrainingName || training.Name}"?`,
             { title: 'Delete Training Type', danger: true, confirmText: 'Delete' }
         );
 
@@ -261,7 +263,7 @@ const TrainingView = {
                 <th class="sticky-col">Name</th>
                 <th>Team</th>
                 <th>Position</th>
-                ${trainings.map(t => `<th class="rotate"><div>${Utils.escapeHtml(t.Name)}</div></th>`).join('')}
+                ${trainings.map(t => `<th class="rotate"><div>${Utils.escapeHtml(t.TrainingName || t.Name || '')}</div></th>`).join('')}
             </tr>
         `;
 
@@ -347,7 +349,7 @@ const TrainingView = {
                         <br><small>${item.person?.EmployeeNumber}</small>
                     </td>
                     <td><span class="team-badge" style="background-color: ${team?.Color}">${team?.TeamName}</span></td>
-                    <td>${item.training?.Name}</td>
+                    <td>${item.training?.TrainingName || item.training?.Name}</td>
                     <td>${Utils.formatDate(item.ExpirationDate)}</td>
                     <td>
                         <span class="badge ${item.daysRemaining <= 7 ? 'badge-danger' : 'badge-warning'}">
@@ -379,7 +381,7 @@ const TrainingView = {
                 </div>
                 <div class="modal-body">
                     <p><strong>Person:</strong> ${person?.FirstName} ${person?.LastName}</p>
-                    <p><strong>Training:</strong> ${training?.Name}</p>
+                    <p><strong>Training:</strong> ${training?.TrainingName || training?.Name}</p>
                     <form id="record-training-form">
                         ${Components.formField({ type: 'date', name: 'CompletionDate', label: 'Completion Date', value: new Date().toISOString().split('T')[0], required: true })}
                         ${Components.formField({ type: 'textarea', name: 'Notes', label: 'Notes' })}
@@ -453,7 +455,7 @@ const TrainingView = {
         }
 
         const trainings = DataStore.trainingTypes;
-        const headers = ['Name', 'Team', 'Position', ...trainings.map(t => t.Name)];
+        const headers = ['Name', 'Team', 'Position', ...trainings.map(t => t.TrainingName || t.Name)];
 
         const data = personnel.map(person => {
             const records = DataStore.getPersonTrainingRecords(person.PersonID);
@@ -464,12 +466,13 @@ const TrainingView = {
             };
 
             trainings.forEach(training => {
+                const trainingName = training.TrainingName || training.Name;
                 const record = records.find(r => r.TrainingID === training.TrainingID);
                 if (record) {
                     const status = Utils.getTrainingStatus(record.ExpirationDate);
-                    row[training.Name] = `${status} (${Utils.formatDate(record.ExpirationDate)})`;
+                    row[trainingName] = `${status} (${Utils.formatDate(record.ExpirationDate)})`;
                 } else {
-                    row[training.Name] = 'Missing';
+                    row[trainingName] = 'Missing';
                 }
             });
 

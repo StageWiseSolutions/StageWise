@@ -163,14 +163,14 @@ const DataStore = {
 
         // Training Types
         this.trainingTypes = [
-            { TrainingID: 'TR001', Name: 'Safety Orientation', Description: 'Basic safety and emergency procedures', ValidityMonths: '12', Category: 'Safety' },
-            { TrainingID: 'TR002', Name: 'CPR/First Aid', Description: 'CPR and basic first aid certification', ValidityMonths: '24', Category: 'Safety' },
-            { TrainingID: 'TR003', Name: 'Lockout/Tagout', Description: 'LOTO procedures', ValidityMonths: '12', Category: 'Safety' },
-            { TrainingID: 'TR004', Name: 'Operator Certification', Description: 'Control room operations', ValidityMonths: '36', Category: 'Operations' },
-            { TrainingID: 'TR005', Name: 'Confined Space', Description: 'Confined space entry procedures', ValidityMonths: '12', Category: 'Safety' },
-            { TrainingID: 'TR006', Name: 'Fall Protection', Description: 'Working at heights', ValidityMonths: '12', Category: 'Safety' },
-            { TrainingID: 'TR007', Name: 'Forklift Operation', Description: 'Powered industrial truck operation', ValidityMonths: '36', Category: 'Equipment' },
-            { TrainingID: 'TR008', Name: 'Hazmat Awareness', Description: 'Hazardous materials handling', ValidityMonths: '12', Category: 'Safety' }
+            { TrainingID: 'TR001', TrainingName: 'Safety Orientation', Description: 'Basic safety and emergency procedures', ValidityMonths: '12', Category: 'Safety' },
+            { TrainingID: 'TR002', TrainingName: 'CPR/First Aid', Description: 'CPR and basic first aid certification', ValidityMonths: '24', Category: 'Safety' },
+            { TrainingID: 'TR003', TrainingName: 'Lockout/Tagout', Description: 'LOTO procedures', ValidityMonths: '12', Category: 'Safety' },
+            { TrainingID: 'TR004', TrainingName: 'Operator Certification', Description: 'Control room operations', ValidityMonths: '36', Category: 'Operations' },
+            { TrainingID: 'TR005', TrainingName: 'Confined Space', Description: 'Confined space entry procedures', ValidityMonths: '12', Category: 'Safety' },
+            { TrainingID: 'TR006', TrainingName: 'Fall Protection', Description: 'Working at heights', ValidityMonths: '12', Category: 'Safety' },
+            { TrainingID: 'TR007', TrainingName: 'Forklift Operation', Description: 'Powered industrial truck operation', ValidityMonths: '36', Category: 'Equipment' },
+            { TrainingID: 'TR008', TrainingName: 'Hazmat Awareness', Description: 'Hazardous materials handling', ValidityMonths: '12', Category: 'Safety' }
         ];
 
         // Position Training Requirements
